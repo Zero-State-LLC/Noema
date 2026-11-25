@@ -261,7 +261,11 @@ export default {
         }
       }
 
-      if (path.startsWith("/api/admin/studies/") || path.startsWith("/api/study-admin/invites/")) {
+      if (
+        path.startsWith("/api/admin/studies/") ||
+        path.startsWith("/api/study-admin/invites/") ||
+        path.startsWith("/api/study-admin/studies/")
+      ) {
         if (env.STUDY_ADMIN_UI_ENABLED !== "true" || !env.STUDY_ADMIN_DO) {
           return cors(
             new Response(
