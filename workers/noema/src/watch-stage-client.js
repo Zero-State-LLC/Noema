@@ -23,6 +23,7 @@ import {
   stageCameraTarget,
   stageDefaultView,
   stageLitRoutes,
+  stagePlaybackSchedule,
 } from "./watch-stage-model";
 
 const LIFT = { NORMAL: 0.25, NOTABLE: 0.45, MAJOR: 0.7 };
@@ -501,6 +502,61 @@ function mount(frame, opts) {
     request();
   }
 
+  // D6 paced playback: slots already scheduled keep their moment across a
+  // rebuild, and pause holds what is left instead of dropping it.
+  const playback = [];
+  let playbackPaused = false;
+
+  function playSequence(slot) {
+    let majorRoom = "";
+    for (const p of slot.pulses) {
+      // A rebuild can drop a site; a pulse with nowhere to land is skipped.
+      if (!groups.has(p.roomId)) continue;
+      if (p.tier === "MAJOR") {
+        majorRoom = p.roomId;
+        p.ring = majorRing(p.roomId);
+      }
+      pulses.push(p);
+    }
+    for (const c of slot.captions) addCaption(c);
+    if (majorRoom && framed) {
+      const target = stageCameraTarget(ctx, ctx, majorRoom, spectatorMoved);
+      if (target) focus(target);
+    }
+    request();
+  }
+
+  function firePlayback(entry) {
+    const at = playback.indexOf(entry);
+    if (at >= 0) playback.splice(at, 1);
+    entry.timer = 0;
+    playSequence(entry.slot);
+  }
+
+  function setPlayTimer(slot, delay) {
+    const entry = { timer: 0, sequence: slot.sequence, atMs: delay, startedAt: performance.now(), remaining: delay, slot };
+    playback.push(entry);
+    if (!playbackPaused) entry.timer = setTimeout(() => firePlayback(entry), delay);
+  }
+
+  function pausePlayback(on) {
+    const now = performance.now();
+    for (const entry of playback) {
+      if (!entry.timer) continue;
+      clearTimeout(entry.timer);
+      entry.remaining = Math.max(0, entry.atMs - (now - entry.startedAt));
+      entry.timer = 0;
+    }
+    playbackPaused = !!on;
+    if (on) return;
+    for (const entry of playback) {
+      const delay = Math.max(0, entry.remaining);
+      entry.atMs = delay;
+      entry.startedAt = performance.now();
+      entry.timer = setTimeout(() => firePlayback(entry), delay);
+    }
+  }
+
   function update(live, nextCtx) {
     if (disposed) return;
     const prevCtx = ctx;
@@ -544,15 +600,36 @@ function mount(frame, opts) {
     });
     const freshCaptions = newStageCaptions(live && live.recent_events, lastSeq, groups.keys());
     lastSeq = fresh.lastSequence;
-    let majorRoom = "";
-    for (const p of fresh.pulses) {
-      if (p.tier === "MAJOR") {
-        majorRoom = p.roomId;
-        p.ring = majorRing(p.roomId);
+    // D6 paced playback: one slot per fresh sequence, spaced by the public
+    // occurred_at deltas. A sequence's pulses and captions land together on
+    // its slot, so a burst reads at reading speed instead of all at once.
+    const eventAt = new Map();
+    const liveEvents = Array.isArray(live && live.recent_events) ? live.recent_events : [];
+    for (const ev of liveEvents) {
+      if (ev && typeof ev.sequence === "number" && typeof ev.occurred_at === "number") {
+        eventAt.set(ev.sequence, ev.occurred_at);
       }
-      pulses.push(p);
     }
-    for (const c of freshCaptions) addCaption(c);
+    const slots = new Map();
+    const slotFor = (sequence) => {
+      let slot = slots.get(sequence);
+      if (!slot) {
+        slot = { sequence: sequence, occurredAt: eventAt.get(sequence), pulses: [], captions: [] };
+        slots.set(sequence, slot);
+      }
+      return slot;
+    };
+    for (const p of fresh.pulses) slotFor(p.sequence).pulses.push(p);
+    for (const c of freshCaptions) slotFor(c.sequence).captions.push(c);
+    for (const row of stagePlaybackSchedule(Array.from(slots.values()))) {
+      const slot = slots.get(row.sequence);
+      if (!slot) continue;
+      // A slot at 0 plays in this frame, so the first snapshot is unchanged.
+      if (row.atMs <= 0) playSequence(slot);
+      else setPlayTimer(slot, row.atMs);
+    }
+    // Selection and Follow still move the camera in the same frame; a MAJOR
+    // pulse moves it when its slot plays (see playSequence).
     if (!framed) {
       framed = true;
       const v = defaultView();
@@ -560,7 +637,7 @@ function mount(frame, opts) {
       camera.position.copy(v.position);
       controls.update();
     } else {
-      const target = stageCameraTarget(prevCtx, ctx, majorRoom, spectatorMoved);
+      const target = stageCameraTarget(prevCtx, ctx, "", spectatorMoved);
       if (target) {
         if (target === ctx.selectedId || target === ctx.followRoomId) spectatorMoved = false;
         focus(target);
@@ -607,6 +684,8 @@ function mount(frame, opts) {
     if (frameId) cancelAnimationFrame(frameId);
     for (const entry of captions) if (entry.timer) clearTimeout(entry.timer);
     captions = [];
+    for (const entry of playback) if (entry.timer) clearTimeout(entry.timer);
+    playback.length = 0;
     for (const box of captionBoxes.values()) box.anchor.remove();
     captionBoxes.clear();
     clearWorld();
@@ -625,7 +704,7 @@ function mount(frame, opts) {
     renderer.dispose();
   }
 
-  return { update, focus, reset, dispose };
+  return { update, focus, reset, dispose, pause: pausePlayback };
 }
 
 window.NoemaWatchStage = { mount };
