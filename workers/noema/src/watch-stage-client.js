@@ -16,11 +16,13 @@ import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer
 import {
   STAGE_CAMERA_EASE_MS,
   buildStageModel,
+  newStageCaptions,
   newStagePulses,
   stageBandLine,
   stageCameraLimits,
   stageCameraTarget,
   stageDefaultView,
+  stageLitRoutes,
 } from "./watch-stage-model";
 
 const LIFT = { NORMAL: 0.25, NOTABLE: 0.45, MAJOR: 0.7 };
@@ -106,6 +108,9 @@ function mount(frame, opts) {
   let dirty = false;
   let disposed = false;
   const groups = new Map();
+  let routeEntries = [];
+  let captions = [];
+  const captionBoxes = new Map();
 
   function size() {
     const w = Math.max(1, frame.clientWidth);
@@ -158,6 +163,13 @@ function mount(frame, opts) {
       busy = true;
       return true;
     });
+    // §18.6 exit lighting: while an agent-move pulse lives, routes that touch
+    // its site read as lit. A brightness step, not a travelling animation.
+    const lit = stageLitRoutes(pulses.filter((p) => p.projectionId === "agent_move"), model.routes);
+    for (const entry of routeEntries) {
+      const on = lit.has(entry.from + "|" + entry.to);
+      for (const m of entry.mats) m.color.copy(on ? C.active : C.route);
+    }
     renderer.render(scene, camera);
     labels.render(scene, camera);
     declutter();
@@ -168,7 +180,7 @@ function mount(frame, opts) {
   // any label that would overlap a higher one into a marker that expands on
   // hover. Every name is also in the Places list.
   function declutter() {
-    const els = Array.from(labelRoot.querySelectorAll(".stage3d-label"));
+    const els = Array.from(labelRoot.querySelectorAll(".stage3d-label, .stage3d-nameplate"));
     els.sort((a, b) => Number(b.dataset.priority || 0) - Number(a.dataset.priority || 0));
     const placed = [];
     for (const el of els) {
@@ -208,6 +220,12 @@ function mount(frame, opts) {
       h.className = "stage3d-handles";
       h.textContent = site.players === 1 ? "1 agent" : site.players + " agents";
       el.append(h);
+    }
+    for (const t of site.tokens.filter((x) => x.line).slice(0, 2)) {
+      const l = document.createElement("span");
+      l.className = "stage3d-lines";
+      l.textContent = t.line;
+      el.append(l);
     }
     const bandLine = stageBandLine(site.bands);
     if (bandLine) {
@@ -271,11 +289,36 @@ function mount(frame, opts) {
       scar.computeLineDistances();
       g.add(scar);
     }
-    const pips = Math.min(site.players, 6);
-    for (let i = 0; i < pips; i++) {
-      const pip = new Mesh(shared.pip, new MeshStandardMaterial({ color: C.social, roughness: 0.6 }));
+    // One token per agent; the first six carry their public handle as a nameplate.
+    const named = site.tokens.slice(0, 6);
+    const tokenCount = named.length + site.unnamed;
+    for (let i = 0; i < tokenCount; i++) {
+      const tok = named[i];
+      const pip = new Mesh(shared.pip, new MeshStandardMaterial({
+        color: C.social,
+        roughness: 0.6,
+        emissive: tok ? C.active : 0x000000,
+        emissiveIntensity: tok ? 0.55 : 0,
+      }));
       pip.position.set(-0.75 + (i % 3) * 0.75, plate.position.y + 0.4, -0.45 + Math.floor(i / 3) * 0.6);
       g.add(pip);
+      if (tok) {
+        const npel = document.createElement("div");
+        npel.className = "stage3d-nameplate";
+        npel.textContent = tok.handle;
+        npel.dataset.priority = "-1";
+        const nameplate = new CSS2DObject(npel);
+        nameplate.position.set(pip.position.x, pip.position.y + 0.35, pip.position.z);
+        g.add(nameplate);
+      }
+    }
+    if (site.more > 0) {
+      const moreEl = document.createElement("div");
+      moreEl.className = "stage3d-more";
+      moreEl.textContent = "+" + site.more;
+      const moreObj = new CSS2DObject(moreEl);
+      moreObj.position.set(0.95, plate.position.y + 0.45, 0.95);
+      g.add(moreObj);
     }
     if (site.traces > 0) {
       const mark = new Mesh(shared.trace, new MeshBasicMaterial({ color: C.machine }));
@@ -324,6 +367,7 @@ function mount(frame, opts) {
     world = new Group();
     scene.add(world);
     groups.clear();
+    routeEntries = [];
     for (const p of pulses) p.ring = null;
   }
 
@@ -400,6 +444,63 @@ function mount(frame, opts) {
     return ring;
   }
 
+  // One caption stack per site, so captions that land together never overdraw.
+  function captionBox(roomId) {
+    let box = captionBoxes.get(roomId);
+    if (box) return box;
+    const g = groups.get(roomId);
+    if (!g) return null;
+    // A zero-height anchor: the stack grows upward from the point above the site.
+    const anchor = document.createElement("div");
+    anchor.className = "stage3d-says";
+    const el = document.createElement("div");
+    el.className = "stage3d-says-list";
+    anchor.append(el);
+    const obj = new CSS2DObject(anchor);
+    obj.position.set(0, 1.4, -PLATE / 2);
+    g.add(obj);
+    box = { obj, el, anchor };
+    captionBoxes.set(roomId, box);
+    return box;
+  }
+
+  function addCaption(c) {
+    const box = captionBox(c.roomId);
+    if (!box) return;
+    const el = document.createElement("div");
+    el.className = "stage3d-say" + (c.tier === "MAJOR" ? " is-major" : "");
+    if (c.actor) {
+      const b = document.createElement("b");
+      b.textContent = c.actor;
+      el.append(b, " ");
+    }
+    const lineEl = document.createElement("span");
+    lineEl.className = "stage3d-say-line";
+    lineEl.textContent = c.line;
+    el.append(lineEl);
+    if (c.consequence) {
+      const consEl = document.createElement("span");
+      consEl.className = "stage3d-say-consequence";
+      consEl.textContent = c.consequence;
+      el.append(consEl);
+    }
+    if (c.tier === "MAJOR") box.el.prepend(el);
+    else box.el.append(el);
+    const entry = { caption: c, el, timer: 0 };
+    entry.timer = setTimeout(() => {
+      captions = captions.filter((x) => x !== entry);
+      el.remove();
+      if (!box.el.childElementCount) {
+        if (box.obj.parent) box.obj.parent.remove(box.obj);
+        box.anchor.remove();
+        if (captionBoxes.get(c.roomId) === box) captionBoxes.delete(c.roomId);
+      }
+      request();
+    }, Math.max(0, c.holdMs));
+    captions.push(entry);
+    request();
+  }
+
   function update(live, nextCtx) {
     if (disposed) return;
     const prevCtx = ctx;
@@ -412,10 +513,16 @@ function mount(frame, opts) {
       groups.set(site.id, g);
       world.add(g);
     }
+    routeEntries = [];
     for (const r of model.routes) {
       const a = groups.get(r.from);
       const b = groups.get(r.to);
-      if (a && b) world.add(routeLine(r, a.position, b.position));
+      if (!a || !b) continue;
+      const grp = routeLine(r, a.position, b.position);
+      world.add(grp);
+      const mats = [];
+      grp.traverse((o) => { if (o.material && o.material.color) mats.push(o.material); });
+      routeEntries.push({ from: r.from, to: r.to, mats });
     }
     if (!framed || Math.abs(prevRadius - model.radius) > 0.01) {
       buildCompass(model.radius);
@@ -425,10 +532,17 @@ function mount(frame, opts) {
     for (const p of pulses) {
       if (p.tier === "MAJOR" && !p.ring && groups.has(p.roomId)) p.ring = majorRing(p.roomId);
     }
+    // Captions survive a rebuild too: re-home the ones still holding.
+    for (const [roomId, box] of captionBoxes) {
+      const g = groups.get(roomId);
+      if (g) g.add(box.obj);
+    }
+    // Captions read the same fresh window as pulses, before the sequence advances.
     const fresh = newStagePulses(live && live.recent_events, lastSeq, groups.keys(), {
       reduce,
       snapshotSequence: live && live.sequence,
     });
+    const freshCaptions = newStageCaptions(live && live.recent_events, lastSeq, groups.keys());
     lastSeq = fresh.lastSequence;
     let majorRoom = "";
     for (const p of fresh.pulses) {
@@ -438,6 +552,7 @@ function mount(frame, opts) {
       }
       pulses.push(p);
     }
+    for (const c of freshCaptions) addCaption(c);
     if (!framed) {
       framed = true;
       const v = defaultView();
@@ -490,6 +605,10 @@ function mount(frame, opts) {
     if (disposed) return;
     disposed = true;
     if (frameId) cancelAnimationFrame(frameId);
+    for (const entry of captions) if (entry.timer) clearTimeout(entry.timer);
+    captions = [];
+    for (const box of captionBoxes.values()) box.anchor.remove();
+    captionBoxes.clear();
     clearWorld();
     for (const geo of Object.values(shared)) geo.dispose();
     controls.dispose();
