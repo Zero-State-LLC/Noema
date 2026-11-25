@@ -1425,7 +1425,7 @@ describe("watch HTML surface", () => {
   it("keeps the public map before subordinate activity and chrome", () => {
     expect(html.indexOf('class="watch-col watch-map-col"')).toBeGreaterThan(-1);
     expect(html.indexOf('class="watch-col watch-map-col"')).toBeLessThan(html.indexOf('id="watch-hero"'));
-    expect(html).toMatch(/\.watch-stage\{display:grid;grid-template-columns:minmax\(0,1\.65fr\) minmax\(17rem,\.75fr\)/);
+    expect(html).toMatch(/\.watch-stage\{display:grid;grid-template-columns:minmax\(0,2\.15fr\) minmax\(19rem,24rem\)/);
     expect(html).toContain('class="watch-side" aria-label="Current and recent public activity"');
     expect(html).not.toContain('class="watch-atmos"');
     expect(html).not.toContain("watch-spectator.jpg");
