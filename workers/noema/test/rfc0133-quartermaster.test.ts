@@ -209,3 +209,42 @@ describe("RFC-0133 review fixes", () => {
     expect(projectionIdForEvent("RESOURCE_TRANSFER", { from_id: "player.a", to_id: "player.b" })).toBe("resource_change");
   });
 });
+
+describe("RFC-0133 amendment 1: treasury construction", () => {
+  it("builds a generator from vault cargo, owned by the org, actor pays fuel only", async () => {
+    const w = world();
+    const { qm, office_id } = await seatQuartermaster(w);
+    w.organizations["org.c"].treasury = { attention: 0, compute: 0, energy: 0, influence: 0, storage: 20 };
+    const pack = w.players[qm.player_id].budgets.storage;
+    const r = await run(w, qm, "BUILD", { operation: "CONSTRUCT", class: "generator", acting_for: "org.c", office_id });
+    expect(r.ok).toBe(true);
+    const gen = w.rooms["room.hub"].entities.find((e) => (e as { infra_type?: string }).infra_type === "generator");
+    expect((gen as { owner_id?: string }).owner_id).toBe("org.c");
+    expect(w.organizations["org.c"].treasury!.storage).toBe(20 - 5);
+    expect(w.players[qm.player_id].budgets.storage).toBe(pack);
+  });
+
+  it("refuses other classes, short vaults, and non-holders", async () => {
+    const w = world();
+    const { qm, other, office_id } = await seatQuartermaster(w);
+    w.organizations["org.c"].treasury = { attention: 0, compute: 0, energy: 0, influence: 0, storage: 3 };
+    const relay = await run(w, qm, "BUILD", { operation: "CONSTRUCT", class: "relay", acting_for: "org.c", office_id });
+    expect(relay.ok).toBe(false);
+    const short = await run(w, qm, "BUILD", { operation: "CONSTRUCT", class: "generator", acting_for: "org.c", office_id });
+    expect(short.error?.message).toBe("The treasury cannot pay this build.");
+    w.organizations["org.c"].treasury!.storage = 20;
+    const theirs = await run(w, other, "BUILD", { operation: "CONSTRUCT", class: "generator", acting_for: "org.c", office_id });
+    expect(theirs.ok).toBe(false);
+    expect(w.organizations["org.c"].treasury!.storage).toBe(20);
+  });
+
+  it("the holder sees treasury build affordances", async () => {
+    const w = world();
+    const { qm, office_id } = await seatQuartermaster(w);
+    w.organizations["org.c"].treasury = { attention: 0, compute: 0, energy: 0, influence: 0, storage: 20 };
+    const look = await run(w, qm, "LOOK");
+    const affs = (look.observation as { affordances?: Array<Record<string, unknown>> })?.affordances || [];
+    const builds = affs.filter((a) => a.operation === "CONSTRUCT" && a.office_id === office_id);
+    expect(builds.map((a) => a.class).sort()).toEqual(["generator", "storage_bay"]);
+  });
+});
