@@ -3591,7 +3591,7 @@ export function deriveAffordances(input: {
             const cls = classId as ConstructibleClass;
             if (liveClassInRoom(entities, cls)) continue;
             const base = CONSTRUCT_COSTS[cls];
-            const cargo = base.storage || 0;
+            const cargo = withWorkshopStorage({ ...base }, workshopStorageDiscount(entities)).storage || 0;
             const fuel = { ...base, storage: undefined };
             const vaultOk = (vault.storage ?? 0) >= cargo;
             const fuelOk = canPay(budgets, fuel);

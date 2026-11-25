@@ -4232,6 +4232,7 @@ export async function applyWorldCommand(
       // RFC-0133 amendment 1: the Quartermaster office builds generator/storage_bay with treasury cargo.
       const treasuryActingFor = action.arguments.acting_for ? String(action.arguments.acting_for) : undefined;
       let treasuryVault: Partial<Budgets> | undefined;
+      let treasuryOrgId: string | undefined;
       if (treasuryActingFor) {
         if (!TREASURY_CONSTRUCT_CLASSES.has(classId)) {
           return fail(request_id, "FORBIDDEN", "The treasury cannot fund that build.");
@@ -4242,6 +4243,7 @@ export async function applyWorldCommand(
         const vaultConflict = resolveOfficeConflict(w.organizations[grant.org_id], grant.office.office_id, "treasury");
         if (!vaultConflict.ok) return fail(request_id, vaultConflict.code, vaultConflict.message);
         treasuryVault = ensureTreasury(w.organizations[grant.org_id]);
+        treasuryOrgId = grant.org_id;
       }
       const storageNeed = treasuryVault
         ? base.storage || 0
@@ -4277,7 +4279,7 @@ export async function applyWorldCommand(
       }
       const entity_id = allocateInfraId(classId);
       const label = constructLabel(classId);
-      const builtOwner = treasuryActingFor && treasuryVault ? treasuryActingFor : principal.player_id;
+      const builtOwner = treasuryOrgId ?? principal.player_id;
       const created: EntityRuntime = {
         entity_id,
         label,

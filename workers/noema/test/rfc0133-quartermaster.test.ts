@@ -248,3 +248,16 @@ describe("RFC-0133 amendment 1: treasury construction", () => {
     expect(builds.map((a) => a.class).sort()).toEqual(["generator", "storage_bay"]);
   });
 });
+
+describe("RFC-0133 amendment 1 review fixes", () => {
+  it("owner is the resolved org id even with padded acting_for", async () => {
+    const w = world();
+    const { qm, office_id } = await seatQuartermaster(w);
+    w.organizations["org.c"].treasury = { attention: 0, compute: 0, energy: 0, influence: 0, storage: 20 };
+    const r = await run(w, qm, "BUILD", { operation: "CONSTRUCT", class: "storage_bay", acting_for: " org.c ", office_id });
+    if (r.ok) {
+      const bay = w.rooms["room.hub"].entities.find((e) => (e as { infra_type?: string }).infra_type === "storage_bay");
+      expect((bay as { owner_id?: string }).owner_id).toBe("org.c");
+    }
+  });
+});
