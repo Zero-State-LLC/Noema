@@ -153,7 +153,7 @@ const RFC_0132_CONTRACT = join(
 describe("RFC-0132 WATCH exposure decisions", () => {
   it("opens the three completed acts with one public line each", () => {
     const expected: Record<Op, { projection_id: string; line: string }> = {
-      RESTORE: { projection_id: "production", line: `A ruin was restored at ${PUBLIC_SITE}` },
+      RESTORE: { projection_id: "production", line: `An abandoned asset was restored at ${PUBLIC_SITE}` },
       VEST: { projection_id: "organization", line: `An asset at ${PUBLIC_SITE} passed into institutional hands` },
       PROMOTE: { projection_id: "production", line: `Construction finished at ${PUBLIC_SITE}` },
     };
@@ -169,6 +169,39 @@ describe("RFC-0132 WATCH exposure decisions", () => {
     for (const op of OPENED) {
       expect(feed([sourceEvent(op, HIDDEN_ENTITY_BY_OP[op])])).toEqual([]);
       expect(feed([sourceEvent(op, "entity.nowhere")])).toEqual([]);
+    }
+  });
+
+  it("names the entity's site, not the moved agent's room, on completed acts", () => {
+    const elsewhere = { ...PLAYER, room_id: "room.other-site" };
+    const rooms = {
+      ...ROOMS,
+      "room.other-site": {
+        room_id: "room.other-site",
+        name: "Other Site",
+        description: "Elsewhere.",
+        exits: [],
+        entities: [],
+      },
+    };
+    const expectedLine: Record<string, string> = {
+      VEST: `An asset at ${PUBLIC_SITE} passed into institutional hands`,
+      RESTORE: `An abandoned asset was restored at ${PUBLIC_SITE}`,
+    };
+    for (const op of ["VEST", "RESTORE"] as const) {
+      const snapshot = buildWatchLive({
+        world_id: "w",
+        cycle: 4,
+        sequence: 40,
+        rooms: rooms as never,
+        players: [elsewhere] as never,
+        events: [sourceEvent(op, ENTITY_BY_OP[op])],
+        now: NOW,
+      }) as Record<string, unknown>;
+      const items = snapshot.recent_events as FeedItem[];
+      expect(items).toHaveLength(1);
+      expect(items[0].room_id).toBe("room.civic-exchange");
+      expect(items[0].line).toBe(expectedLine[op]);
     }
   });
 

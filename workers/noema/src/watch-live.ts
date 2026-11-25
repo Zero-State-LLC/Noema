@@ -612,7 +612,7 @@ export function phraseWatchEvent(
       }
       // RFC-0132: one line per act, site only, no actor or private state.
       const rfc0132 = rfc0132Operation(payload);
-      if (rfc0132 === "RESTORE") return site ? `A ruin was restored at ${site}` : "";
+      if (rfc0132 === "RESTORE") return site ? `An abandoned asset was restored at ${site}` : "";
       if (rfc0132 === "VEST") return site ? `An asset at ${site} passed into institutional hands` : "";
       if (rfc0132 === "PROMOTE") return site ? `Construction finished at ${site}` : "";
       return site ? `Public activity at ${site}` : "Public activity";
@@ -767,13 +767,18 @@ function sourceToWatchEvent(
   // repair and disruption. Narrowing it here is what left the live feed
   // rendering every maintenance event as unlocated "Public activity".
   const scopeId = entityScopeId(ev.payload);
-  if (scopeId) {
+  // RFC-0132: a completed RESTORE/VEST/PROMOTE is located by the entity's
+  // public home. The actor-room fallback above must not relocate the act to
+  // wherever the agent has since moved.
+  const rfc0132Act =
+    String(ev.event_type || "").toUpperCase() === "ENTITY_UPDATE" && rfc0132Operation(ev.payload) !== null;
+  if (scopeId || rfc0132Act) {
     // §5: resolve via the entity's public room; if none, the event is
     // omitted, not anonymized into filler. Actor-site fallback must not
     // republish a hidden-entity org act as a public Chamber Market line.
     const home = entityHome(scopeId, publicRooms);
     if (!home) return null;
-    if (!publicRoomId) publicRoomId = home.room.room_id;
+    if (!publicRoomId || rfc0132Act) publicRoomId = home.room.room_id;
   }
   const located = withResolvedPublicRoom(ev, publicRoomId);
   const band = typeof ev.payload?.band === "string" ? ev.payload.band : undefined;

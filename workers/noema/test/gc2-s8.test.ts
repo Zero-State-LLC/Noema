@@ -179,6 +179,6 @@ describe("GC2-S8 world path", () => {
     expect(restored.ok).toBe(true);
     const update = restored.events!.find((e) => e.event_type === "ENTITY_UPDATE")!;
     expect(projectionIdForEvent(update.event_type, update.payload as Record<string, unknown>)).toBe("production");
-    expect(phraseWatchEvent(update as never, w.rooms)).toBe("A ruin was restored at Hub");
+    expect(phraseWatchEvent(update as never, w.rooms)).toBe("An abandoned asset was restored at Hub");
   });
 });
