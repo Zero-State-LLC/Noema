@@ -358,6 +358,10 @@ export type Organization = {
   institution_memory?: import("./social-memory").InstitutionMemoryState;
 };
 
+/** RFC-0133: per-act SUPPLY cap and treasury vault storage cap. */
+export const SUPPLY_MAX = 5;
+export const TREASURY_STORAGE_CAP = 64;
+
 export const COSTS = {
   LOOK: { attention: 1 } as Partial<Budgets>,
   INSPECT: { attention: 2 } as Partial<Budgets>,
@@ -454,9 +458,13 @@ export type CanonicalAction =
           | "AGREEMENT_FORM"
           | "AGREEMENT_TERMINATE"
           | "ACCESS_POLICY"
-          | "FOCUS";
+          | "FOCUS"
+          | "SUPPLY";
         signal?: ActionSignal;
         entity_id?: string;
+        /** RFC-0133 SUPPLY recipient and resource. */
+        player_id?: string;
+        resource?: "energy" | "storage";
         extent?: "standard" | "overhaul";
         amount?: number;
         org_id?: string;
@@ -565,6 +573,8 @@ export type Affordance = {
   direction?: string;
   acting_for?: string;
   office_id?: string;
+  /** RFC-0133 SUPPLY affordance resource. */
+  resource?: "energy" | "storage";
   /** RFC-0024. Structured RECONSTRUCT subject / account / record. */
   subject_ref?: string;
   claim?: string;
@@ -2486,6 +2496,33 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "COMMIT") {
     const operation = String(args.operation || "").toUpperCase();
+    if (operation === "SUPPLY") {
+      const player_id = String(args.player_id || args.agent_id || args.target_id || "").trim();
+      const resource = String(args.resource || "").toLowerCase();
+      const amount = Number(args.amount);
+      if (!player_id) return { ok: false, error: "player_id required", code: "INVALID_REQUEST" };
+      if (resource !== "energy" && resource !== "storage") {
+        return { ok: false, error: "resource must be energy or storage", code: "INVALID_REQUEST" };
+      }
+      if (!Number.isInteger(amount) || amount < 1 || amount > SUPPLY_MAX) {
+        return { ok: false, error: `amount must be 1..${SUPPLY_MAX}`, code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "SUPPLY",
+            player_id,
+            resource,
+            amount,
+            acting_for: args.acting_for ? String(args.acting_for) : undefined,
+            office_id: args.office_id ? String(args.office_id) : undefined,
+          },
+        },
+        display: `SUPPLY ${amount} ${resource} to ${player_id}`,
+      };
+    }
     if (operation === "REPAIR" || operation === "HARVEST") {
       const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
@@ -3185,6 +3222,9 @@ export function normalizeStructuredCommand(
   if (cmd === "RECONSTRUCT_SUPERSEDE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT_SUPERSEDE" });
   }
+  if (cmd === "SUPPLY") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "SUPPLY" });
+  }
   if (cmd === "RECONSTRUCT_PUBLISH") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT_PUBLISH" });
   }
@@ -3520,6 +3560,52 @@ export function deriveAffordances(input: {
           available: canPay(budgets, COSTS.ORG_OFFICE_VACATE),
           kind: "org",
         });
+        if (office.authority_profile === "OPERATE_RESOURCE_ACCOUNT") {
+          // RFC-0133: treasury harvest per visible node, SUPPLY per Player present.
+          const vault = org.treasury || { energy: 0, storage: 0 };
+          for (const e of entities) {
+            if (!e.stock_resource || (e.stock_amount ?? 0) < 1) continue;
+            const room = TREASURY_STORAGE_CAP - (vault.storage ?? 0);
+            out.push({
+              action: "HARVEST",
+              verb: "COMMIT",
+              operation: "HARVEST",
+              label: `Harvest ${titleCaseLabel(e.label)} for ${org.name}`,
+              cmd: `harvest ${e.label} 1`,
+              target_id: e.entity_id,
+              target_label: e.label,
+              acting_for: org.org_id,
+              office_id: office.office_id,
+              requires: COSTS.HARVEST,
+              available: room >= 1 && canPay(budgets, COSTS.HARVEST),
+              reason: room >= 1 ? undefined : "The treasury vault is full.",
+              kind: "resource",
+            });
+          }
+          for (const p of otherPlayers) {
+            if (!input.observerRoomId || p.room_id !== input.observerRoomId || p.player_id === selfId) continue;
+            for (const res of ["energy", "storage"] as const) {
+              const have = vault[res] ?? 0;
+              out.push({
+                action: "SUPPLY",
+                verb: "COMMIT",
+                operation: "SUPPLY",
+                label: `Supply ${res === "storage" ? "cargo" : res} to ${p.handle || p.player_id}`,
+                cmd: `supply ${p.player_id} ${res}`,
+                target_id: p.player_id,
+                target_label: p.handle,
+                player_id: p.player_id,
+                acting_for: org.org_id,
+                office_id: office.office_id,
+                resource: res,
+                requires: COSTS.ORG_OFFICE_ACT,
+                available: have >= 1 && canPay(budgets, COSTS.ORG_OFFICE_ACT),
+                reason: have >= 1 ? undefined : `Not enough ${res} in the treasury.`,
+                kind: "org",
+              });
+            }
+          }
+        }
         if (office.authority_profile === "PUBLISH_NOTICE") {
           out.push({
             action: "ORG_OFFICE_ACT",

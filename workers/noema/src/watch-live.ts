@@ -214,6 +214,8 @@ export function projectionIdForEvent(eventType: string, payload?: Record<string,
   }
   if (t === "RESOURCE_TRANSFER") {
     const fromId = typeof payload?.from_id === "string" ? payload.from_id : "";
+    // RFC-0133: SUPPLY (transfer_id "supply.*") is WATCH-silent; no exposure decision exists.
+    if (typeof payload?.transfer_id === "string" && payload.transfer_id.startsWith("supply.")) return null;
     if (payload?.kind === "harvest" || payload?.from === "node" || fromId.startsWith("entity.")) return "harvest";
     return "resource_change";
   }
