@@ -1029,21 +1029,23 @@ export function buildWatchLive(input: {
       latestActionByActor.set(ev.actor_label, ev);
     }
   }
-  const agents = live
-    .filter((p) => p.room_id && publicRooms[p.room_id])
-    .map((p) => {
-      const rid = p.room_id!;
-      const label = publicPlayerLabel(p, roomRefs) || p.handle || "Agent";
-      const lastEv = latestActionByActor.get(label);
-      return {
+  const agents = live.flatMap((p) => {
+    if (!p.room_id || !publicRooms[p.room_id]) return [];
+    const label = publicPlayerLabel(p, roomRefs);
+    if (!label) return [];
+    const rid = p.room_id;
+    const lastEv = latestActionByActor.get(label);
+    return [
+      {
         label,
         room_id: rid,
         room_name: publicRooms[rid]?.name || rid,
         last_action: lastEv?.line || null,
         last_action_at: lastEv?.occurred_at ?? null,
         active: true,
-      };
-    });
+      },
+    ];
+  });
 
   return { reconstruction_fidelity, controllers, corroboration: controllers, 
     watch_live: WATCH_LIVE_PIN,
