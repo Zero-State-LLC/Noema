@@ -29,6 +29,7 @@ export interface CfAccessError {
     | "CF_ACCESS_TOKEN_MISSING"
     | "CF_ACCESS_TOKEN_INVALID"
     | "CF_ACCESS_TOKEN_EXPIRED"
+    | "CF_ACCESS_TOKEN_NOT_YET_VALID"
     | "CF_ACCESS_AUD_MISMATCH"
     | "CF_ACCESS_ISS_MISMATCH"
     | "CF_ACCESS_NOT_ALLOWLISTED";
@@ -141,6 +142,7 @@ export async function verifyCfAccessAdmin(
     email?: string;
     sub?: string;
     iat?: number;
+    nbf?: number;
     exp?: number;
     jti?: string;
   }>(payloadB64);
@@ -175,6 +177,14 @@ export async function verifyCfAccessAdmin(
   }
 
   const nowSec = options.nowSec ?? Math.floor(Date.now() / 1000);
+  if (typeof payload.nbf === "number" && payload.nbf > nowSec) {
+    return {
+      ok: false,
+      status: 401,
+      code: "CF_ACCESS_TOKEN_NOT_YET_VALID",
+      message: "Cloudflare Access JWT is not yet valid (nbf in the future).",
+    };
+  }
   if (typeof payload.exp !== "number" || payload.exp <= nowSec) {
     return {
       ok: false,
