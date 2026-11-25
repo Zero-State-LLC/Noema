@@ -37,8 +37,21 @@ const RESERVED = new Set(
   ].map((s) => s.toLowerCase()),
 );
 
+const PROTOTYPE_KEYS = new Set([
+  "__proto__",
+  "constructor",
+  "prototype",
+  "tostring",
+  "valueof",
+  "hasownproperty",
+  "isprototypeof",
+  "propertyisenumerable",
+  "tolocalestring",
+]);
+
 export function isReservedAliasName(name: string): boolean {
-  return RESERVED.has(String(name || "").trim().toLowerCase());
+  const low = String(name || "").trim().toLowerCase();
+  return RESERVED.has(low) || PROTOTYPE_KEYS.has(low);
 }
 
 export function splitMacroSteps(line: string): string[] {
@@ -61,7 +74,7 @@ export function expandAliases(
   const parts = trimmed.split(/\s+/);
   const head = (parts[0] || "").toLowerCase();
   const rest = parts.slice(1).join(" ");
-  const expansion = aliases[head];
+  const expansion = Object.prototype.hasOwnProperty.call(aliases, head) ? aliases[head] : undefined;
   if (!expansion) return { line: trimmed };
   const next = rest ? `${expansion} ${rest}`.trim() : expansion.trim();
   return expandAliases(next, aliases, depth + 1);
@@ -87,6 +100,7 @@ export function parseAliasCommand(line: string): AliasCommand | null {
     const name = setBody.slice(0, sp).toLowerCase();
     const expansion = setBody.slice(sp).trim();
     if (isReservedAliasName(name)) return { ok: false, error: `“${name}” is a reserved command.` };
+    if (name in Object.prototype) return { ok: false, error: `“${name}” is a reserved command.` };
     if (!/^[a-z][a-z0-9_-]{0,23}$/.test(name)) return { ok: false, error: "Alias names are short letters." };
     if (!expansion) return { ok: false, error: "Alias needs an expansion." };
     return { ok: true, op: "set", name, expansion };
