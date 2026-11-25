@@ -26,6 +26,7 @@ import {
   sanitizeTradeAmounts,
   SUPPLY_MAX,
   TREASURY_STORAGE_CAP,
+  TREASURY_CONSTRUCT_CLASSES,
   titleCaseLabel,
   type Budgets,
   type CanonicalAction,
@@ -4228,7 +4229,25 @@ export async function applyWorldCommand(
         return fail(request_id, "SLOT_OCCUPIED", `A ${classId.replace(/_/g, " ")} is already here.`);
       }
       const base = CONSTRUCT_COSTS[classId];
-      const storageNeed = constructStorageCost(base.storage || 0, pl.lot_grades?.storage);
+      // RFC-0133 amendment 1: the Quartermaster office builds generator/storage_bay with treasury cargo.
+      const treasuryActingFor = action.arguments.acting_for ? String(action.arguments.acting_for) : undefined;
+      let treasuryVault: Partial<Budgets> | undefined;
+      let treasuryOrgId: string | undefined;
+      if (treasuryActingFor) {
+        if (!TREASURY_CONSTRUCT_CLASSES.has(classId)) {
+          return fail(request_id, "FORBIDDEN", "The treasury cannot fund that build.");
+        }
+        const grant = resolveInstitutionGrant(w.organizations, principal.player_id,
+          treasuryActingFor, action.arguments.office_id, TRADE_PROFILE);
+        if (!grant.ok) return fail(request_id, grant.code, grant.message);
+        const vaultConflict = resolveOfficeConflict(w.organizations[grant.org_id], grant.office.office_id, "treasury");
+        if (!vaultConflict.ok) return fail(request_id, vaultConflict.code, vaultConflict.message);
+        treasuryVault = ensureTreasury(w.organizations[grant.org_id]);
+        treasuryOrgId = grant.org_id;
+      }
+      const storageNeed = treasuryVault
+        ? base.storage || 0
+        : constructStorageCost(base.storage || 0, pl.lot_grades?.storage);
       const cost = withWorkshopStorage(
         { ...base, storage: storageNeed || undefined },
         workshopStorageDiscount(roomEntities(target)),
@@ -4238,26 +4257,35 @@ export async function applyWorldCommand(
       if (!canPay(pl.budgets, fuel)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to construct.");
       }
-      if (
+      if (treasuryVault) {
+        if ((treasuryVault.storage ?? 0) < cargoNeed) {
+          return fail(request_id, "BUDGET_EXCEEDED", "The treasury cannot pay this build.");
+        }
+      } else if (
         !canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))
       ) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have materials in hold.");
       }
       debit(pl.budgets, fuel);
-      consumeCargo(pl.budgets, cargoNeed);
-      if (storageNeed) {
+      if (treasuryVault) {
+        treasuryVault.storage = (treasuryVault.storage ?? 0) - cargoNeed;
+      } else {
+        consumeCargo(pl.budgets, cargoNeed);
+      }
+      if (storageNeed && !treasuryVault) {
         const remaining = occupiedHold(pl.budgets.storage ?? 0);
         pl.lot_grades = spendLot(pl.lot_grades, remaining, "storage");
         pl.lot_origins = spendOrigin(pl.lot_origins, remaining, "storage");
       }
       const entity_id = allocateInfraId(classId);
       const label = constructLabel(classId);
+      const builtOwner = treasuryOrgId ?? principal.player_id;
       const created: EntityRuntime = {
         entity_id,
         label,
         entity_type: "INFRASTRUCTURE",
         condition: 100,
-        owner_id: principal.player_id,
+        owner_id: builtOwner,
         infra_type: classId,
         last_steward_cycle: w.cycle,
         ...(isMultiCycleClass(classId) ? { in_progress: true } : {}),
@@ -4265,14 +4293,14 @@ export async function applyWorldCommand(
       target.entities = [...roomEntities(target), created];
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
-        cost_paid: cost,
+        cost_paid: treasuryVault ? fuel : cost,
         reason: "CONSTRUCT",
         class: classId,
       });
       const ev = pushEvent("ENTITY_CREATE", {
         entity_id,
         entity_type: "INFRASTRUCTURE",
-        owner_id: principal.player_id,
+        owner_id: builtOwner,
         location: target.room_id,
         room_id: target.room_id,
         label,

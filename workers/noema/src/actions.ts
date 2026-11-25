@@ -361,6 +361,8 @@ export type Organization = {
 /** RFC-0133: per-act SUPPLY cap and treasury vault storage cap. */
 export const SUPPLY_MAX = 5;
 export const TREASURY_STORAGE_CAP = 64;
+/** RFC-0133 amendment 1: classes the resource office may build with treasury cargo. */
+export const TREASURY_CONSTRUCT_CLASSES: ReadonlySet<string> = new Set(["generator", "storage_bay"]);
 
 export const COSTS = {
   LOOK: { attention: 1 } as Partial<Budgets>,
@@ -525,7 +527,7 @@ export type CanonicalAction =
   | {
       verb: "BUILD";
       arguments:
-        | { operation: "CONSTRUCT"; class: ConstructibleClass; room_id?: string }
+        | { operation: "CONSTRUCT"; class: ConstructibleClass; room_id?: string; acting_for?: string; office_id?: string }
         | { operation: "DISMANTLE"; entity_id: string }
         | { operation: "UPGRADE"; entity_id: string }
         | { operation: "REPURPOSE"; entity_id: string }
@@ -3070,6 +3072,8 @@ export function normalizeStructuredCommand(
             operation: "CONSTRUCT",
             class: classId,
             room_id: args.room_id ? String(args.room_id) : undefined,
+            ...(args.acting_for ? { acting_for: String(args.acting_for) } : {}),
+            ...(args.office_id ? { office_id: String(args.office_id) } : {}),
           },
         },
         display: `BUILD.CONSTRUCT ${classId}`,
@@ -3579,6 +3583,31 @@ export function deriveAffordances(input: {
               requires: COSTS.HARVEST,
               available: room >= 1 && canPay(budgets, COSTS.HARVEST),
               reason: room >= 1 ? undefined : "The treasury vault is full.",
+              kind: "resource",
+            });
+          }
+          for (const classId of TREASURY_CONSTRUCT_CLASSES) {
+            // RFC-0133 amendment 1: treasury-funded generator / storage bay, owned by the organization.
+            const cls = classId as ConstructibleClass;
+            if (liveClassInRoom(entities, cls)) continue;
+            const base = CONSTRUCT_COSTS[cls];
+            const cargo = withWorkshopStorage({ ...base }, workshopStorageDiscount(entities)).storage || 0;
+            const fuel = { ...base, storage: undefined };
+            const vaultOk = (vault.storage ?? 0) >= cargo;
+            const fuelOk = canPay(budgets, fuel);
+            out.push({
+              action: "BUILD",
+              verb: "BUILD",
+              operation: "CONSTRUCT",
+              label: `Build a ${classId.replace(/_/g, " ")} for ${org.name}`,
+              cmd: `build ${classId} for ${org.org_id}`,
+              class: cls,
+              acting_for: org.org_id,
+              office_id: office.office_id,
+              requires: fuel,
+              available: vaultOk && fuelOk,
+              reason: vaultOk ? (fuelOk ? undefined : "You do not have enough resources to construct.")
+                : "The treasury cannot pay this build.",
               kind: "resource",
             });
           }
