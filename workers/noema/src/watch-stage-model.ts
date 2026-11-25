@@ -28,12 +28,113 @@ export const STAGE_POLAR_MAX = (70 * Math.PI) / 180;
 export const STAGE_CAMERA_EASE_MS = PULSE_TTL.NOTABLE;
 /** §18.6 caps: one MAJOR plus at most three others per update. */
 export const STAGE_MAX_MINOR_PULSES = 3;
+/** D6: how long a caption stays on screen, per tier. Never longer than four seconds. */
+export const STAGE_CAPTION_HOLD_MS = { NORMAL: 2500, NOTABLE: 3500, MAJOR: 4000 };
+/** D6: pacing of a fresh burst — one slot per event, never more than MAX_TOTAL_MS overall. */
+export const STAGE_PLAYBACK = { MIN_GAP_MS: 400, MAX_GAP_MS: 2500, UNKNOWN_GAP_MS: 600, MAX_TOTAL_MS: 9000 };
+/** D6 route travel: how long a token takes to cross one drawn public route. */
+export const STAGE_TRAVEL_MS = 1100;
+/**
+ * D6 MAJOR moment: how long a MAJOR event holds its site, beyond the 920 ms
+ * §18.6 pulse. Between two and four seconds.
+ */
+export const STAGE_MAJOR_MOMENT_MS = 3000;
+/**
+ * D6 tier director: how long the camera stays on a shot before it may cut,
+ * and how long a MAJOR shot must hold before it may preempt a non-MAJOR one.
+ */
+export const STAGE_DIRECTOR = { DWELL_MS: 4000, MAJOR_PREEMPT_MS: 1500 };
+
+/**
+ * D6 paced playback: the order and spacing a burst of fresh pulses and
+ * captions plays in. Sorted ascending by sequence, equal sequences being one
+ * moment. The first slot is now (0). A gap is the public occurred_at delta
+ * clamped to MIN_GAP_MS..MAX_GAP_MS, or UNKNOWN_GAP_MS when the delta is not
+ * known or time runs backwards. A schedule longer than MAX_TOTAL_MS is scaled
+ * to fit, so a long backlog still reads as a burst and not as a queue.
+ */
+export function stagePlaybackSchedule(
+  items: Array<{ sequence: number; occurredAt?: number }>,
+): Array<{ sequence: number; atMs: number }> {
+  const rows: Array<{ sequence: number; occurredAt: number | null }> = [];
+  for (const item of Array.isArray(items) ? items : []) {
+    const sequence = item?.sequence;
+    if (typeof sequence !== "number" || !Number.isSafeInteger(sequence)) continue;
+    const raw = item?.occurredAt;
+    const occurredAt = typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+    const seen = rows.find((row) => row.sequence === sequence);
+    if (seen) {
+      if (seen.occurredAt === null && occurredAt !== null) seen.occurredAt = occurredAt;
+      continue;
+    }
+    rows.push({ sequence, occurredAt });
+  }
+  rows.sort((a, b) => a.sequence - b.sequence);
+  const out: Array<{ sequence: number; atMs: number }> = [];
+  for (let i = 0; i < rows.length; i++) {
+    let atMs = 0;
+    if (i > 0) {
+      const from = rows[i - 1].occurredAt;
+      const to = rows[i].occurredAt;
+      let gap = STAGE_PLAYBACK.UNKNOWN_GAP_MS;
+      if (from !== null && to !== null) {
+        const delta = to - from;
+        if (delta >= 0) gap = Math.min(STAGE_PLAYBACK.MAX_GAP_MS, Math.max(STAGE_PLAYBACK.MIN_GAP_MS, delta));
+      }
+      atMs = out[i - 1].atMs + gap;
+    }
+    out.push({ sequence: rows[i].sequence, atMs });
+  }
+  const last = out.length ? out[out.length - 1].atMs : 0;
+  if (last > STAGE_PLAYBACK.MAX_TOTAL_MS) {
+    const scale = STAGE_PLAYBACK.MAX_TOTAL_MS / last;
+    for (const row of out) row.atMs = Math.round(row.atMs * scale);
+  }
+  return out;
+}
+
+/**
+ * D6 paced playback: where a snapshot's rows start while older moments are
+ * still pending. `pendingDueMs` are the due times (performance clock) of the
+ * playback entries already queued. With nothing pending later than now a row
+ * keeps its scheduled offset. Otherwise the new schedule starts MIN_GAP_MS
+ * after the last pending moment, so a newer sequence never plays before an
+ * older one. A backlog past MAX_TOTAL_MS is no longer live: `flush` asks the
+ * caller to play every pending moment now, oldest first, which is also why
+ * offsetMs is 0 in that case.
+ */
+export function stagePlaybackOffset(
+  pendingDueMs: number[],
+  now: number,
+): { flush: boolean; offsetMs: number } {
+  const base = typeof now === "number" && Number.isFinite(now) ? now : 0;
+  let maxDue = base;
+  for (const due of Array.isArray(pendingDueMs) ? pendingDueMs : []) {
+    if (typeof due !== "number" || !Number.isFinite(due)) continue;
+    if (due > maxDue) maxDue = due;
+  }
+  const behind = maxDue - base;
+  if (behind > STAGE_PLAYBACK.MAX_TOTAL_MS) return { flush: true, offsetMs: 0 };
+  if (behind <= 0) return { flush: false, offsetMs: 0 };
+  return { flush: false, offsetMs: behind + STAGE_PLAYBACK.MIN_GAP_MS };
+}
 
 export const STAGE_FALLBACK_LINE = "3D view is unavailable here. Showing the text map.";
 export const STAGE_LOW_NOISE_LINE = "Low noise is on. Showing the text map.";
 
 type LiveRoom = PhosphorRoom & {
   traces?: Array<{ text?: unknown } | null>;
+  public_title_lines?: unknown[];
+  public_focus_lines?: unknown[];
+};
+
+/** A public event with the optional public text fields D6 reads. */
+type StageEvent = PhosphorEvent & {
+  line?: unknown;
+  actor_label?: unknown;
+  consequence?: unknown;
+  projection_id?: unknown;
+  glyph?: unknown;
 };
 
 export type StageLive = {
@@ -104,12 +205,43 @@ export type StageSite = {
   active: boolean;
   players: number;
   handles: string[];
+  /** Named tokens in order, each carrying a verbatim public line or "". */
+  tokens: Array<{ handle: string; line: string }>;
+  /** Agents with no public handle drawn as anonymous tokens. */
+  unnamed: number;
+  /** Tokens and handles beyond the six the stage draws. */
+  more: number;
   traces: number;
   selected: boolean;
   followed: boolean;
   major: boolean;
   bands: StageBands;
 };
+
+/**
+ * D6 static glow: cheap additive halo under a site where agents are present.
+ * One shared texture and size; opacity per site, never animated.
+ */
+export const STAGE_GLOW = { MAX_OPACITY: 0.55, MIN_OPACITY: 0.18, SIZE: 4.2 };
+
+/**
+ * D6 static glow level for a site, in [0, MAX_OPACITY]. Zero when nothing is
+ * there. Otherwise it rises with the agent count up to six, gets a MAJOR
+ * boost, and a Followed floor. Never animated, so reduced motion is moot.
+ */
+export function stageGlowLevel(site: Pick<StageSite, "active" | "players" | "major" | "followed">): number {
+  const active = site?.active === true;
+  const major = site?.major === true;
+  const followed = site?.followed === true;
+  const players = Math.max(0, Number(site?.players) || 0);
+  if (!active && !major && !followed && players <= 0) return 0;
+  let level = STAGE_GLOW.MIN_OPACITY +
+    (STAGE_GLOW.MAX_OPACITY - STAGE_GLOW.MIN_OPACITY) * Math.min(1, players / 6);
+  if (major) level = Math.min(STAGE_GLOW.MAX_OPACITY, level + 0.15);
+  if (followed) level = Math.max(level, STAGE_GLOW.MIN_OPACITY + 0.1);
+  level = Math.max(0, Math.min(STAGE_GLOW.MAX_OPACITY, level));
+  return Math.round(level * 1000) / 1000;
+}
 
 export type StageRoute = {
   from: string;
@@ -130,6 +262,16 @@ export type StagePulse = {
   roomId: string;
   tier: PhosphorTier;
   ttl: number;
+  sequence: number;
+  /** The public projection the event came from; only "agent_move" lights routes. */
+  projectionId?: string;
+};
+
+/** D6 route travel: one public handle crossing one drawn public route. */
+export type StageTravel = {
+  handle: string;
+  from: string;
+  to: string;
   sequence: number;
 };
 
@@ -161,6 +303,21 @@ export function stageHandles(room: LiveRoom): string[] {
   return out;
 }
 
+/** The public line a handle's token shows: the line that starts with "<handle> ", verbatim. */
+function lineForHandle(lines: unknown, handle: string): string {
+  const prefix = handle + " ";
+  for (const raw of Array.isArray(lines) ? lines : []) {
+    if (String(raw ?? "").startsWith(prefix)) return clean(raw, 120);
+  }
+  return "";
+}
+
+function tokenLineFor(room: LiveRoom, handle: string): string {
+  const focus = lineForHandle(room.public_focus_lines, handle);
+  if (focus) return focus;
+  return lineForHandle(room.public_title_lines, handle);
+}
+
 export function buildStageModel(live: StageLive | null | undefined, ctx: StageContext = {}): StageModel {
   const rooms = Array.isArray(live?.rooms) ? live!.rooms! : [];
   const events = Array.isArray(live?.recent_events) ? live!.recent_events! : [];
@@ -188,6 +345,9 @@ export function buildStageModel(live: StageLive | null | undefined, ctx: StageCo
     const traces = Array.isArray(room.traces)
       ? room.traces.filter((t) => t && clean(t.text, 400)).length
       : 0;
+    const players = Math.max(0, Number(room.players_present) || 0);
+    const handles = stageHandles(room);
+    const tokens = handles.slice(0, 6).map((handle) => ({ handle, line: tokenLineFor(room, handle) }));
     sites.push({
       id: n.room_id,
       name,
@@ -195,8 +355,11 @@ export function buildStageModel(live: StageLive | null | undefined, ctx: StageCo
       z,
       certainty: n.certainty,
       active: room.active === true || n.certainty === "active",
-      players: Math.max(0, Number(room.players_present) || 0),
-      handles: stageHandles(room),
+      players,
+      handles,
+      tokens,
+      unnamed: Math.max(0, Math.min(players, 6) - tokens.length),
+      more: Math.max(0, Math.max(players, handles.length) - 6),
       traces,
       selected: !!ctx.selectedId && ctx.selectedId === n.room_id,
       followed: !!ctx.followRoomId && ctx.followRoomId === n.room_id,
@@ -248,7 +411,10 @@ export function newStagePulses(
     const roomId = String(ev.room_id || "");
     if (!allowed.has(roomId)) continue;
     const tier = tierOf(ev.tier);
-    fresh.push({ roomId, tier, ttl: PULSE_TTL[tier], sequence: seq });
+    const pulse: StagePulse = { roomId, tier, ttl: PULSE_TTL[tier], sequence: seq };
+    const projection = (ev as StageEvent).projection_id;
+    if (typeof projection === "string" && projection) pulse.projectionId = projection;
+    fresh.push(pulse);
   }
   if (lastSequence === null) {
     const head = Number.isSafeInteger(opts.snapshotSequence) ? (opts.snapshotSequence as number) : 0;
@@ -259,6 +425,150 @@ export function newStagePulses(
   const major = fresh.find((p) => p.tier === "MAJOR");
   const minor = fresh.filter((p) => p.tier !== "MAJOR").slice(0, STAGE_MAX_MINOR_PULSES);
   return { pulses: major ? [major, ...minor] : minor, lastSequence: newest };
+}
+
+export type StageCaption = {
+  roomId: string;
+  tier: PhosphorTier;
+  sequence: number;
+  line: string;
+  actor: string;
+  consequence: string;
+  holdMs: number;
+};
+
+function sameCaptionText(a: string, b: string): boolean {
+  const normalize = (s: string) => s.replace(/\.+$/, "").toLowerCase();
+  return normalize(a) === normalize(b);
+}
+
+/**
+ * D6 captions: the one line of public narration for a site, in the same words
+ * as Recently. The same freshness rule as pulses (first snapshot never fires,
+ * hidden rooms never show), and text that leaks an id is dropped. At most one
+ * MAJOR caption plus two others, newest first. Text is not suppressed by
+ * reduced motion; only the renderer's animation is.
+ */
+export function newStageCaptions(
+  events: PhosphorEvent[] | null | undefined,
+  lastSequence: number | null,
+  publicRoomIds: Iterable<string>,
+): StageCaption[] {
+  if (lastSequence === null) return [];
+  const allowed = new Set(publicRoomIds);
+  const fresh: StageCaption[] = [];
+  for (const raw of Array.isArray(events) ? events : []) {
+    const ev = raw as StageEvent;
+    const seq = ev?.sequence;
+    if (typeof seq !== "number" || !Number.isSafeInteger(seq)) continue;
+    if (seq <= lastSequence) continue;
+    const roomId = String(ev.room_id || "");
+    if (!allowed.has(roomId)) continue;
+    const line = clean(ev.line, 120);
+    if (!line) continue;
+    const tier = tierOf(ev.tier);
+    const actor = clean(ev.actor_label, 32);
+    let consequence = clean(ev.consequence, 120);
+    if (consequence && sameCaptionText(consequence, line)) consequence = "";
+    fresh.push({ roomId, tier, sequence: seq, line, actor, consequence, holdMs: STAGE_CAPTION_HOLD_MS[tier] });
+  }
+  fresh.sort((a, b) => b.sequence - a.sequence);
+  const major = fresh.find((c) => c.tier === "MAJOR");
+  const others = fresh.filter((c) => c.tier !== "MAJOR").slice(0, 2);
+  return major ? [major, ...others] : others;
+}
+
+/**
+ * §18.6 exit lighting: the drawn routes that touch a live pulse room, keyed as
+ * "from|to" so the renderer can match its own lines. A pulse with no room in
+ * common with a route lights nothing.
+ */
+export function stageLitRoutes(
+  pulses: Array<{ roomId: string; ttl: number }>,
+  routes: StageRoute[],
+): Set<string> {
+  const lit = new Set<string>();
+  for (const p of Array.isArray(pulses) ? pulses : []) {
+    for (const r of routes) {
+      if (r.from === p.roomId || r.to === p.roomId) lit.add(r.from + "|" + r.to);
+    }
+  }
+  return lit;
+}
+
+/**
+ * D6 route travel: which public site each public handle is shown at, using the
+ * full `site.handles` list rather than the six drawn tokens. A handle the same
+ * snapshot lists at two sites is ambiguous and maps to neither.
+ */
+export function stageHandleSites(model: StageModel): Map<string, string> {
+  const sites = new Map<string, string>();
+  const ambiguous = new Set<string>();
+  const rows = Array.isArray(model?.sites) ? model.sites : [];
+  for (const site of rows) {
+    const handles = Array.isArray(site.handles) ? site.handles : [];
+    for (const handle of handles) {
+      if (!handle || ambiguous.has(handle)) continue;
+      const seen = sites.get(handle);
+      if (seen === undefined) sites.set(handle, site.id);
+      else if (seen !== site.id) {
+        sites.delete(handle);
+        ambiguous.add(handle);
+      }
+    }
+  }
+  return sites;
+}
+
+/** A drawn route joining A and B directly, in a direction a token may travel. */
+function travellableRoute(routes: StageRoute[], from: string, to: string): boolean {
+  for (const r of Array.isArray(routes) ? routes : []) {
+    if (!r) continue;
+    if (r.from === from && r.to === to) return true;
+    if (r.from === to && r.to === from && r.oneWay === false) return true;
+  }
+  return false;
+}
+
+/**
+ * D6 route travel. A token travels only when the agent_move event's public
+ * actor_label was shown at site A in the last applied model and is shown at
+ * site B now, and one drawn public route joins A and B directly. Hidden,
+ * multi-hop and inferred routes never travel. Ascending sequence, one travel
+ * per handle (the latest sequence wins).
+ */
+export function stageTravels(
+  prev: Map<string, string>,
+  next: StageModel,
+  pulses: StagePulse[],
+  events: unknown[],
+): StageTravel[] {
+  const here = stageHandleSites(next);
+  const byEvent = new Map<string, Record<string, unknown>>();
+  for (const raw of Array.isArray(events) ? events : []) {
+    if (!raw || typeof raw !== "object") continue;
+    const ev = raw as Record<string, unknown>;
+    const seq = ev.sequence;
+    if (typeof seq !== "number" || !Number.isSafeInteger(seq)) continue;
+    const key = seq + "|" + String(ev.room_id || "");
+    if (!byEvent.has(key)) byEvent.set(key, ev);
+  }
+  const perHandle = new Map<string, StageTravel>();
+  for (const p of Array.isArray(pulses) ? pulses : []) {
+    if (!p || p.projectionId !== "agent_move") continue;
+    const ev = byEvent.get(p.sequence + "|" + p.roomId);
+    if (!ev) continue;
+    const handle = clean(ev.actor_label, 32);
+    if (!handle) continue;
+    const from = prev ? prev.get(handle) : undefined;
+    const to = here.get(handle);
+    if (!from || !to || from === to || to !== p.roomId) continue;
+    if (!travellableRoute(next.routes, from, to)) continue;
+    const prior = perHandle.get(handle);
+    if (prior && prior.sequence >= p.sequence) continue;
+    perHandle.set(handle, { handle, from, to, sequence: p.sequence });
+  }
+  return Array.from(perHandle.values()).sort((a, b) => a.sequence - b.sequence);
 }
 
 export type StageCameraLimits = {
@@ -307,4 +617,56 @@ export function stageCameraTarget(
   if (next.followRoomId && next.followRoomId !== prev.followRoomId) return next.followRoomId;
   if (spectatorMoved) return "";
   return majorPulseRoomId || "";
+}
+
+/**
+ * D6 tier director: the shot the camera is on, or null when it holds none.
+ * `at` is the performance time the shot was cut.
+ */
+export type StageShot = { roomId: string; tier: "NOTABLE" | "MAJOR"; sequence: number; at: number } | null;
+
+function directorRank(tier: "NOTABLE" | "MAJOR"): number {
+  return tier === "MAJOR" ? 1 : 0;
+}
+
+/**
+ * D6 tier director. Among candidates only NOTABLE and MAJOR rooms with a room
+ * id count; NORMAL and unknown tiers never move the camera. The best candidate
+ * is the higher tier, then the newer sequence. Nothing is returned when there
+ * is no candidate, when the best is the room already held, before the dwell
+ * ends, or when a MAJOR tries to preempt another MAJOR. A MAJOR may preempt a
+ * non-MAJOR shot once MAJOR_PREEMPT_MS has passed.
+ */
+export function stageDirectorPick(
+  current: StageShot,
+  candidates: Array<{ roomId: string; tier: string; sequence: number }>,
+  now: number,
+): StageShot {
+  let best: { roomId: string; tier: "NOTABLE" | "MAJOR"; sequence: number } | null = null;
+  for (const raw of Array.isArray(candidates) ? candidates : []) {
+    if (!raw) continue;
+    const roomId = String(raw.roomId || "");
+    if (!roomId) continue;
+    const tier = String(raw.tier || "").toUpperCase();
+    if (tier !== "MAJOR" && tier !== "NOTABLE") continue;
+    const sequence = typeof raw.sequence === "number" && Number.isFinite(raw.sequence) ? raw.sequence : 0;
+    const tier2 = tier as "NOTABLE" | "MAJOR";
+    if (!best || directorRank(tier2) > directorRank(best.tier) ||
+        (directorRank(tier2) === directorRank(best.tier) && sequence > best.sequence)) {
+      best = { roomId, tier: tier2, sequence };
+    }
+  }
+  if (!best) return null;
+  const cut: { roomId: string; tier: "NOTABLE" | "MAJOR"; sequence: number; at: number } = {
+    roomId: best.roomId,
+    tier: best.tier,
+    sequence: best.sequence,
+    at: now,
+  };
+  if (!current) return cut;
+  if (best.roomId === current.roomId) return null;
+  const elapsed = now - current.at;
+  if (elapsed >= STAGE_DIRECTOR.DWELL_MS) return cut;
+  if (best.tier === "MAJOR" && current.tier !== "MAJOR" && elapsed >= STAGE_DIRECTOR.MAJOR_PREEMPT_MS) return cut;
+  return null;
 }

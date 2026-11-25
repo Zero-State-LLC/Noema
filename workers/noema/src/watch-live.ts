@@ -179,6 +179,30 @@ export function watchEventTier(projectionId: string, band?: string): WatchTier {
   return TIER_BY_PROJECTION[projectionId] || "NORMAL";
 }
 
+/**
+ * RFC-0132: an operation only opens once the completed state change is on the
+ * event, exactly as `world-actions.ts` emits it. A bare `{ operation }` is not
+ * evidence and stays closed.
+ */
+export function rfc0132Operation(
+  payload?: Record<string, unknown>,
+): "RESTORE" | "VEST" | "PROMOTE" | null {
+  if (!payload || payload.in_progress === true) return null;
+  const set = payload.set;
+  if (!set || typeof set !== "object" || Array.isArray(set)) return null;
+  const completed = set as Record<string, unknown>;
+  if (payload.operation === "RESTORE") {
+    return completed.unclaimed === false ? "RESTORE" : null;
+  }
+  if (payload.operation === "VEST") {
+    return typeof completed.owner_id === "string" && completed.owner_id !== "" ? "VEST" : null;
+  }
+  if (payload.operation === "PROMOTE") {
+    return completed.in_progress === false ? "PROMOTE" : null;
+  }
+  return null;
+}
+
 export function projectionIdForEvent(eventType: string, payload?: Record<string, unknown>): string | null {
   const t = String(eventType || "").toUpperCase();
   if (PRIVATE_EVENT_TYPES.has(t)) return null;
@@ -190,6 +214,8 @@ export function projectionIdForEvent(eventType: string, payload?: Record<string,
   }
   if (t === "RESOURCE_TRANSFER") {
     const fromId = typeof payload?.from_id === "string" ? payload.from_id : "";
+    // RFC-0133: SUPPLY (transfer_id "supply.*") is WATCH-silent; no exposure decision exists.
+    if (typeof payload?.transfer_id === "string" && payload.transfer_id.startsWith("supply.")) return null;
     if (payload?.kind === "harvest" || payload?.from === "node" || fromId.startsWith("entity.")) return "harvest";
     return "resource_change";
   }
@@ -202,11 +228,19 @@ export function projectionIdForEvent(eventType: string, payload?: Record<string,
   if (t === "ENTITY_UPDATE") {
     if (payload?.operation === "REPURPOSE") return null;
     if (payload?.operation === "ABANDON" || payload?.unclaimed === true) return null;
-    if (payload?.operation === "RESTORE") return null;
+    if (payload?.in_progress === true) return null;
+    // RFC-0132: RESTORE/VEST/PROMOTE open only on the completed state change
+    // carried by the event. A named-but-bare operation stays closed.
+    const rfc0132 = rfc0132Operation(payload);
+    if (rfc0132 === "RESTORE" || rfc0132 === "PROMOTE") return "production";
+    if (rfc0132 === "VEST") return "organization";
+    if (
+      payload?.operation === "RESTORE" ||
+      payload?.operation === "VEST" ||
+      payload?.operation === "PROMOTE"
+    ) return null;
     if (payload?.operation === "CONSENT" || payload?.operation === "CONSENSUS") return null;
     if (payload?.operation === "RULE") return null;
-    if (payload?.operation === "PROMOTE" || payload?.in_progress === true) return null;
-    if (payload?.operation === "VEST") return null;
     if (payload?.operation === "SHARE") return null;
     if (payload?.operation === "CONNECT") return null;
     if (
@@ -424,6 +458,8 @@ export function consequenceForEvent(
     if (from === to) return undefined;
     return `${home.label}: ${from} → ${to}`;
   }
+  // RFC-0132: these three public lines carry no separate consequence.
+  if (t === "ENTITY_UPDATE" && rfc0132Operation(payload)) return undefined;
   const projectionId = projectionIdForEvent(ev.event_type, ev.payload);
   if (projectionId === "organization") {
     const act = organizationActConsequence(t);
@@ -576,6 +612,11 @@ export function phraseWatchEvent(
         // filler §4 bans if anything ever bypassed that gate.
         return site ? `Stocks recovered at ${site}` : "";
       }
+      // RFC-0132: one line per act, site only, no actor or private state.
+      const rfc0132 = rfc0132Operation(payload);
+      if (rfc0132 === "RESTORE") return site ? `An abandoned asset was restored at ${site}` : "";
+      if (rfc0132 === "VEST") return site ? `An asset at ${site} passed into institutional hands` : "";
+      if (rfc0132 === "PROMOTE") return site ? `Construction finished at ${site}` : "";
       return site ? `Public activity at ${site}` : "Public activity";
     }
     case "INFRASTRUCTURE_DISRUPTED": {
@@ -619,13 +660,30 @@ export function selectNotableEvent(opts: {
     const heldPick = holdHeadline(opts.held, candidates);
     if (heldPick) return heldPick;
   }
-  if (ranked[0]) return ranked[0];
+  if (ranked[0]) return preferDeedOverAmbient(ranked[0], candidates);
   return quietHeadline(opts.players_present);
+}
+
+function isAmbientPulse(ev: WatchEvent): boolean {
+  return ev.tier === "NOTABLE" && !ev.actor_label && !ev.room_id && !ev.consequence && ev.projection_id !== "world_status";
+}
+
+function isConcreteDeed(ev: WatchEvent): boolean {
+  return Boolean(ev.actor_label && ev.room_id);
+}
+
+function preferDeedOverAmbient(top: WatchEvent, window: WatchEvent[]): WatchEvent {
+  if (!isAmbientPulse(top)) return top;
+  const deed = window.find(isConcreteDeed);
+  return deed || top;
 }
 
 export function holdHeadline(held: HeldHeadline, window: WatchEvent[]): WatchEvent | null {
   const inWindow = window.find((e) => e.sequence === held.sequence && e.projection_id === held.projection_id);
-  const higher = window.some((e) => TIER_RANK[e.tier] > TIER_RANK[held.tier]);
+  const heldDeed = Boolean(inWindow && isConcreteDeed(inWindow));
+  const higher = window.some(
+    (e) => TIER_RANK[e.tier] > TIER_RANK[held.tier] && !(heldDeed && isAmbientPulse(e)),
+  );
   // §4A step 5: age by newer PUBLIC candidates, never by raw ledger-sequence
   // arithmetic — private LOOK/MESSAGE traffic must not rotate the headline.
   const aged = window.filter((e) => e.sequence > held.sequence).length > 8;
@@ -633,7 +691,8 @@ export function holdHeadline(held: HeldHeadline, window: WatchEvent[]): WatchEve
     return { ...held, ...inWindow };
   }
   const pool = aged && inWindow ? window.filter((e) => e.sequence !== held.sequence) : window;
-  return rankEvents(pool)[0] || rankEvents(window)[0] || null;
+  const top = rankEvents(pool)[0] || rankEvents(window)[0];
+  return top ? preferDeedOverAmbient(top, pool) : null;
 }
 
 /**
@@ -664,7 +723,11 @@ function rankEvents(events: WatchEvent[]): WatchEvent[] {
   return [...events].sort((a, b) => {
     const tr = TIER_RANK[b.tier] - TIER_RANK[a.tier];
     if (tr) return tr;
-    return b.sequence - a.sequence;
+    const sq = b.sequence - a.sequence;
+    if (sq) return sq;
+    const pid = String(a.projection_id || "").localeCompare(String(b.projection_id || ""));
+    if (pid) return pid;
+    return String(a.line || "").localeCompare(String(b.line || ""));
   });
 }
 
@@ -728,21 +791,29 @@ function sourceToWatchEvent(
   // repair and disruption. Narrowing it here is what left the live feed
   // rendering every maintenance event as unlocated "Public activity".
   const scopeId = entityScopeId(ev.payload);
-  if (scopeId) {
+  // RFC-0132: a completed RESTORE/VEST/PROMOTE is located by the entity's
+  // public home. The actor-room fallback above must not relocate the act to
+  // wherever the agent has since moved.
+  const rfc0132Act =
+    String(ev.event_type || "").toUpperCase() === "ENTITY_UPDATE" && rfc0132Operation(ev.payload) !== null;
+  if (scopeId || rfc0132Act) {
     // §5: resolve via the entity's public room; if none, the event is
     // omitted, not anonymized into filler. Actor-site fallback must not
     // republish a hidden-entity org act as a public Chamber Market line.
     const home = entityHome(scopeId, publicRooms);
     if (!home) return null;
-    if (!publicRoomId) publicRoomId = home.room.room_id;
+    if (!publicRoomId || rfc0132Act) publicRoomId = home.room.room_id;
   }
   const located = withResolvedPublicRoom(ev, publicRoomId);
   const band = typeof ev.payload?.band === "string" ? ev.payload.band : undefined;
   const roomRefs = Object.values(publicRooms);
-  const actor = publicOccupantLabel(ev, roomRefs) ||
-    (isRepairUpdate(ev)
-      ? publicOccupantLabel({ handle: typeof ev.payload?.last_repair_handle === "string" ? ev.payload.last_repair_handle : "" }, roomRefs)
-      : null);
+  // RFC-0132: PROMOTE is a system act — never attach an actor label.
+  const actor = ev.event_type.toUpperCase() === "ENTITY_UPDATE" && rfc0132Operation(ev.payload) === "PROMOTE"
+    ? null
+    : publicOccupantLabel(ev, roomRefs) ||
+      (isRepairUpdate(ev)
+        ? publicOccupantLabel({ handle: typeof ev.payload?.last_repair_handle === "string" ? ev.payload.last_repair_handle : "" }, roomRefs)
+        : null);
   const consequence = consequenceForEvent(located, publicRooms);
   return {
     sequence: ev.sequence,
@@ -969,6 +1040,34 @@ export function buildWatchLive(input: {
     handles,
   );
 
+  const latestActionByActor = new Map<string, WatchEvent>();
+  // Roster last_action uses the pre-truncation candidate window so a deed
+  // dropped by the visible-feed cap or the movement cap is still the agent's
+  // latest public action.
+  const actionWindow = [...candidates].sort((a, b) => b.sequence - a.sequence);
+  for (const ev of actionWindow) {
+    if (ev.actor_label && !latestActionByActor.has(ev.actor_label)) {
+      latestActionByActor.set(ev.actor_label, ev);
+    }
+  }
+  const agents = live.flatMap((p) => {
+    if (!p.room_id || !publicRooms[p.room_id]) return [];
+    const label = publicPlayerLabel(p, roomRefs);
+    if (!label) return [];
+    const rid = p.room_id;
+    const lastEv = latestActionByActor.get(label);
+    return [
+      {
+        label,
+        room_id: rid,
+        room_name: publicRooms[rid]?.name || rid,
+        last_action: lastEv?.line || null,
+        last_action_at: lastEv?.occurred_at ?? null,
+        active: true,
+      },
+    ];
+  });
+
   return { reconstruction_fidelity, controllers, corroboration: controllers, 
     watch_live: WATCH_LIVE_PIN,
     projection: "public",
@@ -976,6 +1075,7 @@ export function buildWatchLive(input: {
     cycle: input.cycle,
     sequence: input.sequence,
     players_present: playersPresent,
+    agents,
     world_status: input.world_status || null,
     freshness,
     public_pulses: pulses,

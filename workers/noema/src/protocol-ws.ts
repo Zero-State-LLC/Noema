@@ -100,6 +100,7 @@ export async function mintResumeToken(
       controller_type: principal.controller_type,
       seal: seal || "",
       sid: principal.session_id,
+      ...(principal.jti ? { jti: principal.jti } : {}),
       iat: now,
       exp: now + 3600,
     },
@@ -123,6 +124,7 @@ export async function principalFromResume(
       controller_id: String(claims.controller_id),
       controller_type: "agent" as const,
       session_id: String(claims.sid || "sess.resume"),
+      ...(claims.jti ? { jti: String(claims.jti) } : {}),
       scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
       protocol_version: "1",
       authentication_context: "resume",
@@ -221,7 +223,23 @@ export async function handleProtocolFrame(
     const resume = String(msg.body?.resume_token || "");
     if (resume) {
       const restored = await principalFromResume(env, resume);
-      if (restored) state = { ...state, principal: restored.principal, seal: restored.seal };
+      if (restored) {
+        let revoked = true;
+        try {
+          if (env.WORLD_DO) {
+            revoked = await isControllerRevoked(
+              durableRevocationStore(env),
+              restored.principal.controller_id,
+              restored.principal.jti,
+            );
+          }
+        } catch {
+          revoked = true;
+        }
+        if (!revoked) {
+          state = { ...state, principal: restored.principal, seal: restored.seal };
+        }
+      }
     }
     return { reply: protocolHello(msg, env), state };
   }
@@ -350,12 +368,14 @@ export function acceptProtocolWebSocket(
   const server = pair[1];
   server.accept();
   let state: ProtocolState = { principal: null, adminToken: "", seal: null };
+  let queue: Promise<void> = Promise.resolve();
   server.addEventListener("message", (evt: MessageEvent) => {
-    void (async () => {
+    const raw = String(evt.data || "{}");
+    queue = queue.then(async () => {
       try {
         let msg: Frame;
         try {
-          msg = JSON.parse(String(evt.data || "{}")) as Frame;
+          msg = JSON.parse(raw) as Frame;
         } catch {
           server.send(JSON.stringify(protoErr(undefined, "INVALID_SCHEMA", "frame must be JSON")));
           return;
@@ -366,7 +386,7 @@ export function acceptProtocolWebSocket(
       } catch {
         server.send(JSON.stringify(protoErr(undefined, "INTERNAL", "protocol frame failed", 500)));
       }
-    })();
+    });
   });
   return new Response(null, { status: 101, webSocket: pair[0] });
 }

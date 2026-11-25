@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity } from "../src/actions";
+import { playTextFromObservation } from "../src/play-ui";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -123,8 +124,61 @@ describe("S-MARK-10 isolated Chamber", () => {
     const moved = await run(w, p, "MOVE", { direction: "east" });
     expect(moved.ok).toBe(true);
     expect(moved.observation?.location?.name).toBe("Transit Ring");
-    expect(moved.observation?.play_text || "").toMatch(/Transit Ring/);
-    expect(moved.observation?.play_text || "").toMatch(/STATUS/);
+    const moveText = moved.observation?.play_text || "";
+    expect(moveText).toMatch(/Transit Ring/);
+    expect(moveText).toMatch(/STATUS/);
+    // #779 T1.6: STATUS carries Energy plus at least a second budget (Storage / Compute).
+    expect(moveText).toMatch(/Energy \d+/);
+    expect(moveText).toMatch(/Storage \d+|Compute \d+/);
     expect(moved.events?.some((e) => e.event_type === "LOOK")).toBe(false);
+  });
+
+  it("#779 T1.7 post-LEAVE mark persists for an independent second principal entering the room", async () => {
+    const w = chamberWorld();
+    const p1 = principal();
+    const p2: PlayerPrincipal = {
+      ...principal(),
+      player_id: "player.rhea",
+      agent_id: "agent.rhea",
+      session_id: "sess.rhea",
+      controller_id: "ctrl.rhea",
+    };
+    expect((await run(w, p1, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p1.player_id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, storage: 15 });
+    expect((await run(w, p1, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" })).ok).toBe(true);
+    expect((await run(w, p1, "LEAVE_WORLD")).ok).toBe(true);
+
+    expect((await run(w, p2, "ENTER_WORLD")).ok).toBe(true);
+    const look = await run(w, p2, "LOOK");
+    expect(look.ok).toBe(true);
+    expect(w.rooms["room.relay-quarter"].entities[0].condition).toBeGreaterThan(70);
+    expect(
+      (look.observation?.location?.traces || []).some((t) => /maintenance plate/i.test(t.text)),
+    ).toBe(true);
+  });
+
+  it("#779 T1.2 equivalent observation renders deterministic section order (Room -> EXITS -> STATUS)", async () => {
+    const w = chamberWorld();
+    const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const looked = await run(w, p, "LOOK");
+    expect(looked.ok).toBe(true);
+    const obs = looked.observation!;
+    const a = playTextFromObservation(obs);
+    const b = playTextFromObservation({
+      ...obs,
+      location: obs.location
+        ? {
+            ...obs.location,
+            exits: [...(obs.location.exits || [])].reverse(),
+            entities: [...(obs.location.entities || [])].reverse(),
+          }
+        : undefined,
+    });
+    expect(a.indexOf("Relay Quarter")).toBeGreaterThanOrEqual(0);
+    expect(a.indexOf("EXITS")).toBeGreaterThan(a.indexOf("Relay Quarter"));
+    expect(a.indexOf("STATUS")).toBeGreaterThan(a.indexOf("EXITS"));
+    expect(b.indexOf("EXITS")).toBeGreaterThan(b.indexOf("Relay Quarter"));
+    expect(b.indexOf("STATUS")).toBeGreaterThan(b.indexOf("EXITS"));
   });
 });

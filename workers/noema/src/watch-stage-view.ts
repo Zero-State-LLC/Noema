@@ -21,13 +21,19 @@ export const STAGE_KEY: Array<[string, string]> = [
   ["selected", "Selected site: bright edge, raised"],
   ["followed", "Followed site: cyan ring"],
   ["major", "MAJOR event: amber ring"],
+  ["moment", "Moment: a MAJOR event holds its site for a few seconds; the camera may cut to NOTABLE and MAJOR sites unless you move it"],
   ["pressure", "Pressure band: the plate warms toward amber, low to high"],
   ["scar", "Scar residue band: dashed violet outline, faint to deep"],
-  ["agent", "Agent present: one pip per agent, handles in the label"],
+  ["glow", "Glow: a soft halo under sites where agents are present; amber for MAJOR, cyan when followed"],
+  ["agent", "Agent: one token per agent; named tokens carry their public handle"],
+  ["nameplate", "Nameplate: a public agent handle above its token"],
   ["trace", "Trace: a small mark on the site"],
   ["route", "Route: solid line"],
   ["uncertain", "Uncertain route: dashed line"],
   ["oneway", "One-way route: arrow toward its destination"],
+  ["lit", "Lit route: an agent just moved through this site"],
+  ["travel", "Travel: an agent token moving along a drawn public route"],
+  ["caption", "Caption: what just happened at a site, same words as Recently"],
 ];
 
 export function stageViewHtml(): string {
@@ -65,24 +71,39 @@ body.is-low-noise #watch-stage3d{display:none!important}
 .stage3d-frame canvas{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
 .stage3d-labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .stage3d-label{
-  pointer-events:auto;cursor:pointer;max-width:12rem;padding:.25rem .5rem;
-  border:1px solid var(--line);border-radius:4px;background:color-mix(in srgb,var(--void) 88%,transparent);
-  color:var(--ink);font:500 .75rem/1.25 var(--font-interface);text-align:center;white-space:nowrap;
-  transition:border-color .15s var(--ease),background .15s var(--ease);
+  pointer-events:auto;cursor:pointer;max-width:9.5rem;padding:2px 7px;
+  border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:999px;
+  background:color-mix(in srgb,var(--void) 86%,transparent);backdrop-filter:blur(4px);
+  color:var(--ink);font:500 .68rem/1.2 var(--font-interface);text-align:center;white-space:nowrap;
+  transition:border-color .15s var(--ease),background .15s var(--ease),border-radius .15s var(--ease);
 }
-.stage3d-label:hover{border-color:var(--line-hot);background:color-mix(in srgb,var(--panel) 92%,transparent)}
-.stage3d-label .stage3d-handles{display:block;margin-top:.125rem;color:var(--color-state-social);font:400 .6875rem/1.2 var(--font-mono);overflow:hidden;text-overflow:ellipsis}
-.stage3d-label .stage3d-bands{display:block;margin-top:.125rem;color:var(--muted);font:400 .625rem/1.2 var(--font-interface)}
+.stage3d-label:hover,.stage3d-label[data-state~="selected"],.stage3d-label[data-state~="followed"]{
+  max-width:13rem;padding:4px 8px;border-radius:8px;
+  border-color:var(--line-hot);background:rgba(14,17,20,.9);z-index:2;
+}
+.stage3d-label .stage3d-handles,.stage3d-label .stage3d-lines,.stage3d-label .stage3d-bands,.stage3d-label .stage3d-state{display:none}
+.stage3d-label:hover .stage3d-handles,.stage3d-label[data-state~="selected"] .stage3d-handles,.stage3d-label[data-state~="followed"] .stage3d-handles{
+  display:block;margin-top:2px;color:var(--color-state-social);font:400 .66rem/1.2 var(--font-mono);overflow:hidden;text-overflow:ellipsis;
+}
+.stage3d-label:hover .stage3d-lines,.stage3d-label[data-state~="selected"] .stage3d-lines{
+  display:block;margin-top:2px;color:var(--ink);font:400 .64rem/1.2 var(--font-interface);white-space:normal;
+}
+.stage3d-label:hover .stage3d-bands,.stage3d-label[data-state~="selected"] .stage3d-bands{
+  display:block;margin-top:2px;color:var(--muted);font:400 .62rem/1.2 var(--font-interface);
+}
+.stage3d-label:hover .stage3d-state,.stage3d-label[data-state~="selected"] .stage3d-state{
+  display:block;margin-top:2px;color:var(--faint);font:600 .6rem/1.2 var(--font-interface);letter-spacing:.12em;text-transform:uppercase;
+}
 .stage3d-health{display:flex;flex-wrap:wrap;gap:.25rem 1.25rem;margin:.5rem 0 0;color:var(--muted);font:.75rem/1.4 var(--font-interface)}
 .stage3d-health:empty{display:none}
 .stage3d-health div{display:flex;gap:.375rem;align-items:baseline}
 .stage3d-health dt{color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-size:.6875rem}
 .stage3d-health dd{margin:0;color:var(--ink)}
-.stage3d-label .stage3d-state{display:block;margin-top:.125rem;color:var(--faint);font:600 .625rem/1.2 var(--font-interface);letter-spacing:.12em;text-transform:uppercase}
 .stage3d-label[data-state~="active"]{border-color:color-mix(in srgb,var(--color-state-active) 55%,var(--line))}
 .stage3d-label[data-state~="followed"]{border-color:var(--color-state-active)}
 .stage3d-label[data-state~="selected"]{border-color:var(--ink)}
 .stage3d-label[data-state~="major"]{border-color:var(--color-state-warning)}
+.stage3d-label.is-moment{outline:2px solid var(--color-state-warning);outline-offset:1px;box-shadow:0 0 0 3px color-mix(in srgb,var(--color-state-warning) 35%,transparent)}
 .stage3d-label[data-state~="partial"]{border-style:dashed;color:var(--muted)}
 .stage3d-label.is-tucked{max-width:.75rem;max-height:.75rem;padding:0;overflow:hidden;color:transparent;border-radius:999px;background:var(--line-hot)}
 .stage3d-label.is-tucked>*{visibility:hidden}
@@ -97,6 +118,25 @@ body.is-low-noise #watch-stage3d{display:none!important}
 .stage3d-key ul{display:grid;gap:.25rem .75rem;margin:.5rem 0 0;padding:0 0 0 1rem;color:var(--muted);font:.8125rem/1.4 var(--font-interface)}
 @media(min-width:720px){.stage3d-key ul{grid-template-columns:1fr 1fr}}
 .stage3d-caption{margin:.5rem 0 1rem;color:var(--faint);font:.75rem/1.4 var(--font-interface)}
+.stage3d-says{position:relative;width:11.5rem;height:0;pointer-events:none}
+.stage3d-says-list{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:.2rem}
+.stage3d-say{
+  pointer-events:none;max-width:11.5rem;padding:2px 6px;border:1px solid color-mix(in srgb,var(--color-state-active) 70%,transparent);
+  border-radius:6px;background:rgba(14,17,20,.76);backdrop-filter:blur(4px);color:var(--ink);font:500 .64rem/1.25 var(--font-interface);
+  text-align:left;white-space:normal;
+}
+.stage3d-say.is-major{border-color:var(--color-state-warning)}
+.stage3d-say .stage3d-say-consequence{display:block;margin-top:2px;color:var(--muted);font-size:.6rem}
+.stage3d-nameplate{
+  pointer-events:none;padding:1px 5px;border-radius:999px;background:rgba(14,17,20,.55);
+  color:var(--ink);font:400 .58rem/1.15 var(--font-mono);white-space:nowrap;opacity:.82;
+}
+.stage3d-nameplate.is-tucked{display:none}
+.stage3d-lines{display:block;max-width:14rem;white-space:nowrap;margin-top:.125rem;color:var(--muted);font:400 .66rem/1.2 var(--font-interface);overflow:hidden;text-overflow:ellipsis}
+.stage3d-more{
+  pointer-events:none;padding:0 .2rem;border-radius:3px;background:rgba(14,17,20,.9);
+  color:var(--faint);font:600 .62rem/1.2 var(--font-mono);
+}
 @media(max-width:860px){
   .watch-stage[data-mode="3d"]{grid-template-columns:1fr}
   body:has(.watch-stage[data-mode="3d"]) .wrap{width:min(var(--max),calc(100% - 2*var(--pad)))}
