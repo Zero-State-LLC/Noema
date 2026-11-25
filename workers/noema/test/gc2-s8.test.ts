@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CONSTRUCT_COSTS, RESTORE_CONDITION_CAP } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity, helpText, parseHumanCommand } from "../src/actions";
-import { projectionIdForEvent } from "../src/watch-live";
+import { phraseWatchEvent, projectionIdForEvent } from "../src/watch-live";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
 function principal(id: string): PlayerPrincipal {
@@ -149,5 +149,36 @@ describe("GC2-S8 world path", () => {
     const blocked = await run(w, p, "BUILD", { operation: "RESTORE", entity_id: "entity.workshop.x" });
     expect(blocked.ok).toBe(false);
     expect(blocked.error?.code).toBe("NOT_OBSERVABLE");
+  });
+
+  it("maps a real RESTORE to the RFC-0132 production line", async () => {
+    const w = world();
+    const owner = principal("player.nacre");
+    const other = principal("player.vesper");
+    await run(w, owner, "ENTER_WORLD");
+    w.players[owner.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[owner.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
+    const built = await run(w, owner, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
+    expect(built.ok).toBe(true);
+    const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
+    const opened = await run(w, owner, "WAIT");
+    expect(opened.ok).toBe(true);
+    w.cycle = 12;
+    await run(w, owner, "WAIT");
+    expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === shop.entity_id)?.unclaimed).toBe(true);
+
+    await run(w, other, "ENTER_WORLD");
+    w.players[other.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const stolen = await run(w, other, "BUILD", { operation: "RESTORE", entity_id: shop.entity_id });
+    expect(stolen.ok).toBe(false);
+    expect(stolen.error?.code).toBe("NOT_OWNER");
+
+    w.players[owner.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[owner.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
+    const restored = await run(w, owner, "BUILD", { operation: "RESTORE", entity_id: shop.entity_id });
+    expect(restored.ok).toBe(true);
+    const update = restored.events!.find((e) => e.event_type === "ENTITY_UPDATE")!;
+    expect(projectionIdForEvent(update.event_type, update.payload as Record<string, unknown>)).toBe("production");
+    expect(phraseWatchEvent(update as never, w.rooms)).toBe("A ruin was restored at Hub");
   });
 });

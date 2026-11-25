@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CONSTRUCT_COSTS, VEST_COST } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, helpText, parseHumanCommand } from "../src/actions";
-import { projectionIdForEvent } from "../src/watch-live";
+import { phraseWatchEvent, projectionIdForEvent } from "../src/watch-live";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
 function principal(id: string): PlayerPrincipal {
@@ -153,5 +153,60 @@ describe("GC2-S10 world path", () => {
     });
     expect(blocked.ok).toBe(false);
     expect(blocked.error?.code).toBe("NOT_OBSERVABLE");
+  });
+
+  it("maps a real VEST to the RFC-0132 organization line without naming the organization", async () => {
+    const w = world();
+    const a = principal("player.nacre");
+    const b = principal("player.vesper");
+    await run(w, a, "ENTER_WORLD");
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[a.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
+
+    const built = await run(w, a, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
+    expect(built.ok).toBe(true);
+    const opened = await run(w, a, "WAIT");
+    expect(opened.ok).toBe(true);
+    await run(w, b, "ENTER_WORLD");
+    w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
+    const entityId = shop.entity_id;
+
+    const formed = await run(w, a, "ORG_CREATE", { name: "Nacre Compact", charter: "works" });
+    expect(formed.ok).toBe(true);
+    const orgId = Object.keys(w.organizations)[0];
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+
+    const vacant = await run(w, a, "BUILD", { operation: "VEST", entity_id: entityId, org_id: orgId });
+    expect(vacant.ok).toBe(false);
+    expect(vacant.error?.code).toBe("FORBIDDEN");
+
+    const created = await run(w, a, "ORG_OFFICE_CREATE", {
+      org_id: orgId,
+      display_name: "Works",
+      authority_profile: "OPERATE_NAMED_ASSET",
+    });
+    expect(created.ok).toBe(true);
+    const officeId = Object.keys(w.organizations[orgId].offices || {})[0];
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const stillVacant = await run(w, a, "BUILD", { operation: "VEST", entity_id: entityId, org_id: orgId });
+    expect(stillVacant.ok).toBe(false);
+    expect(stillVacant.error?.code).toBe("FORBIDDEN");
+
+    const assigned = await run(w, a, "ORG_OFFICE_ASSIGN", { office_id: officeId, agent_id: a.player_id });
+    expect(assigned.ok).toBe(true);
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+
+    const stranger = await run(w, b, "BUILD", { operation: "VEST", entity_id: entityId, org_id: orgId });
+    expect(stranger.ok).toBe(false);
+    expect(stranger.error?.code).toBe("NOT_OWNER");
+
+    const vested = await run(w, a, "BUILD", { operation: "VEST", entity_id: entityId, org_id: orgId });
+    expect(vested.ok).toBe(true);
+    const update = vested.events!.find((e) => e.event_type === "ENTITY_UPDATE")!;
+    expect(projectionIdForEvent(update.event_type, update.payload as Record<string, unknown>)).toBe("organization");
+    const line = phraseWatchEvent(update as never, w.rooms);
+    expect(line).not.toContain(orgId);
+    expect(line).not.toContain("Nacre Compact");
   });
 });
