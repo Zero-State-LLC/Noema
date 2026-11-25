@@ -24,8 +24,26 @@ describe("applyLockoutRest (#907 energy deadlock)", () => {
   });
 
   it("does not trigger when energy is greater than 0", () => {
-    const budgets = { energy: 1, storage: 16 };
+    const budgets = { energy: 1, storage: 8 };
     expect(applyLockoutRest(budgets)).toBe(false);
     expect(budgets.energy).toBe(1);
+  });
+
+  it("rests to 2 at energy 1 with an empty hold (every MOVE lands at 1; HARVEST needs 2)", () => {
+    const budgets = { energy: 1, storage: 16 };
+    expect(applyLockoutRest(budgets)).toBe(true);
+    expect(budgets.energy).toBe(LOCKOUT_REST_ENERGY);
+    expect(budgets.storage).toBe(16);
+  });
+
+  it("never rests at or above 2", () => {
+    const budgets = { energy: 2, storage: 16 };
+    expect(applyLockoutRest(budgets)).toBe(false);
+    expect(budgets.energy).toBe(2);
+  });
+
+  it("energy 1 with a full hold defers to cargo fuel", () => {
+    const budgets = { energy: 1, storage: 0 };
+    expect(applyLockoutRest(budgets)).toBe(false);
   });
 });

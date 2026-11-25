@@ -44,15 +44,18 @@ export function previewStockRegen(
 
 import { occupiedHold } from "./cargo";
 
-/** RFC-0117 + #907: zero-energy with full hold OR empty hold is not a permanent lock. */
+/** RFC-0117 + #907: zero-energy with full hold OR empty hold is not a permanent lock.
+ *  Empty hold also rests below LOCKOUT_REST_ENERGY: every MOVE lands at 1, which no WAIT could lift (#907 follow-up). */
 export const LOCKOUT_REST_ENERGY = 2;
 export const LOCKOUT_REST_STORAGE = 1;
 
 export function applyLockoutRest<T extends { energy?: number; storage?: number }>(budgets: T): boolean {
-  if ((budgets.energy ?? 0) !== 0) return false;
+  const energy = budgets.energy ?? 0;
+  if (energy >= LOCKOUT_REST_ENERGY) return false;
   const freeStorage = budgets.storage ?? 0;
   const fullHold = freeStorage === 0;
   const emptyHold = occupiedHold(freeStorage) === 0;
+  if (energy !== 0 && !emptyHold) return false;
   if (!fullHold && !emptyHold) return false;
   budgets.energy = LOCKOUT_REST_ENERGY;
   if (fullHold) {
