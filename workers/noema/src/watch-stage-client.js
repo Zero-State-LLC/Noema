@@ -776,13 +776,14 @@ function mount(frame, opts) {
     for (const p of slot.pulses) {
       // A rebuild can drop a site; a pulse with nowhere to land is skipped.
       if (!groups.has(p.roomId)) continue;
-      if (p.tier === "MAJOR") {
-        p.ring = majorRing(p.roomId);
-        // A MAJOR event holds its site for a few seconds beyond its pulse.
-        startMoment(p.roomId);
-      }
+      if (p.tier === "MAJOR") p.ring = majorRing(p.roomId);
       pulses.push(p);
     }
+    // D6 MAJOR moments come from the fresh captions, not from the animation
+    // pulses: reduced motion suppresses every pulse, but the moment must still
+    // fire. startMoment has its own still-highlight branch (WS3-08) and never
+    // asks for a frame, so this reads the same in both modes.
+    for (const roomId of slot.moments || []) startMoment(roomId);
     for (const c of slot.captions) addCaption(c);
     for (const t of slot.travels) startTravel(t);
     // D6 tier director: with no spectator camera movement and no Follow in
@@ -907,13 +908,20 @@ function mount(frame, opts) {
     const slotFor = (sequence) => {
       let slot = slots.get(sequence);
       if (!slot) {
-        slot = { sequence: sequence, occurredAt: eventAt.get(sequence), pulses: [], captions: [], travels: [] };
+        slot = { sequence: sequence, occurredAt: eventAt.get(sequence), pulses: [], captions: [], travels: [], moments: [] };
         slots.set(sequence, slot);
       }
       return slot;
     };
     for (const p of fresh.pulses) slotFor(p.sequence).pulses.push(p);
-    for (const c of freshCaptions) slotFor(c.sequence).captions.push(c);
+    for (const c of freshCaptions) {
+      const slot = slotFor(c.sequence);
+      slot.captions.push(c);
+      // A MAJOR moment is derived from the caption, so it survives the pulse
+      // suppression reduced motion applies. At most one MAJOR caption exists
+      // per snapshot, so a slot holds at most one moment.
+      if (c.tier === "MAJOR" && !slot.moments.includes(c.roomId)) slot.moments.push(c.roomId);
+    }
     for (const t of pendingTravels) slotFor(t.sequence).travels.push(t);
     // A snapshot can arrive while older slots are still waiting. Its rows must
     // not start before every one of those moments, or a newer event — and a
