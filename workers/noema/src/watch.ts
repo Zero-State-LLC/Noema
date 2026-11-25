@@ -7,6 +7,7 @@ import { MAP_PARITY_HOLD_LINE, MAP_PARITY_LINE, watchMapGlInlineSource } from ".
 import { watchMapInlineSource } from "./watch-map-page";
 import { parseWatchMode, watchModeInlineSource, type WatchMode } from "./watch-mode";
 import { phosphorInlineScript } from "./watch-phosphor";
+import { PREDICT_KEY, predictInlineSource } from "./watch-predict";
 import { STAGE_FALLBACK_LINE, STAGE_LOW_NOISE_LINE } from "./watch-stage-model";
 import { STAGE_SRC, STAGE_VIEW_CSS, stageViewHtml } from "./watch-stage-view";
 import {
@@ -277,6 +278,22 @@ body.is-low-noise #watch-low-noise{display:block}
 .watch-modes .btn[aria-pressed="true"],.watch-modes .btn.quiet[aria-pressed="true"]{
   background:var(--color-state-active);color:var(--color-text-inverse);border-color:transparent;
 }
+.watch-predict{margin:.7rem 0 0;padding:.5rem 0 .15rem;border-top:1px solid var(--line)}
+.watch-predict summary{
+  cursor:pointer;color:var(--faint);font:550 .68rem/1.3 var(--font-mono);
+  letter-spacing:.12em;text-transform:uppercase;
+}
+.watch-predict summary::-webkit-details-marker{display:none}
+.watch-predict summary:focus-visible{outline:2px solid var(--color-state-active);outline-offset:3px}
+.watch-predict .lede{margin:.35rem 0;color:var(--faint);font:.72rem/1.4 var(--font-mono)}
+.watch-predict label{display:block;margin:.3rem 0;color:var(--ink);font:.78rem/1.4 var(--font-mono)}
+.watch-predict select{
+  margin:.2rem .35rem .2rem 0;max-width:11rem;background:var(--void);color:var(--ink);
+  border:1px solid var(--line);font:.78rem/1.3 var(--font-mono);
+}
+.watch-predict .btn{min-height:1.8rem;padding:.25rem .6rem;font-size:var(--text-kicker)}
+.watch-predict p{margin:.25rem 0;color:var(--muted);font:.74rem/1.4 var(--font-mono)}
+#watch-predict-body[hidden]{display:none}
 ${STAGE_VIEW_CSS}
 `;
 
@@ -360,6 +377,19 @@ export function watchHtml(opts?: { mode?: string }): string {
           <p id="watch-public-recent-status">Public events unavailable.</p>
           <ol class="watch-feed" id="watch-public-recent-list"></ol>
         </details>
+        <details id="watch-predict" class="watch-predict">
+          <summary>Guess the next site</summary>
+          <p class="lede">Just for fun, off by default. Your guesses and score stay in this browser; nothing is sent anywhere and agents never see them.</p>
+          <label><input type="checkbox" id="watch-predict-on"> Play along</label>
+          <div id="watch-predict-body" hidden>
+            <label for="watch-predict-site">Next public event at</label>
+            <select id="watch-predict-site"></select>
+            <button type="button" class="btn quiet" id="watch-predict-go">Guess</button>
+            <p id="watch-predict-status" aria-live="polite"></p>
+            <p id="watch-predict-score"></p>
+            <button type="button" class="btn quiet" id="watch-predict-clear">Clear score</button>
+          </div>
+        </details>
         <section class="watch-withheld" id="watch-withheld" aria-labelledby="watch-withheld-label">
           <h2 id="watch-withheld-label">Withheld</h2>
           <p class="lede">${WITHHELD_LEDE}</p>
@@ -411,6 +441,109 @@ export function watchHtml(opts?: { mode?: string }): string {
       const btn = $("watch-low-noise-btn");
       if (btn) btn.addEventListener("click", () => applyLowNoise(!document.body.classList.contains("is-low-noise")));
     })();
+
+    // D6 item 9 — local predictions. Optional, off by default, spectator-only:
+    // guesses and score stay in this browser and never leave it (RFC-0120).
+    const PREDICT_KEY = ${JSON.stringify(PREDICT_KEY)};
+    ${predictInlineSource()}
+    let predict = parsePredictState(null);
+    try { predict = parsePredictState(localStorage.getItem(PREDICT_KEY)); } catch (e) { predict = parsePredictState(null); }
+    let predictNote = null;
+    function savePredict() {
+      try { localStorage.setItem(PREDICT_KEY, JSON.stringify(predict)); } catch (e) {}
+    }
+    function publicPredictRoomIds(data) {
+      const rooms = data && Array.isArray(data.rooms) ? data.rooms : [];
+      const ids = [];
+      for (let i = 0; i < rooms.length; i++) {
+        const r = rooms[i];
+        if (r && typeof r.room_id === "string" && r.room_id) ids.push(r.room_id);
+      }
+      return ids;
+    }
+    function latestPublicSequence(data) {
+      let max = 0;
+      if (data && typeof data.sequence === "number" && isFinite(data.sequence) && data.sequence > max) max = data.sequence;
+      const events = data && Array.isArray(data.recent_events) ? data.recent_events : [];
+      for (let i = 0; i < events.length; i++) {
+        const seq = Number(events[i] && events[i].sequence);
+        if (isFinite(seq) && seq > max) max = seq;
+      }
+      return max;
+    }
+    function renderPredict(data) {
+      const body = $("watch-predict-body");
+      const sel = $("watch-predict-site");
+      const status = $("watch-predict-status");
+      const score = $("watch-predict-score");
+      if (!body || !sel || !status || !score) return;
+      body.hidden = predict.on !== true;
+      const rooms = data && Array.isArray(data.rooms) ? data.rooms : [];
+      sel.replaceChildren();
+      for (let i = 0; i < rooms.length; i++) {
+        const r = rooms[i];
+        if (!r || !r.room_id || !r.name) continue;
+        const opt = document.createElement("option");
+        opt.value = String(r.room_id);
+        opt.textContent = String(r.name);
+        sel.append(opt);
+      }
+      if (predict.guess) sel.value = predict.guess;
+      if (predictNote) {
+        const name = roomName(rooms, predictNote.site) || predictNote.site;
+        status.textContent = predictNote.kind === "hit" ? "Hit: " + name : "Miss: it was " + name;
+      } else if (predict.guess) {
+        status.textContent = "Waiting for the next public event…";
+      } else {
+        status.textContent = "No guess yet.";
+      }
+      score.textContent = "Score: " + predict.hits + " / " + predict.tries;
+    }
+    function applyPredict(data) {
+      const events = data && Array.isArray(data.recent_events) ? data.recent_events : [];
+      const solved = resolvePrediction(predict, events, publicPredictRoomIds(data));
+      if (solved.outcome) {
+        predict = solved.state;
+        predictNote = { kind: solved.outcome, site: solved.site };
+        savePredict();
+      }
+      renderPredict(data);
+    }
+    const predictOn = $("watch-predict-on");
+    const predictGo = $("watch-predict-go");
+    const predictClear = $("watch-predict-clear");
+    if (predictOn) {
+      predictOn.checked = predict.on === true;
+      predictOn.addEventListener("change", function () {
+        predict = { on: predictOn.checked === true, hits: predict.hits, tries: predict.tries, guess: "", after: predict.after };
+        predictNote = null;
+        savePredict();
+        renderPredict(state.last);
+      });
+    }
+    if (predictGo) {
+      predictGo.addEventListener("click", function () {
+        const sel = $("watch-predict-site");
+        const value = sel ? String(sel.value || "") : "";
+        const next = placeGuess(predict, value, latestPublicSequence(state.last), publicPredictRoomIds(state.last));
+        if (next !== predict) {
+          predict = next;
+          predictNote = null;
+          savePredict();
+        }
+        renderPredict(state.last);
+      });
+    }
+    if (predictClear) {
+      predictClear.addEventListener("click", function () {
+        predict = { on: predict.on === true, hits: 0, tries: 0, guess: "", after: predict.after };
+        predictNote = null;
+        savePredict();
+        renderPredict(state.last);
+      });
+    }
+    renderPredict(state.last);
+    // end predictions
 
     function el(tag, className, text) {
       const n = document.createElement(tag);
@@ -1180,6 +1313,9 @@ export function watchHtml(opts?: { mode?: string }): string {
     function applyLive(data) {
       render(data);
       if (state.mode === "3d") refreshMap();
+      // D6 item 9: spectator guesses resolve against public events only, and
+      // only when this client is live — pausing must not score anything.
+      if (!state.paused && data.projection === "public") applyPredict(data);
       if (state.paused) {
         setTag("paused", "tag warn");
         return;
