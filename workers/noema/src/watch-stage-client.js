@@ -6,10 +6,11 @@
  * Labels are DOM text. The page's Places list stays the accessible authority.
  */
 import {
-  AdditiveBlending, BoxGeometry, BufferGeometry, CanvasTexture, Color, ConeGeometry, CylinderGeometry,
-  DirectionalLight, EdgesGeometry, Group, HemisphereLight, Line, LineBasicMaterial, LineDashedMaterial,
-  LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry,
-  Raycaster, RingGeometry, Scene, Vector2, Vector3, WebGLRenderer,
+  AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, Color, ConeGeometry,
+  CylinderGeometry, DirectionalLight, EdgesGeometry, FogExp2, Group, HemisphereLight, Line,
+  LineBasicMaterial, LineDashedMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial,
+  OctahedronGeometry, PerspectiveCamera, PlaneGeometry, Points, PointsMaterial, Raycaster,
+  RingGeometry, Scene, TorusGeometry, Vector2, Vector3, WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
@@ -68,6 +69,59 @@ function palette() {
   };
 }
 
+const AGENT_COLORS = [0x3ddcff, 0xffb020, 0x52e5a8, 0xb68cff, 0xff6b8b, 0x70b8ff];
+function agentAccent(handle) {
+  if (!handle) return 0xc4a882;
+  let h = 0;
+  for (let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) >>> 0;
+  return AGENT_COLORS[h % AGENT_COLORS.length];
+}
+
+function makePlanetaryTerrain() {
+  const grp = new Group();
+  // Grounded frontier planet surface (dark basalt/ochre basin under Perihelion Reach)
+  const groundGeo = new PlaneGeometry(140, 140, 24, 24);
+  const posAttr = groundGeo.attributes.position;
+  for (let i = 0; i < posAttr.count; i++) {
+    const x = posAttr.getX(i);
+    const y = posAttr.getY(i);
+    const dist = Math.hypot(x, y);
+    // Flat basin in the settlement center, gentle ridges toward the frontier horizon
+    const ridge = dist > 11 ? Math.sin(x * 0.16) * Math.cos(y * 0.14) * Math.min(3.5, (dist - 11) * 0.14) : 0;
+    posAttr.setZ(i, ridge);
+  }
+  groundGeo.computeVertexNormals();
+  const ground = new Mesh(
+    groundGeo,
+    new MeshStandardMaterial({ color: 0x1e1b18, roughness: 0.96, metalness: 0.04 }),
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.18;
+  ground.raycast = () => {};
+  grp.add(ground);
+
+  // Subtle atmospheric dust motes drifting over the planet surface
+  const count = 160;
+  const pos = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const theta = ((i * 137.508) % 360) * (Math.PI / 180);
+    const r = 3 + ((i * 19) % 28);
+    const h = 0.4 + ((i * 7) % 10) * 0.45;
+    pos[i * 3] = Math.cos(theta) * r;
+    pos[i * 3 + 1] = h;
+    pos[i * 3 + 2] = Math.sin(theta) * r;
+  }
+  const dustGeo = new BufferGeometry();
+  dustGeo.setAttribute("position", new BufferAttribute(pos, 3));
+  const dust = new Points(
+    dustGeo,
+    new PointsMaterial({ color: 0xd9b382, size: 0.14, transparent: true, opacity: 0.48 }),
+  );
+  dust.raycast = () => {};
+  grp.add(dust);
+  return grp;
+}
+
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
 /**
@@ -107,26 +161,41 @@ function mount(frame, opts) {
   const labels = new CSS2DRenderer({ element: labelRoot });
 
   const scene = new Scene();
-  scene.add(new HemisphereLight(C.ink, C.world, 0.95));
-  const sun = new DirectionalLight(0xffffff, 0.55);
-  sun.position.set(-6, 14, 8);
+  scene.fog = new FogExp2(0x161412, 0.015);
+  scene.add(makePlanetaryTerrain());
+  scene.add(new HemisphereLight(0xf2d9b8, 0x1b1714, 0.95));
+  const sun = new DirectionalLight(0xffcf96, 0.95);
+  sun.position.set(-10, 14, 8);
   scene.add(sun);
+  const rim = new DirectionalLight(0x52a8d8, 0.42);
+  rim.position.set(12, 7, -10);
+  scene.add(rim);
   const camera = new PerspectiveCamera(38, 1, 0.1, 2000);
   const controls = new OrbitControls(camera, canvas);
-  controls.enableDamping = false;
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
   controls.screenSpacePanning = false;
   controls.listenToKeyEvents(frame);
 
   const shared = {
-    plate: new BoxGeometry(PLATE, 0.3, PLATE),
+    plate: new BoxGeometry(PLATE, 0.32, PLATE),
     ring: new BoxGeometry(PLATE + 0.5, 0.04, PLATE + 0.5),
     scar: new BoxGeometry(PLATE - 0.6, 0.02, PLATE - 0.6),
-    pip: new CylinderGeometry(0.13, 0.13, 0.5, 12),
+    pip: new CylinderGeometry(0.14, 0.22, 0.52, 8),
+    pipHead: new OctahedronGeometry(0.15, 0),
+    core: new OctahedronGeometry(0.32, 0),
+    torus: new TorusGeometry(0.46, 0.04, 8, 24),
+    pillar: new BoxGeometry(0.18, 0.9, 0.18),
+    dish: new ConeGeometry(0.38, 0.24, 12, 1, true),
+    monolith: new BoxGeometry(0.24, 1.05, 0.12),
+    silo: new CylinderGeometry(0.22, 0.24, 0.65, 10),
     trace: new BoxGeometry(0.3, 0.08, 0.3),
     arrow: new ConeGeometry(0.22, 0.6, 12),
     pulse: new RingGeometry(1.7, 1.95, 48),
     halo: new PlaneGeometry(1, 1),
   };
+  let animatedProps = [];
+  let animatedPawns = [];
   let world = new Group();
   scene.add(world);
   let compass = null;
@@ -249,6 +318,17 @@ function mount(frame, opts) {
       const on = lit.has(entry.from + "|" + entry.to);
       for (const m of entry.mats) m.color.copy(on ? C.active : C.route);
     }
+    // Ambient sci-fi station motion (spinning cores, hovering agent drones)
+    const sec = now * 0.001;
+    for (const prop of animatedProps) {
+      prop.rotation.y = sec * (prop.userData.spin || 0.7);
+    }
+    for (const pawn of animatedPawns) {
+      pawn.position.y = pawn.userData.baseY + Math.sin(sec * 2.4 + (pawn.userData.phase || 0)) * 0.08;
+      if (pawn.userData.head) pawn.userData.head.rotation.y = sec * 1.4;
+    }
+    if (controls.enableDamping) controls.update();
+    if (!document.hidden && (animatedProps.length > 0 || animatedPawns.length > 0)) busy = true;
     renderer.render(scene, camera);
     labels.render(scene, camera);
     declutter();
@@ -388,20 +468,93 @@ function mount(frame, opts) {
       scar.computeLineDistances();
       g.add(scar);
     }
-    // One token per agent; the first six carry their public handle as a nameplate.
+    // Room-specific low-poly sci-fi station architecture
+    const py = plate.position.y + 0.16;
+    const sid = String(site.id || "");
+    if (sid.includes("generator")) {
+      const core = new Mesh(shared.core, new MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8c00, emissiveIntensity: 0.9, roughness: 0.3 }));
+      core.position.set(0, py + 0.52, -0.55);
+      core.userData.spin = 1.2;
+      g.add(core);
+      animatedProps.push(core);
+      const ringM = new Mesh(shared.torus, new MeshStandardMaterial({ color: 0x3ddcff, emissive: 0x3ddcff, emissiveIntensity: 0.5, roughness: 0.3 }));
+      ringM.position.copy(core.position);
+      ringM.rotation.x = Math.PI / 3;
+      ringM.userData.spin = -0.8;
+      g.add(ringM);
+      animatedProps.push(ringM);
+    } else if (sid.includes("relay")) {
+      const mast = new Mesh(shared.pillar, new MeshStandardMaterial({ color: 0x5c6f7e, metalness: 0.5, roughness: 0.4 }));
+      mast.position.set(0.65, py + 0.45, -0.65);
+      g.add(mast);
+      const dish = new Mesh(shared.dish, new MeshStandardMaterial({ color: 0x9bb8c4, emissive: 0x3ddcff, emissiveIntensity: 0.35, side: 2 }));
+      dish.position.set(0.65, py + 0.96, -0.65);
+      dish.rotation.z = 0.6;
+      dish.userData.spin = 0.6;
+      g.add(dish);
+      animatedProps.push(dish);
+    } else if (sid.includes("archive")) {
+      for (const dx of [-0.55, 0, 0.55]) {
+        const mono = new Mesh(shared.monolith, new MeshStandardMaterial({ color: 0x1d2733, emissive: 0x3ddcff, emissiveIntensity: 0.25, metalness: 0.6, roughness: 0.25 }));
+        mono.position.set(dx, py + 0.52, -0.78);
+        g.add(mono);
+      }
+    } else if (sid.includes("civic")) {
+      for (const dx of [-0.85, 0.85]) {
+        const pylon = new Mesh(shared.pillar, new MeshStandardMaterial({ color: 0x4b5c6b, emissive: 0xffb020, emissiveIntensity: 0.25, metalness: 0.4, roughness: 0.4 }));
+        pylon.position.set(dx, py + 0.45, -0.85);
+        g.add(pylon);
+      }
+      const hub = new Mesh(shared.torus, new MeshStandardMaterial({ color: 0xffb020, emissive: 0xffb020, emissiveIntensity: 0.4 }));
+      hub.position.set(0, py + 0.12, 0);
+      hub.rotation.x = Math.PI / 2;
+      g.add(hub);
+    } else if (sid.includes("transit")) {
+      const arch = new Mesh(shared.torus, new MeshStandardMaterial({ color: 0x3ddcff, emissive: 0x3ddcff, emissiveIntensity: 0.45 }));
+      arch.position.set(0, py + 0.55, -0.5);
+      arch.scale.setScalar(1.35);
+      g.add(arch);
+    } else if (sid.includes("storage") || sid.includes("foundry") || sid.includes("vault")) {
+      for (const dx of [-0.65, 0.65]) {
+        const silo = new Mesh(shared.silo, new MeshStandardMaterial({ color: 0x4a5562, metalness: 0.5, roughness: 0.45 }));
+        silo.position.set(dx, py + 0.32, -0.75);
+        g.add(silo);
+      }
+    } else {
+      const beacon = new Mesh(shared.pillar, new MeshStandardMaterial({ color: 0x4d5d6b, emissive: 0x9b6dff, emissiveIntensity: 0.35 }));
+      beacon.position.set(-0.78, py + 0.45, -0.78);
+      g.add(beacon);
+    }
+
+    // One distinct sci-fi drone pawn per agent; the first six carry their public handle as a nameplate.
     const named = site.tokens.slice(0, 6);
     const tokenCount = named.length + site.unnamed;
     const tokenMap = new Map();
     for (let i = 0; i < tokenCount; i++) {
       const tok = named[i];
+      const accent = agentAccent(tok ? tok.handle : "");
       const pip = new Mesh(shared.pip, new MeshStandardMaterial({
-        color: C.social,
-        roughness: 0.6,
-        emissive: tok ? C.active : 0x000000,
-        emissiveIntensity: tok ? 0.55 : 0,
+        color: accent,
+        roughness: 0.35,
+        metalness: 0.35,
+        emissive: accent,
+        emissiveIntensity: tok ? 0.55 : 0.15,
       }));
-      pip.position.set(-0.75 + (i % 3) * 0.75, plate.position.y + 0.4, -0.45 + Math.floor(i / 3) * 0.6);
+      const baseY = plate.position.y + 0.44;
+      pip.position.set(-0.75 + (i % 3) * 0.75, baseY, -0.2 + Math.floor(i / 3) * 0.6);
+      pip.userData.baseY = baseY;
+      pip.userData.phase = i * 1.1;
+      const head = new Mesh(shared.pipHead, new MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: accent,
+        emissiveIntensity: 0.9,
+        roughness: 0.2,
+      }));
+      head.position.set(0, 0.42, 0);
+      pip.add(head);
+      pip.userData.head = head;
       g.add(pip);
+      animatedPawns.push(pip);
       if (tok) {
         pip.userData.handle = tok.handle;
         const npel = document.createElement("div");
@@ -409,7 +562,7 @@ function mount(frame, opts) {
         npel.textContent = tok.handle;
         npel.dataset.priority = "-1";
         const nameplate = new CSS2DObject(npel);
-        nameplate.position.set(pip.position.x, pip.position.y + 0.35, pip.position.z);
+        nameplate.position.set(pip.position.x, baseY + 0.72, pip.position.z);
         g.add(nameplate);
         tokenMap.set(tok.handle, { mesh: pip, nameplate });
       }
@@ -550,6 +703,8 @@ function mount(frame, opts) {
     scene.add(world);
     groups.clear();
     routeEntries = [];
+    animatedProps = [];
+    animatedPawns = [];
     for (const p of pulses) p.ring = null;
   }
 
