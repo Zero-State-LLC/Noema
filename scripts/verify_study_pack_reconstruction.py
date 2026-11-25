@@ -17,7 +17,12 @@ def verify_pack(pack_dir: Path) -> dict[str, Any]:
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     errors: list[str] = []
-    files = manifest.get("files") or []
+    files = manifest.get("files")
+    if not isinstance(files, list):
+        return {"ok": False, "pack_dir": str(pack_dir), "verified_files": 0, "errors": ["manifest.files must be a list"]}
+    expected_count = manifest.get("file_count")
+    if expected_count is not None and expected_count != len(files):
+        errors.append(f"manifest.file_count ({expected_count}) != len(files) ({len(files)})")
     for entry in files:
         rel = entry.get("path")
         expected_sha = entry.get("sha256")

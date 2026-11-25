@@ -84,9 +84,14 @@ export async function handleStudyAdminRequest(req: Request, ctx: StudyAdminHttpC
 
     if (url.searchParams.get("format") === "csv") {
       const header = "event_id,event_type,actor_id,study_id,target_human_principal_id,auth_event_id,occurred_at_ms";
+      const neutralizeCsv = (v: unknown): string => {
+        const s = String(v);
+        const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+        return `"${safe.replace(/"/g, '""')}"`;
+      };
       const rows = events.map((e) =>
         [e.event_id, e.event_type, e.actor_id, e.study_id, e.target_human_principal_id, e.auth_event_id, e.occurred_at_ms]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .map(neutralizeCsv)
           .join(","),
       );
       return new Response([header, ...rows].join("\n") + "\n", {
