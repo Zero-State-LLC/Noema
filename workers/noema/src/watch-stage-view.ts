@@ -24,6 +24,7 @@ export const STAGE_KEY: Array<[string, string]> = [
   ["moment", "Moment: a MAJOR event holds its site for a few seconds; the camera may cut to NOTABLE and MAJOR sites unless you move it"],
   ["pressure", "Pressure band: the plate warms toward amber, low to high"],
   ["scar", "Scar residue band: dashed violet outline, faint to deep"],
+  ["glow", "Glow: a soft halo under sites where agents are present; amber for MAJOR, cyan when followed"],
   ["agent", "Agent: one token per agent; named tokens carry their public handle"],
   ["nameplate", "Nameplate: a public agent handle above its token"],
   ["trace", "Trace: a small mark on the site"],
