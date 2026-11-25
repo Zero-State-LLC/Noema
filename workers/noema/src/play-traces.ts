@@ -70,8 +70,8 @@ const MAX_TRACES = 3;
 function sanitizeInlineText(raw: string): string {
   return String(raw || "")
     .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")
-    .replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, "")
     .replace(/\s+/g, " ")
+    .replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, "")
     .trim();
 }
 
