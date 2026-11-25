@@ -358,6 +358,10 @@ export type Organization = {
   institution_memory?: import("./social-memory").InstitutionMemoryState;
 };
 
+/** RFC-0133: per-act SUPPLY cap and treasury vault storage cap. */
+export const SUPPLY_MAX = 5;
+export const TREASURY_STORAGE_CAP = 64;
+
 export const COSTS = {
   LOOK: { attention: 1 } as Partial<Budgets>,
   INSPECT: { attention: 2 } as Partial<Budgets>,
@@ -454,9 +458,13 @@ export type CanonicalAction =
           | "AGREEMENT_FORM"
           | "AGREEMENT_TERMINATE"
           | "ACCESS_POLICY"
-          | "FOCUS";
+          | "FOCUS"
+          | "SUPPLY";
         signal?: ActionSignal;
         entity_id?: string;
+        /** RFC-0133 SUPPLY recipient and resource. */
+        player_id?: string;
+        resource?: "energy" | "storage";
         extent?: "standard" | "overhaul";
         amount?: number;
         org_id?: string;
@@ -2486,6 +2494,33 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "COMMIT") {
     const operation = String(args.operation || "").toUpperCase();
+    if (operation === "SUPPLY") {
+      const player_id = String(args.player_id || args.agent_id || args.target_id || "").trim();
+      const resource = String(args.resource || "").toLowerCase();
+      const amount = Number(args.amount);
+      if (!player_id) return { ok: false, error: "player_id required", code: "INVALID_REQUEST" };
+      if (resource !== "energy" && resource !== "storage") {
+        return { ok: false, error: "resource must be energy or storage", code: "INVALID_REQUEST" };
+      }
+      if (!Number.isInteger(amount) || amount < 1 || amount > SUPPLY_MAX) {
+        return { ok: false, error: `amount must be 1..${SUPPLY_MAX}`, code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "SUPPLY",
+            player_id,
+            resource,
+            amount,
+            acting_for: args.acting_for ? String(args.acting_for) : undefined,
+            office_id: args.office_id ? String(args.office_id) : undefined,
+          },
+        },
+        display: `SUPPLY ${amount} ${resource} to ${player_id}`,
+      };
+    }
     if (operation === "REPAIR" || operation === "HARVEST") {
       const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
@@ -3184,6 +3219,9 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "RECONSTRUCT_SUPERSEDE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT_SUPERSEDE" });
+  }
+  if (cmd === "SUPPLY") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "SUPPLY" });
   }
   if (cmd === "RECONSTRUCT_PUBLISH") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT_PUBLISH" });

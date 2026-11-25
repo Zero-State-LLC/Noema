@@ -24,6 +24,8 @@ import {
   observationFingerprint,
   parseHumanCommand,
   sanitizeTradeAmounts,
+  SUPPLY_MAX,
+  TREASURY_STORAGE_CAP,
   titleCaseLabel,
   type Budgets,
   type CanonicalAction,
@@ -295,6 +297,7 @@ import {
   applyTradeStorage,
   canConsumeCargo,
   consumeCargo,
+  ENERGY_GRANT,
   occupiedHold,
   reservedCargoFromTrades,
 } from "./cargo";
@@ -3838,6 +3841,54 @@ export async function applyWorldCommand(
       return result;
     }
 
+    // RFC-0133 SUPPLY: a resource-office holder hands treasury energy or cargo to a Player here.
+    if (action.arguments.operation === "SUPPLY") {
+      const a = action.arguments;
+      const grant = resolveInstitutionGrant(
+        w.organizations, principal.player_id, a.acting_for, a.office_id, TRADE_PROFILE);
+      if (!grant.ok) return fail(request_id, grant.code, grant.message);
+      const conflict = resolveOfficeConflict(w.organizations[grant.org_id], grant.office.office_id, "treasury");
+      if (!conflict.ok) return fail(request_id, conflict.code, conflict.message);
+      const toId = String(a.player_id || "");
+      const to = w.players[toId];
+      if (toId === principal.player_id) return fail(request_id, "FORBIDDEN", "You cannot supply yourself.");
+      if (!to?.entered || to.room_id !== pl.room_id) {
+        return fail(request_id, "FORBIDDEN", "They are not here to receive supplies.");
+      }
+      const res = a.resource === "storage" ? "storage" : a.resource === "energy" ? "energy" : null;
+      const amount = Math.floor(Number(a.amount) || 0);
+      if (!res || amount < 1 || amount > SUPPLY_MAX) {
+        return fail(request_id, "INVALID_REQUEST", `Supply 1 to ${SUPPLY_MAX} energy or storage.`);
+      }
+      const treasury = ensureTreasury(w.organizations[grant.org_id]);
+      if ((treasury[res] ?? 0) < amount) {
+        return fail(request_id, "BUDGET_EXCEEDED", `Not enough ${res} in the treasury.`);
+      }
+      if (res === "storage" && (to.budgets.storage ?? 0) < amount) {
+        return fail(request_id, "BUDGET_EXCEEDED", "They do not have enough free storage.");
+      }
+      if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+      }
+      debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+      treasury[res] = (treasury[res] ?? 0) - amount;
+      if (res === "energy") {
+        to.budgets.energy = Math.min(ENERGY_GRANT, (to.budgets.energy ?? 0) + amount);
+      } else {
+        to.budgets.storage = (to.budgets.storage ?? 0) - amount;
+      }
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id, cost_paid: COSTS.ORG_OFFICE_ACT, reason: "SUPPLY",
+      });
+      pushEvent("RESOURCE_TRANSFER", {
+        kind: "supply", from_id: grant.org_id, to_id: toId, resource: res, amount,
+      });
+      const line = `You supply ${amount} ${res === "storage" ? "cargo" : res} to ${to.handle || toId}.`;
+      const result = success(w, principal, request_id, events, line, settled, "supply", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
     // Entity-targeted ops
     const room = w.rooms[pl.room_id];
     const entity = findEntity(room, action.arguments.entity_id || "");
@@ -4025,6 +4076,40 @@ export async function applyWorldCommand(
           : "There is not enough left to take that much.";
         return failedAction(w, principal, request_id, "FORBIDDEN",
           "Not enough stock available.", shown, "harvest");
+      }
+      // RFC-0133: a resource-office holder harvests into the treasury vault, not the pack.
+      if (action.arguments.acting_for) {
+        const grant = resolveInstitutionGrant(w.organizations, principal.player_id,
+          action.arguments.acting_for, action.arguments.office_id, TRADE_PROFILE);
+        if (!grant.ok) return failedAction(w, principal, request_id, grant.code,
+          grant.message, grant.message, "harvest");
+        const vault = ensureTreasury(w.organizations[grant.org_id]);
+        if ((vault.storage ?? 0) + amount > TREASURY_STORAGE_CAP) {
+          return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+            "The treasury vault is full.", "The treasury vault is full.", "harvest");
+        }
+        if (!canPay(pl.budgets, COSTS.HARVEST)) {
+          return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+            "You need energy 2 and compute 1 to harvest.",
+            "You need energy 2 and compute 1 to harvest.", "harvest");
+        }
+        debit(pl.budgets, COSTS.HARVEST);
+        entity.stock_amount = (entity.stock_amount ?? 0) - amount;
+        vault.storage = (vault.storage ?? 0) + amount;
+        pushEvent("BUDGET_CONSUMED", { player_id: principal.player_id, cost_paid: COSTS.HARVEST, reason: "HARVEST" });
+        pushEvent("RESOURCE_TRANSFER", {
+          kind: "harvest", from_id: entity.entity_id, to_id: grant.org_id, resource: "storage", amount,
+        });
+        const ev = pushEvent("ENTITY_UPDATE", {
+          entity_id: entity.entity_id, field: "stock_amount", to: entity.stock_amount, operation: "HARVEST",
+        });
+        await settleEv(ev);
+        noteHarvestTrajectory(w, room.room_id, entity.entity_id, w.cycle);
+        const line = `Harvested ${amount} into the ${w.organizations[grant.org_id].name} treasury.`;
+        const result = success(w, principal, request_id, events, line, settled, "harvest", line);
+        w.seen_idempotency[idem] = result;
+        await coevolveAfterAction(w, principal, "HARVEST", result);
+        return result;
       }
       if ((pl.budgets.storage ?? 0) < amount) {
         return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
