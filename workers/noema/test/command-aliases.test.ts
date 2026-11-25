@@ -187,21 +187,21 @@ describe("S4 inhabit path", () => {
     expect(blocked.ok).toBe(false);
     expect(w.players[agent.player_id].room_id).toBe("room.east");
 
-    // Settlement failure on step 2 halts before step 3.
+    // Multi-step halt: step 1 moves west -> room.hub, step 2 fails on blocked exit "south", step 3 ("move east") must NOT run or settle.
     let settleCalls = 0;
-    const settleFail = await applyWorldCommand(
+    const partialHalt = await applyWorldCommand(
       w,
       agent,
-      { request_id: "s-settle", idempotency_key: "s-settle", command: "LOOK", arguments: { line: "do look; move west; move east" } },
+      { request_id: "s-halt", idempotency_key: "s-halt", command: "LOOK", arguments: { line: "do move west; move south; move east" } },
       async () => {
         settleCalls += 1;
-        return settleCalls !== 2;
+        return true;
       },
       { admission: "developer" },
     );
-    expect(settleFail.ok).toBe(false);
-    expect(settleCalls).toBe(2);
-    expect(w.players[agent.player_id].room_id).toBe("room.east");
+    expect(partialHalt.ok).toBe(false);
+    expect(settleCalls).toBe(1);
+    expect(w.players[agent.player_id].room_id).toBe("room.hub");
   });
 
   it("#782 T4.5/TX.4 macro event and settlement equivalence against direct commands", async () => {
