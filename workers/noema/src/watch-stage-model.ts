@@ -218,6 +218,31 @@ export type StageSite = {
   bands: StageBands;
 };
 
+/**
+ * D6 static glow: cheap additive halo under a site where agents are present.
+ * One shared texture and size; opacity per site, never animated.
+ */
+export const STAGE_GLOW = { MAX_OPACITY: 0.55, MIN_OPACITY: 0.18, SIZE: 4.2 };
+
+/**
+ * D6 static glow level for a site, in [0, MAX_OPACITY]. Zero when nothing is
+ * there. Otherwise it rises with the agent count up to six, gets a MAJOR
+ * boost, and a Followed floor. Never animated, so reduced motion is moot.
+ */
+export function stageGlowLevel(site: Pick<StageSite, "active" | "players" | "major" | "followed">): number {
+  const active = site?.active === true;
+  const major = site?.major === true;
+  const followed = site?.followed === true;
+  const players = Math.max(0, Number(site?.players) || 0);
+  if (!active && !major && !followed && players <= 0) return 0;
+  let level = STAGE_GLOW.MIN_OPACITY +
+    (STAGE_GLOW.MAX_OPACITY - STAGE_GLOW.MIN_OPACITY) * Math.min(1, players / 6);
+  if (major) level = Math.min(STAGE_GLOW.MAX_OPACITY, level + 0.15);
+  if (followed) level = Math.max(level, STAGE_GLOW.MIN_OPACITY + 0.1);
+  level = Math.max(0, Math.min(STAGE_GLOW.MAX_OPACITY, level));
+  return Math.round(level * 1000) / 1000;
+}
+
 export type StageRoute = {
   from: string;
   to: string;

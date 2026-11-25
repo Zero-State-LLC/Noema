@@ -6,15 +6,16 @@
  * Labels are DOM text. The page's Places list stays the accessible authority.
  */
 import {
-  BoxGeometry, BufferGeometry, Color, ConeGeometry, CylinderGeometry, DirectionalLight,
-  EdgesGeometry, Group, HemisphereLight, Line, LineBasicMaterial, LineDashedMaterial,
-  LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, PerspectiveCamera,
+  AdditiveBlending, BoxGeometry, BufferGeometry, CanvasTexture, Color, ConeGeometry, CylinderGeometry,
+  DirectionalLight, EdgesGeometry, Group, HemisphereLight, Line, LineBasicMaterial, LineDashedMaterial,
+  LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry,
   Raycaster, RingGeometry, Scene, Vector2, Vector3, WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import {
   STAGE_CAMERA_EASE_MS,
+  STAGE_GLOW,
   STAGE_MAJOR_MOMENT_MS,
   STAGE_PLAYBACK,
   STAGE_TRAVEL_MS,
@@ -26,6 +27,7 @@ import {
   stageCameraTarget,
   stageDefaultView,
   stageDirectorPick,
+  stageGlowLevel,
   stageHandleSites,
   stageLitRoutes,
   stagePlaybackOffset,
@@ -68,6 +70,28 @@ function palette() {
 
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
+/**
+ * D6 static glow: ONE shared radial-gradient halo texture per mount. Returns
+ * null when a 2D context is unavailable, which skips glow entirely.
+ */
+function makeHaloTexture() {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx2d = typeof canvas.getContext === "function" ? canvas.getContext("2d") : null;
+    if (!ctx2d) return null;
+    const grad = ctx2d.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx2d.fillStyle = grad;
+    ctx2d.fillRect(0, 0, 64, 64);
+    return new CanvasTexture(canvas);
+  } catch (e) {
+    return null;
+  }
+}
+
 function mount(frame, opts) {
   const canvas = opts.canvas;
   const labelRoot = opts.labels;
@@ -75,6 +99,7 @@ function mount(frame, opts) {
   const onSelect = typeof opts.onSelect === "function" ? opts.onSelect : () => {};
   const onLost = typeof opts.onLost === "function" ? opts.onLost : () => {};
   const C = palette();
+  const haloTexture = makeHaloTexture();
 
   const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: "low-power" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -100,6 +125,7 @@ function mount(frame, opts) {
     trace: new BoxGeometry(0.3, 0.08, 0.3),
     arrow: new ConeGeometry(0.22, 0.6, 12),
     pulse: new RingGeometry(1.7, 1.95, 48),
+    halo: new PlaneGeometry(1, 1),
   };
   let world = new Group();
   scene.add(world);
@@ -329,6 +355,26 @@ function mount(frame, opts) {
       );
       ring.position.y = 0.02;
       g.add(ring);
+    }
+    // D6 static glow: a soft additive halo under a site with agents present.
+    // Static — never animated, never busy; the frame loop does not run for it.
+    const glow = stageGlowLevel(site);
+    if (glow > 0 && haloTexture) {
+      const halo = new Mesh(shared.halo, new MeshBasicMaterial({
+        map: haloTexture,
+        color: site.major ? C.warning : (site.followed ? C.active : C.social),
+        transparent: true,
+        opacity: glow,
+        blending: AdditiveBlending,
+        depthWrite: false,
+      }));
+      halo.rotation.x = -Math.PI / 2;
+      halo.position.y = 0.015;
+      halo.scale.set(STAGE_GLOW.SIZE, STAGE_GLOW.SIZE, 1);
+      halo.userData.glow = true;
+      halo.renderOrder = -1;
+      halo.raycast = () => {};
+      g.add(halo);
     }
     if (site.bands.scar) {
       const scar = new LineSegments(
@@ -1019,6 +1065,7 @@ function mount(frame, opts) {
     clearWorld();
     moments.length = 0;
     for (const geo of Object.values(shared)) geo.dispose();
+    if (haloTexture) haloTexture.dispose();
     controls.dispose();
     canvas.removeEventListener("pointerdown", onDown);
     canvas.removeEventListener("pointerup", onUp);
