@@ -21,6 +21,7 @@ export const STAGE_KEY: Array<[string, string]> = [
   ["selected", "Selected site: bright edge, raised"],
   ["followed", "Followed site: cyan ring"],
   ["major", "MAJOR event: amber ring"],
+  ["moment", "Moment: a MAJOR event holds its site for a few seconds; the camera may cut to NOTABLE and MAJOR sites unless you move it"],
   ["pressure", "Pressure band: the plate warms toward amber, low to high"],
   ["scar", "Scar residue band: dashed violet outline, faint to deep"],
   ["agent", "Agent: one token per agent; named tokens carry their public handle"],
@@ -87,6 +88,7 @@ body.is-low-noise #watch-stage3d{display:none!important}
 .stage3d-label[data-state~="followed"]{border-color:var(--color-state-active)}
 .stage3d-label[data-state~="selected"]{border-color:var(--ink)}
 .stage3d-label[data-state~="major"]{border-color:var(--color-state-warning)}
+.stage3d-label.is-moment{outline:2px solid var(--color-state-warning);outline-offset:1px;box-shadow:0 0 0 3px color-mix(in srgb,var(--color-state-warning) 35%,transparent)}
 .stage3d-label[data-state~="partial"]{border-style:dashed;color:var(--muted)}
 .stage3d-label.is-tucked{max-width:.75rem;max-height:.75rem;padding:0;overflow:hidden;color:transparent;border-radius:999px;background:var(--line-hot)}
 .stage3d-label.is-tucked>*{visibility:hidden}

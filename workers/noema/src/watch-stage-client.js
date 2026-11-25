@@ -15,6 +15,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import {
   STAGE_CAMERA_EASE_MS,
+  STAGE_MAJOR_MOMENT_MS,
   STAGE_PLAYBACK,
   STAGE_TRAVEL_MS,
   buildStageModel,
@@ -24,6 +25,7 @@ import {
   stageCameraLimits,
   stageCameraTarget,
   stageDefaultView,
+  stageDirectorPick,
   stageHandleSites,
   stageLitRoutes,
   stagePlaybackOffset,
@@ -109,6 +111,8 @@ function mount(frame, opts) {
   let pulses = [];
   let tween = null;
   let spectatorMoved = false;
+  /** D6 tier director: the shot the camera holds, or null when it holds none. */
+  let shot = null;
   let framed = false;
   let frameId = 0;
   let dirty = false;
@@ -121,6 +125,8 @@ function mount(frame, opts) {
   let handleSites = new Map();
   /** Travellers in flight right now (one per travelling handle). */
   const travels = [];
+  /** D6 MAJOR moments in flight right now (one per site). */
+  const moments = [];
 
   function size() {
     const w = Math.max(1, frame.clientWidth);
@@ -173,6 +179,17 @@ function mount(frame, opts) {
       busy = true;
       return true;
     });
+    // D6 MAJOR moment: a slow breath at the site, ending after the moment ms.
+    // Reduced motion holds a still highlight and never asks for a frame.
+    for (let i = moments.length - 1; i >= 0; i--) {
+      const m = moments[i];
+      if (reduce || !m.ring) continue;
+      const t = m.ms > 0 ? (now - m.start) / m.ms : 1;
+      if (t >= 1) { endMoment(m.roomId); continue; }
+      m.ring.scale.setScalar(1.15 + 0.25 * Math.sin(t * Math.PI * 6));
+      m.ring.material.opacity = 0.55 * (1 - t * t);
+      busy = true;
+    }
     // D6 route travel: a token slides along the drawn route to its new site.
     for (let i = travels.length - 1; i >= 0; i--) {
       const tr = travels[i];
@@ -463,6 +480,17 @@ function mount(frame, opts) {
 
   function clearWorld() {
     detachTravels();
+    for (const m of moments) {
+      if (m.timer) clearTimeout(m.timer);
+      m.timer = 0;
+      if (m.ring) {
+        world.remove(m.ring);
+        if (m.ring.material) m.ring.material.dispose();
+      }
+      if (m.label) m.label.classList.remove("is-moment");
+      m.ring = null;
+      m.label = null;
+    }
     world.traverse((o) => {
       // Removing an ancestor does not detach CSS2D elements; do it explicitly.
       if (o.isCSS2DObject && o.element && o.element.parentNode) o.element.remove();
@@ -540,6 +568,8 @@ function mount(frame, opts) {
   function reset() {
     const v = defaultView();
     spectatorMoved = false;
+    // Reset view resumes the director.
+    shot = null;
     easeTo(v.target, v.position);
   }
 
@@ -550,6 +580,84 @@ function mount(frame, opts) {
     ring.position.set(g.position.x, 0.03, g.position.z);
     world.add(ring);
     return ring;
+  }
+
+  /** The DOM label of a drawn site, if it has one. */
+  function siteLabel(roomId) {
+    const g = groups.get(roomId);
+    if (!g) return null;
+    for (const child of g.children) {
+      if (child.isCSS2DObject && child.element && child.element.classList.contains("stage3d-label")) {
+        return child.element;
+      }
+    }
+    return null;
+  }
+
+  /** A second, softer ring at a site: the MAJOR moment's ground mark. */
+  function momentRing(roomId) {
+    const g = groups.get(roomId);
+    if (!g) return null;
+    const ring = new Mesh(shared.pulse, new MeshBasicMaterial({ color: C.warning, transparent: true, opacity: 0.55 }));
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(g.position.x, 0.03, g.position.z);
+    ring.scale.setScalar(reduce ? 1.2 : 1.15);
+    world.add(ring);
+    return ring;
+  }
+
+  /** End one site's moment (or all of them), dropping its ring and its label class. */
+  function endMoment(roomId) {
+    for (let i = moments.length - 1; i >= 0; i--) {
+      const m = moments[i];
+      if (roomId !== undefined && m.roomId !== roomId) continue;
+      if (m.timer) clearTimeout(m.timer);
+      m.timer = 0;
+      if (m.ring) {
+        world.remove(m.ring);
+        if (m.ring.material) m.ring.material.dispose();
+      }
+      if (m.label) m.label.classList.remove("is-moment");
+      moments.splice(i, 1);
+    }
+  }
+
+  /**
+   * D6 MAJOR moment: one moment per site, restarted when the same site fires
+   * again. Reduced motion holds a still highlight for the same time and never
+   * counts as busy.
+   */
+  function startMoment(roomId) {
+    if (!groups.has(roomId)) return;
+    endMoment(roomId);
+    const ring = momentRing(roomId);
+    if (!ring) return;
+    const labelEl = siteLabel(roomId);
+    if (labelEl) labelEl.classList.add("is-moment");
+    const moment = { roomId, ring, label: labelEl, start: performance.now(), ms: STAGE_MAJOR_MOMENT_MS, timer: 0 };
+    if (reduce) {
+      ring.material.opacity = 0.45;
+      moment.timer = setTimeout(() => { endMoment(roomId); request(); }, STAGE_MAJOR_MOMENT_MS);
+    }
+    moments.push(moment);
+    request();
+  }
+
+  /** A rebuild drops the old scene; restart the moments that still have time left. */
+  function restartMoments(now) {
+    for (let i = moments.length - 1; i >= 0; i--) {
+      const m = moments[i];
+      const elapsed = now - m.start;
+      if (elapsed >= m.ms || !groups.has(m.roomId)) { endMoment(m.roomId); continue; }
+      m.ring = momentRing(m.roomId);
+      if (!m.ring) { endMoment(m.roomId); continue; }
+      m.label = siteLabel(m.roomId);
+      if (m.label) m.label.classList.add("is-moment");
+      if (reduce) {
+        const left = Math.max(0, m.ms - elapsed);
+        m.timer = setTimeout(() => { endMoment(m.roomId); request(); }, left);
+      }
+    }
   }
 
   // One caption stack per site, so captions that land together never overdraw.
@@ -665,21 +773,27 @@ function mount(frame, opts) {
   }
 
   function playSequence(slot) {
-    let majorRoom = "";
     for (const p of slot.pulses) {
       // A rebuild can drop a site; a pulse with nowhere to land is skipped.
       if (!groups.has(p.roomId)) continue;
       if (p.tier === "MAJOR") {
-        majorRoom = p.roomId;
         p.ring = majorRing(p.roomId);
+        // A MAJOR event holds its site for a few seconds beyond its pulse.
+        startMoment(p.roomId);
       }
       pulses.push(p);
     }
     for (const c of slot.captions) addCaption(c);
     for (const t of slot.travels) startTravel(t);
-    if (majorRoom && framed) {
-      const target = stageCameraTarget(ctx, ctx, majorRoom, spectatorMoved);
-      if (target) focus(target);
+    // D6 tier director: with no spectator camera movement and no Follow in
+    // force, the camera may cut to a NOTABLE or MAJOR site. Selection and
+    // Follow keep priority (they moved the camera in update()).
+    if (framed && !spectatorMoved && !ctx.followRoomId) {
+      const pick = stageDirectorPick(shot, slot.pulses.filter((p) => groups.has(p.roomId)), performance.now());
+      if (pick) {
+        shot = pick;
+        focus(pick.roomId);
+      }
     }
     request();
   }
@@ -758,6 +872,7 @@ function mount(frame, opts) {
     for (const p of pulses) {
       if (p.tier === "MAJOR" && !p.ring && groups.has(p.roomId)) p.ring = majorRing(p.roomId);
     }
+    restartMoments(performance.now());
     // Captions survive a rebuild too: re-home the ones still holding.
     for (const [roomId, box] of captionBoxes) {
       const g = groups.get(roomId);
@@ -865,9 +980,10 @@ function mount(frame, opts) {
   };
   canvas.addEventListener("pointerdown", onDown);
   canvas.addEventListener("pointerup", onUp);
-  controls.addEventListener("start", () => { spectatorMoved = true; tween = null; });
+  // Any spectator camera movement suspends the director until Reset view.
+  controls.addEventListener("start", () => { spectatorMoved = true; tween = null; shot = null; });
   controls.addEventListener("change", request);
-  const onKey = (ev) => { if (CAMERA_KEYS.has(ev.key)) { spectatorMoved = true; tween = null; } };
+  const onKey = (ev) => { if (CAMERA_KEYS.has(ev.key)) { spectatorMoved = true; tween = null; shot = null; } };
   frame.addEventListener("keydown", onKey);
   const resetBtn = opts.reset;
   const onReset = () => reset();
@@ -893,6 +1009,7 @@ function mount(frame, opts) {
     captionBoxes.clear();
     dropTravels();
     clearWorld();
+    moments.length = 0;
     for (const geo of Object.values(shared)) geo.dispose();
     controls.dispose();
     canvas.removeEventListener("pointerdown", onDown);
