@@ -32,6 +32,8 @@ export const STAGE_MAX_MINOR_PULSES = 3;
 export const STAGE_CAPTION_HOLD_MS = { NORMAL: 2500, NOTABLE: 3500, MAJOR: 4000 };
 /** D6: pacing of a fresh burst — one slot per event, never more than MAX_TOTAL_MS overall. */
 export const STAGE_PLAYBACK = { MIN_GAP_MS: 400, MAX_GAP_MS: 2500, UNKNOWN_GAP_MS: 600, MAX_TOTAL_MS: 9000 };
+/** D6 route travel: how long a token takes to cross one drawn public route. */
+export const STAGE_TRAVEL_MS = 1100;
 
 /**
  * D6 paced playback: the order and spacing a burst of fresh pulses and
@@ -228,6 +230,14 @@ export type StagePulse = {
   sequence: number;
   /** The public projection the event came from; only "agent_move" lights routes. */
   projectionId?: string;
+};
+
+/** D6 route travel: one public handle crossing one drawn public route. */
+export type StageTravel = {
+  handle: string;
+  from: string;
+  to: string;
+  sequence: number;
 };
 
 const ID_LEAK = /\b(?:player|room|entity|ctrl|event|controller|device)\.[a-z0-9._-]+/i;
@@ -449,6 +459,81 @@ export function stageLitRoutes(
     }
   }
   return lit;
+}
+
+/**
+ * D6 route travel: which public site each public handle is shown at, using the
+ * full `site.handles` list rather than the six drawn tokens. A handle the same
+ * snapshot lists at two sites is ambiguous and maps to neither.
+ */
+export function stageHandleSites(model: StageModel): Map<string, string> {
+  const sites = new Map<string, string>();
+  const ambiguous = new Set<string>();
+  const rows = Array.isArray(model?.sites) ? model.sites : [];
+  for (const site of rows) {
+    const handles = Array.isArray(site.handles) ? site.handles : [];
+    for (const handle of handles) {
+      if (!handle || ambiguous.has(handle)) continue;
+      const seen = sites.get(handle);
+      if (seen === undefined) sites.set(handle, site.id);
+      else if (seen !== site.id) {
+        sites.delete(handle);
+        ambiguous.add(handle);
+      }
+    }
+  }
+  return sites;
+}
+
+/** A drawn route joining A and B directly, in a direction a token may travel. */
+function travellableRoute(routes: StageRoute[], from: string, to: string): boolean {
+  for (const r of Array.isArray(routes) ? routes : []) {
+    if (!r) continue;
+    if (r.from === from && r.to === to) return true;
+    if (r.from === to && r.to === from && r.oneWay === false) return true;
+  }
+  return false;
+}
+
+/**
+ * D6 route travel. A token travels only when the agent_move event's public
+ * actor_label was shown at site A in the last applied model and is shown at
+ * site B now, and one drawn public route joins A and B directly. Hidden,
+ * multi-hop and inferred routes never travel. Ascending sequence, one travel
+ * per handle (the latest sequence wins).
+ */
+export function stageTravels(
+  prev: Map<string, string>,
+  next: StageModel,
+  pulses: StagePulse[],
+  events: unknown[],
+): StageTravel[] {
+  const here = stageHandleSites(next);
+  const byEvent = new Map<string, Record<string, unknown>>();
+  for (const raw of Array.isArray(events) ? events : []) {
+    if (!raw || typeof raw !== "object") continue;
+    const ev = raw as Record<string, unknown>;
+    const seq = ev.sequence;
+    if (typeof seq !== "number" || !Number.isSafeInteger(seq)) continue;
+    const key = seq + "|" + String(ev.room_id || "");
+    if (!byEvent.has(key)) byEvent.set(key, ev);
+  }
+  const perHandle = new Map<string, StageTravel>();
+  for (const p of Array.isArray(pulses) ? pulses : []) {
+    if (!p || p.projectionId !== "agent_move") continue;
+    const ev = byEvent.get(p.sequence + "|" + p.roomId);
+    if (!ev) continue;
+    const handle = clean(ev.actor_label, 32);
+    if (!handle) continue;
+    const from = prev ? prev.get(handle) : undefined;
+    const to = here.get(handle);
+    if (!from || !to || from === to || to !== p.roomId) continue;
+    if (!travellableRoute(next.routes, from, to)) continue;
+    const prior = perHandle.get(handle);
+    if (prior && prior.sequence >= p.sequence) continue;
+    perHandle.set(handle, { handle, from, to, sequence: p.sequence });
+  }
+  return Array.from(perHandle.values()).sort((a, b) => a.sequence - b.sequence);
 }
 
 export type StageCameraLimits = {

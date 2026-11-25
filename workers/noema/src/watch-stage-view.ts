@@ -30,6 +30,7 @@ export const STAGE_KEY: Array<[string, string]> = [
   ["uncertain", "Uncertain route: dashed line"],
   ["oneway", "One-way route: arrow toward its destination"],
   ["lit", "Lit route: an agent just moved through this site"],
+  ["travel", "Travel: an agent token moving along a drawn public route"],
   ["caption", "Caption: what just happened at a site, same words as Recently"],
 ];
 
