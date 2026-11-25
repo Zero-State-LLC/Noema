@@ -1208,6 +1208,7 @@ export function buildObservation(
       direction: a.direction,
       acting_for: a.acting_for,
       office_id: a.office_id,
+      resource: a.resource,
       subject_ref: a.subject_ref,
       claim: a.claim,
       visibility: a.visibility,

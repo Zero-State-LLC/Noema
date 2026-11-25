@@ -153,3 +153,20 @@ describe("RFC-0133 quartermaster treasury and SUPPLY", () => {
     expect(w.organizations["org.c"].treasury!.energy).toBe(2);
   });
 });
+
+describe("RFC-0133 affordances", () => {
+  it("the holder sees treasury HARVEST and SUPPLY; others do not", async () => {
+    const w = world();
+    const { qm, other, office_id } = await seatQuartermaster(w);
+    w.organizations["org.c"].treasury = { attention: 0, compute: 0, energy: 4, influence: 0, storage: 0 };
+    const look = await run(w, qm, "LOOK");
+    const affs = (look.observation as { affordances?: Array<Record<string, unknown>> })?.affordances || [];
+    const th = affs.find((a) => a.operation === "HARVEST" && a.office_id === office_id);
+    expect(th?.acting_for).toBe("org.c");
+    const sup = affs.filter((a) => a.operation === "SUPPLY" && a.target_id === other.player_id);
+    expect(sup.map((a) => [a.resource, a.available])).toEqual([["energy", true], ["storage", false]]);
+    const theirs = await run(w, other, "LOOK");
+    const oa = (theirs.observation as { affordances?: Array<Record<string, unknown>> })?.affordances || [];
+    expect(oa.some((a) => a.operation === "SUPPLY")).toBe(false);
+  });
+});

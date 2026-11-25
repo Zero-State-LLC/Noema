@@ -573,6 +573,8 @@ export type Affordance = {
   direction?: string;
   acting_for?: string;
   office_id?: string;
+  /** RFC-0133 SUPPLY affordance resource. */
+  resource?: "energy" | "storage";
   /** RFC-0024. Structured RECONSTRUCT subject / account / record. */
   subject_ref?: string;
   claim?: string;
@@ -3558,6 +3560,52 @@ export function deriveAffordances(input: {
           available: canPay(budgets, COSTS.ORG_OFFICE_VACATE),
           kind: "org",
         });
+        if (office.authority_profile === "OPERATE_RESOURCE_ACCOUNT") {
+          // RFC-0133: treasury harvest per visible node, SUPPLY per Player present.
+          const vault = org.treasury || { energy: 0, storage: 0 };
+          for (const e of entities) {
+            if (!e.stock_resource || (e.stock_amount ?? 0) < 1) continue;
+            const room = TREASURY_STORAGE_CAP - (vault.storage ?? 0);
+            out.push({
+              action: "HARVEST",
+              verb: "COMMIT",
+              operation: "HARVEST",
+              label: `Harvest ${titleCaseLabel(e.label)} for ${org.name}`,
+              cmd: `harvest ${e.label} 1`,
+              target_id: e.entity_id,
+              target_label: e.label,
+              acting_for: org.org_id,
+              office_id: office.office_id,
+              requires: COSTS.HARVEST,
+              available: room >= 1 && canPay(budgets, COSTS.HARVEST),
+              reason: room >= 1 ? undefined : "The treasury vault is full.",
+              kind: "resource",
+            });
+          }
+          for (const p of otherPlayers) {
+            if (!input.observerRoomId || p.room_id !== input.observerRoomId || p.player_id === selfId) continue;
+            for (const res of ["energy", "storage"] as const) {
+              const have = vault[res] ?? 0;
+              out.push({
+                action: "SUPPLY",
+                verb: "COMMIT",
+                operation: "SUPPLY",
+                label: `Supply ${res === "storage" ? "cargo" : res} to ${p.handle || p.player_id}`,
+                cmd: `supply ${p.player_id} ${res}`,
+                target_id: p.player_id,
+                target_label: p.handle,
+                player_id: p.player_id,
+                acting_for: org.org_id,
+                office_id: office.office_id,
+                resource: res,
+                requires: COSTS.ORG_OFFICE_ACT,
+                available: have >= 1 && canPay(budgets, COSTS.ORG_OFFICE_ACT),
+                reason: have >= 1 ? undefined : `Not enough ${res} in the treasury.`,
+                kind: "org",
+              });
+            }
+          }
+        }
         if (office.authority_profile === "PUBLISH_NOTICE") {
           out.push({
             action: "ORG_OFFICE_ACT",
