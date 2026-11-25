@@ -176,6 +176,8 @@ function mount(frame, opts) {
     // D6 route travel: a token slides along the drawn route to its new site.
     for (let i = travels.length - 1; i >= 0; i--) {
       const tr = travels[i];
+      // Detached across a rebuild and not yet re-homed (defensive).
+      if (!tr.mesh || !tr.mat || !tr.destMesh) continue;
       if (tr.start < 0) tr.start = now;
       const t = Math.min(1, (now - tr.start) / STAGE_TRAVEL_MS);
       const k = easeOut(t);
@@ -395,14 +397,72 @@ function mount(frame, opts) {
   // A rebuild drops the old scene, so no traveller may outlive it.
   function dropTravels() {
     for (const tr of travels) {
-      world.remove(tr.mesh);
-      tr.mat.dispose();
+      if (tr.mesh) world.remove(tr.mesh);
+      if (tr.mat) tr.mat.dispose();
+      tr.mesh = null;
+      tr.mat = null;
     }
     travels.length = 0;
   }
 
+  // A rebuild keeps travellers in flight: detach their meshes from the old
+  // scene and dispose them, but keep the records for rehomeTravels.
+  function detachTravels() {
+    for (const tr of travels) {
+      if (tr.mesh) world.remove(tr.mesh);
+      if (tr.mat) tr.mat.dispose();
+      tr.mesh = null;
+      tr.mat = null;
+      tr.destMesh = null;
+      tr.destPlate = null;
+    }
+  }
+
+  // Re-home travellers that were in flight across a rebuild onto the new
+  // scene: a new mesh with the same look, from the new site positions, and
+  // the original start time so the motion continues where it was.
+  function rehomeTravels(now) {
+    let kept = false;
+    for (let i = travels.length - 1; i >= 0; i--) {
+      const tr = travels[i];
+      const start = tr.start < 0 ? now : tr.start;
+      if (now - start >= STAGE_TRAVEL_MS) {
+        travels.splice(i, 1);
+        continue;
+      }
+      const a = groups.get(tr.fromId);
+      const b = groups.get(tr.toId);
+      const dest = b && b.userData.tokens ? b.userData.tokens.get(tr.handle) : null;
+      if (!a || !b || !dest || !dest.mesh) {
+        travels.splice(i, 1);
+        continue;
+      }
+      const y = dest.mesh.position.y;
+      const mat = new MeshStandardMaterial({
+        color: C.social, roughness: 0.6, emissive: C.active, emissiveIntensity: 0.8,
+      });
+      const mesh = new Mesh(shared.pip, mat);
+      mesh.position.set(a.position.x, y, a.position.z);
+      world.add(mesh);
+      tr.start = start;
+      tr.mesh = mesh;
+      tr.mat = mat;
+      tr.from = new Vector3(a.position.x, y, a.position.z);
+      tr.to = new Vector3(b.position.x, y, b.position.z);
+      tr.destMesh = dest.mesh;
+      tr.destPlate = dest.nameplate || null;
+      dest.mesh.visible = false;
+      if (dest.nameplate) {
+        dest.nameplate.visible = false;
+        if (dest.nameplate.element) dest.nameplate.element.style.visibility = "hidden";
+      }
+      kept = true;
+    }
+    if (kept) request();
+  }
+
   function clearWorld() {
-    dropTravels();
+    detachTravels();
     world.traverse((o) => {
       // Removing an ancestor does not detach CSS2D elements; do it explicitly.
       if (o.isCSS2DObject && o.element && o.element.parentNode) o.element.remove();
@@ -559,6 +619,19 @@ function mount(frame, opts) {
   // hidden while its traveller is in flight, then shown again.
   function startTravel(t) {
     if (reduce) return;
+    // One traveller per handle: a newer move replaces one still in flight.
+    for (let i = travels.length - 1; i >= 0; i--) {
+      const old = travels[i];
+      if (old.handle !== t.handle) continue;
+      if (old.mesh) world.remove(old.mesh);
+      if (old.mat) old.mat.dispose();
+      if (old.destMesh) old.destMesh.visible = true;
+      if (old.destPlate) {
+        old.destPlate.visible = true;
+        if (old.destPlate.element) old.destPlate.element.style.visibility = "";
+      }
+      travels.splice(i, 1);
+    }
     const a = groups.get(t.from);
     const b = groups.get(t.to);
     if (!a || !b) return;
@@ -577,6 +650,9 @@ function mount(frame, opts) {
       if (dest.nameplate.element) dest.nameplate.element.style.visibility = "hidden";
     }
     travels.push({
+      handle: t.handle,
+      fromId: t.from,
+      toId: t.to,
       mesh,
       mat,
       from: new Vector3(a.position.x, y, a.position.z),
@@ -687,6 +763,8 @@ function mount(frame, opts) {
       const g = groups.get(roomId);
       if (g) g.add(box.obj);
     }
+    // Travellers survive a rebuild too: re-home the ones still in flight.
+    rehomeTravels(performance.now());
     // Captions read the same fresh window as pulses, before the sequence advances.
     const fresh = newStagePulses(live && live.recent_events, lastSeq, groups.keys(), {
       reduce,
@@ -813,6 +891,7 @@ function mount(frame, opts) {
     playback.length = 0;
     for (const box of captionBoxes.values()) box.anchor.remove();
     captionBoxes.clear();
+    dropTravels();
     clearWorld();
     for (const geo of Object.values(shared)) geo.dispose();
     controls.dispose();
