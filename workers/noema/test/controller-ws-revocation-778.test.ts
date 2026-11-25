@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mintControllerToken } from "../src/auth";
-import { handleProtocolFrame, type ProtocolState } from "../src/protocol-ws";
+import { acceptProtocolWebSocket, handleProtocolFrame, principalFromResume, type ProtocolState } from "../src/protocol-ws";
 import { ACCEPTED_SEALS } from "../src/seal";
 import { env, hit, type DoCall } from "./conformance/harness";
 
@@ -121,5 +121,128 @@ describe("#778 retained WS credential revocation (private local probe)", () => {
     expect(after.reply.type).toBe("ERROR");
     expect((after.reply.error as { code?: string }).code).toBe("UNAVAILABLE");
     expect(after.reply._status).toBe(503);
+  });
+
+  it("#929 rotate retires WebSocket resume tokens minted from the rotated access token", async () => {
+    const f = await setup();
+    const resume = (f.auth.reply.body as { resume_token?: string }).resume_token;
+    expect(resume).toBeTruthy();
+
+    // Resume token carries the original jti so jti-only rotation applies.
+    const restoredBefore = await principalFromResume(f.e, resume!);
+    expect(restoredBefore?.principal.jti).toBeTruthy();
+    expect(restoredBefore?.principal.jti).toBe(f.auth.state.principal?.jti);
+
+    const rot = await hit("/v1/auth/controller/rotate", {
+      body: {},
+      headers: { Authorization: "Bearer " + f.credential.access_token },
+    }, f.calls);
+    expect(rot.status).toBe(200);
+
+    // Old access token and retained session are refused.
+    const authOld = await handleProtocolFrame(f.e, ws, blank(), {
+      type: "AUTH",
+      request_id: "auth-old",
+      body: { access_token: f.credential.access_token, prompt_version_hash: ACCEPTED_SEALS[0] },
+    }, f.route);
+    expect(authOld.reply.type).toBe("ERROR");
+    const retained = await handleProtocolFrame(f.e, ws, f.auth.state, act("retained"), f.route);
+    expect(retained.reply.type).toBe("ERROR");
+
+    // HELLO with the pre-rotation resume token does not restore a revoked principal, and ACT fails.
+    const hello = await handleProtocolFrame(f.e, ws, blank(), {
+      type: "HELLO",
+      request_id: "hello-after-rotate",
+      body: { resume_token: resume, supported_protocols: ["agent-protocol/v1"] },
+    }, f.route);
+    expect(hello.state.principal).toBeNull();
+    const after = await handleProtocolFrame(f.e, ws, hello.state, act("after-rotate"), f.route);
+    expect(after.reply.type).toBe("ERROR");
+    expect(f.routed).toHaveLength(0);
+  });
+
+  it("#930 in-flight WebSocket ACT cannot roll back a later AUTH on the same socket", async () => {
+    const calls: DoCall[] = [];
+    const e = env(calls);
+    const p1 = await mintControllerToken(e, { handle: "race-one", controllerType: "agent" });
+    const p2 = await mintControllerToken(e, { handle: "race-two", controllerType: "agent" });
+
+    let releaseFirstAct!: () => void;
+    const firstActGate = new Promise<void>((resolve) => {
+      releaseFirstAct = resolve;
+    });
+    const routedControllers: string[] = [];
+    let actCount = 0;
+    const route: Route = async (_env, world, principal, envelope) => {
+      actCount += 1;
+      routedControllers.push((principal as { controller_id: string }).controller_id);
+      if (actCount === 1) await firstActGate;
+      return new Response(JSON.stringify({ ok: true, world_id: world, command: envelope.command }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+
+    let onMessage: ((evt: MessageEvent) => void) | null = null;
+    const sent: Array<Record<string, unknown>> = [];
+    const fakeServer = {
+      accept() {},
+      addEventListener(type: string, fn: (evt: MessageEvent) => void) {
+        if (type === "message") onMessage = fn;
+      },
+      send(payload: string) {
+        sent.push(JSON.parse(payload) as Record<string, unknown>);
+      },
+    };
+    const fakeClient = {};
+    const origPair = (globalThis as Record<string, unknown>).WebSocketPair;
+    const origResponse = globalThis.Response;
+    (globalThis as Record<string, unknown>).WebSocketPair = function FakeWebSocketPair() {
+      return [fakeClient, fakeServer];
+    };
+    (globalThis as Record<string, unknown>).Response = class FakeResp {
+      status: number;
+      constructor(_body: unknown, init?: { status?: number }) {
+        this.status = init?.status ?? 200;
+      }
+    };
+    try {
+      const upgradeReq = new Request("https://noema.local/protocol/v1/ws", {
+        headers: { Upgrade: "websocket" },
+      });
+      acceptProtocolWebSocket(upgradeReq, e, route);
+    } finally {
+      (globalThis as Record<string, unknown>).WebSocketPair = origPair;
+      globalThis.Response = origResponse;
+    }
+
+    expect(onMessage).not.toBeNull();
+    const fire = (frame: Record<string, unknown>) =>
+      onMessage!({ data: JSON.stringify(frame) } as MessageEvent);
+    const waitForReplies = async (n: number) => {
+      for (let i = 0; i < 50 && sent.length < n; i += 1) {
+        await new Promise((r) => setTimeout(r, 5));
+      }
+      expect(sent.length).toBeGreaterThanOrEqual(n);
+    };
+
+    fire({ type: "AUTH", request_id: "a1", body: { access_token: p1.access_token, prompt_version_hash: ACCEPTED_SEALS[0] } });
+    await waitForReplies(1);
+    expect(sent[0].type).toBe("AUTH_ACK");
+
+    // Start slow ACT as P1, immediately send AUTH(P2) and a second ACT while first is held.
+    fire(act("slow"));
+    fire({ type: "AUTH", request_id: "a2", body: { access_token: p2.access_token, prompt_version_hash: ACCEPTED_SEALS[0] } });
+    fire(act("next"));
+
+    // Release slow ACT; serialization guarantees AUTH(P2) runs after slow ACT and before "next".
+    await new Promise((r) => setTimeout(r, 15));
+    releaseFirstAct();
+    await waitForReplies(4);
+
+    expect(sent.map((m) => m.request_id)).toEqual(["a1", "slow", "a2", "next"]);
+    expect(sent[2].type).toBe("AUTH_ACK");
+    expect(sent[3].type).toBe("ACT_RESULT");
+    expect(routedControllers).toEqual([p1.controller_id, p2.controller_id]);
   });
 });
