@@ -28,12 +28,25 @@ export const STAGE_POLAR_MAX = (70 * Math.PI) / 180;
 export const STAGE_CAMERA_EASE_MS = PULSE_TTL.NOTABLE;
 /** §18.6 caps: one MAJOR plus at most three others per update. */
 export const STAGE_MAX_MINOR_PULSES = 3;
+/** D6: how long a caption stays on screen, per tier. Never longer than four seconds. */
+export const STAGE_CAPTION_HOLD_MS = { NORMAL: 2500, NOTABLE: 3500, MAJOR: 4000 };
 
 export const STAGE_FALLBACK_LINE = "3D view is unavailable here. Showing the text map.";
 export const STAGE_LOW_NOISE_LINE = "Low noise is on. Showing the text map.";
 
 type LiveRoom = PhosphorRoom & {
   traces?: Array<{ text?: unknown } | null>;
+  public_title_lines?: unknown[];
+  public_focus_lines?: unknown[];
+};
+
+/** A public event with the optional public text fields D6 reads. */
+type StageEvent = PhosphorEvent & {
+  line?: unknown;
+  actor_label?: unknown;
+  consequence?: unknown;
+  projection_id?: unknown;
+  glyph?: unknown;
 };
 
 export type StageLive = {
@@ -104,6 +117,12 @@ export type StageSite = {
   active: boolean;
   players: number;
   handles: string[];
+  /** Named tokens in order, each carrying a verbatim public line or "". */
+  tokens: Array<{ handle: string; line: string }>;
+  /** Agents with no public handle drawn as anonymous tokens. */
+  unnamed: number;
+  /** Tokens and handles beyond the six the stage draws. */
+  more: number;
   traces: number;
   selected: boolean;
   followed: boolean;
@@ -131,6 +150,8 @@ export type StagePulse = {
   tier: PhosphorTier;
   ttl: number;
   sequence: number;
+  /** The public projection the event came from; only "agent_move" lights routes. */
+  projectionId?: string;
 };
 
 const ID_LEAK = /\b(?:player|room|entity|ctrl|event|controller|device)\.[a-z0-9._-]+/i;
@@ -161,6 +182,21 @@ export function stageHandles(room: LiveRoom): string[] {
   return out;
 }
 
+/** The public line a handle's token shows: the line that starts with "<handle> ", verbatim. */
+function lineForHandle(lines: unknown, handle: string): string {
+  const prefix = handle + " ";
+  for (const raw of Array.isArray(lines) ? lines : []) {
+    if (String(raw ?? "").startsWith(prefix)) return clean(raw, 120);
+  }
+  return "";
+}
+
+function tokenLineFor(room: LiveRoom, handle: string): string {
+  const focus = lineForHandle(room.public_focus_lines, handle);
+  if (focus) return focus;
+  return lineForHandle(room.public_title_lines, handle);
+}
+
 export function buildStageModel(live: StageLive | null | undefined, ctx: StageContext = {}): StageModel {
   const rooms = Array.isArray(live?.rooms) ? live!.rooms! : [];
   const events = Array.isArray(live?.recent_events) ? live!.recent_events! : [];
@@ -188,6 +224,9 @@ export function buildStageModel(live: StageLive | null | undefined, ctx: StageCo
     const traces = Array.isArray(room.traces)
       ? room.traces.filter((t) => t && clean(t.text, 400)).length
       : 0;
+    const players = Math.max(0, Number(room.players_present) || 0);
+    const handles = stageHandles(room);
+    const tokens = handles.slice(0, 6).map((handle) => ({ handle, line: tokenLineFor(room, handle) }));
     sites.push({
       id: n.room_id,
       name,
@@ -195,8 +234,11 @@ export function buildStageModel(live: StageLive | null | undefined, ctx: StageCo
       z,
       certainty: n.certainty,
       active: room.active === true || n.certainty === "active",
-      players: Math.max(0, Number(room.players_present) || 0),
-      handles: stageHandles(room),
+      players,
+      handles,
+      tokens,
+      unnamed: Math.max(0, Math.min(players, 6) - tokens.length),
+      more: Math.max(0, Math.max(players, handles.length) - 6),
       traces,
       selected: !!ctx.selectedId && ctx.selectedId === n.room_id,
       followed: !!ctx.followRoomId && ctx.followRoomId === n.room_id,
@@ -248,7 +290,10 @@ export function newStagePulses(
     const roomId = String(ev.room_id || "");
     if (!allowed.has(roomId)) continue;
     const tier = tierOf(ev.tier);
-    fresh.push({ roomId, tier, ttl: PULSE_TTL[tier], sequence: seq });
+    const pulse: StagePulse = { roomId, tier, ttl: PULSE_TTL[tier], sequence: seq };
+    const projection = (ev as StageEvent).projection_id;
+    if (typeof projection === "string" && projection) pulse.projectionId = projection;
+    fresh.push(pulse);
   }
   if (lastSequence === null) {
     const head = Number.isSafeInteger(opts.snapshotSequence) ? (opts.snapshotSequence as number) : 0;
@@ -259,6 +304,75 @@ export function newStagePulses(
   const major = fresh.find((p) => p.tier === "MAJOR");
   const minor = fresh.filter((p) => p.tier !== "MAJOR").slice(0, STAGE_MAX_MINOR_PULSES);
   return { pulses: major ? [major, ...minor] : minor, lastSequence: newest };
+}
+
+export type StageCaption = {
+  roomId: string;
+  tier: PhosphorTier;
+  sequence: number;
+  line: string;
+  actor: string;
+  consequence: string;
+  holdMs: number;
+};
+
+function sameCaptionText(a: string, b: string): boolean {
+  const normalize = (s: string) => s.replace(/\.+$/, "").toLowerCase();
+  return normalize(a) === normalize(b);
+}
+
+/**
+ * D6 captions: the one line of public narration for a site, in the same words
+ * as Recently. The same freshness rule as pulses (first snapshot never fires,
+ * hidden rooms never show), and text that leaks an id is dropped. At most one
+ * MAJOR caption plus two others, newest first. Text is not suppressed by
+ * reduced motion; only the renderer's animation is.
+ */
+export function newStageCaptions(
+  events: PhosphorEvent[] | null | undefined,
+  lastSequence: number | null,
+  publicRoomIds: Iterable<string>,
+): StageCaption[] {
+  if (lastSequence === null) return [];
+  const allowed = new Set(publicRoomIds);
+  const fresh: StageCaption[] = [];
+  for (const raw of Array.isArray(events) ? events : []) {
+    const ev = raw as StageEvent;
+    const seq = ev?.sequence;
+    if (typeof seq !== "number" || !Number.isSafeInteger(seq)) continue;
+    if (seq <= lastSequence) continue;
+    const roomId = String(ev.room_id || "");
+    if (!allowed.has(roomId)) continue;
+    const line = clean(ev.line, 120);
+    if (!line) continue;
+    const tier = tierOf(ev.tier);
+    const actor = clean(ev.actor_label, 32);
+    let consequence = clean(ev.consequence, 120);
+    if (consequence && sameCaptionText(consequence, line)) consequence = "";
+    fresh.push({ roomId, tier, sequence: seq, line, actor, consequence, holdMs: STAGE_CAPTION_HOLD_MS[tier] });
+  }
+  fresh.sort((a, b) => b.sequence - a.sequence);
+  const major = fresh.find((c) => c.tier === "MAJOR");
+  const others = fresh.filter((c) => c.tier !== "MAJOR").slice(0, 2);
+  return major ? [major, ...others] : others;
+}
+
+/**
+ * §18.6 exit lighting: the drawn routes that touch a live pulse room, keyed as
+ * "from|to" so the renderer can match its own lines. A pulse with no room in
+ * common with a route lights nothing.
+ */
+export function stageLitRoutes(
+  pulses: Array<{ roomId: string; ttl: number }>,
+  routes: StageRoute[],
+): Set<string> {
+  const lit = new Set<string>();
+  for (const p of Array.isArray(pulses) ? pulses : []) {
+    for (const r of routes) {
+      if (r.from === p.roomId || r.to === p.roomId) lit.add(r.from + "|" + r.to);
+    }
+  }
+  return lit;
 }
 
 export type StageCameraLimits = {

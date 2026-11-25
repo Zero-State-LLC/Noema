@@ -23,11 +23,14 @@ export const STAGE_KEY: Array<[string, string]> = [
   ["major", "MAJOR event: amber ring"],
   ["pressure", "Pressure band: the plate warms toward amber, low to high"],
   ["scar", "Scar residue band: dashed violet outline, faint to deep"],
-  ["agent", "Agent present: one pip per agent, handles in the label"],
+  ["agent", "Agent: one token per agent; named tokens carry their public handle"],
+  ["nameplate", "Nameplate: a public agent handle above its token"],
   ["trace", "Trace: a small mark on the site"],
   ["route", "Route: solid line"],
   ["uncertain", "Uncertain route: dashed line"],
   ["oneway", "One-way route: arrow toward its destination"],
+  ["lit", "Lit route: an agent just moved through this site"],
+  ["caption", "Caption: what just happened at a site, same words as Recently"],
 ];
 
 export function stageViewHtml(): string {
@@ -97,6 +100,25 @@ body.is-low-noise #watch-stage3d{display:none!important}
 .stage3d-key ul{display:grid;gap:.25rem .75rem;margin:.5rem 0 0;padding:0 0 0 1rem;color:var(--muted);font:.8125rem/1.4 var(--font-interface)}
 @media(min-width:720px){.stage3d-key ul{grid-template-columns:1fr 1fr}}
 .stage3d-caption{margin:.5rem 0 1rem;color:var(--faint);font:.75rem/1.4 var(--font-interface)}
+.stage3d-says{position:relative;width:16rem;height:0;pointer-events:none}
+.stage3d-says-list{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:.25rem}
+.stage3d-say{
+  pointer-events:none;max-width:16rem;padding:.25rem .5rem;border:1px solid var(--color-state-active);
+  border-radius:4px;background:rgba(14,17,20,.92);color:var(--ink);font:500 .72rem/1.3 var(--font-interface);
+  text-align:left;white-space:normal;
+}
+.stage3d-say.is-major{border-color:var(--color-state-warning)}
+.stage3d-say .stage3d-say-consequence{display:block;margin-top:.125rem;color:var(--muted);font-size:.66rem}
+.stage3d-nameplate{
+  pointer-events:none;padding:.0625rem .25rem;border-radius:3px;background:rgba(14,17,20,.9);
+  color:var(--ink);font:400 .62rem/1.2 var(--font-mono);white-space:nowrap;
+}
+.stage3d-nameplate.is-tucked{display:none}
+.stage3d-lines{display:block;max-width:14rem;white-space:nowrap;margin-top:.125rem;color:var(--muted);font:400 .66rem/1.2 var(--font-interface);overflow:hidden;text-overflow:ellipsis}
+.stage3d-more{
+  pointer-events:none;padding:0 .2rem;border-radius:3px;background:rgba(14,17,20,.9);
+  color:var(--faint);font:600 .62rem/1.2 var(--font-mono);
+}
 @media(max-width:860px){
   .watch-stage[data-mode="3d"]{grid-template-columns:1fr}
   body:has(.watch-stage[data-mode="3d"]) .wrap{width:min(var(--max),calc(100% - 2*var(--pad)))}
