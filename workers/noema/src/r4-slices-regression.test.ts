@@ -16,9 +16,17 @@ describe("MUD Play-Craft R4 automated slice regressions (#733, #778, #782, #785)
     expect(aliasCmd.ok).toBe(false);
   });
 
-  it("S7 (#785): Home and Privacy surfaces expose no secrets and include privacy disclosure", () => {
+  it("S1 (#779): parser accepts canonical WAIT and rejects ambiguous/partial verbs cleanly", () => {
+    const waitCmd = parseHumanCommand("wait");
+    expect(waitCmd.ok).toBe(true);
+    const partial = parseHumanCommand("mov");
+    expect(partial.ok).toBe(false);
+  });
+
+  it("S5 (#783) & S7 (#785): Home and Privacy surfaces have lang/main landmarks, no secrets, and GA4 disclosure", () => {
     const home = landingHtml();
     const privacy = privacyHtml();
+    expect(home).toContain('lang="en"');
     expect(home).toContain("Noema");
     expect(home).not.toContain("ADMIN_ALLOWLIST_EMAILS");
     expect(home).not.toContain("TOKEN_SIGNING_SECRET");

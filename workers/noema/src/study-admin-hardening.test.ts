@@ -90,4 +90,48 @@ describe("Study Admin hardening (Wave 3: expiry sweep, rate limit, study-scoped 
     );
     expect(otherStudy!.status).toBe(403);
   });
+
+  it("supports audit pagination and CSV export on GET /api/admin/studies/:studyId/audit", async () => {
+    const store = new StudyAdminStore();
+    const t0 = 1_700_000_000_000;
+    store.issueInvite({
+      enabled: true,
+      actorId: "admin-1",
+      authEventId: "evt-1",
+      studyId: "study-1",
+      humanPrincipalId: "human-1",
+      nowMs: t0,
+    });
+    store.issueInvite({
+      enabled: true,
+      actorId: "admin-1",
+      authEventId: "evt-2",
+      studyId: "study-1",
+      humanPrincipalId: "human-2",
+      nowMs: t0 + 1000,
+    });
+
+    const page = await handleStudyAdminRequest(
+      new Request("https://noema.guru/api/admin/studies/study-1/audit?limit=1&offset=1", {
+        headers: { "X-Noema-Admin-Auth-Event": "evt-3" },
+      }),
+      { store, envFlag: "true", nowMs: () => t0 + 2000 },
+    );
+    expect(page!.status).toBe(200);
+    const body = (await page!.json()) as { total: number; events: unknown[] };
+    expect(body.total).toBe(2);
+    expect(body.events.length).toBe(1);
+
+    const csvRes = await handleStudyAdminRequest(
+      new Request("https://noema.guru/api/admin/studies/study-1/audit?format=csv", {
+        headers: { "X-Noema-Admin-Auth-Event": "evt-4" },
+      }),
+      { store, envFlag: "true", nowMs: () => t0 + 2000 },
+    );
+    expect(csvRes!.status).toBe(200);
+    expect(csvRes!.headers.get("Content-Type")).toContain("text/csv");
+    const csvText = await csvRes!.text();
+    expect(csvText).toContain("event_id,event_type,actor_id");
+    expect(csvText).toContain("invite_issued");
+  });
 });
