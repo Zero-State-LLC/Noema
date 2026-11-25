@@ -1033,7 +1033,7 @@ export function buildWatchLive(input: {
     .filter((p) => p.room_id && publicRooms[p.room_id])
     .map((p) => {
       const rid = p.room_id!;
-      const label = publicPlayerLabel(p, roomRefs);
+      const label = publicPlayerLabel(p, roomRefs) || p.handle || "Agent";
       const lastEv = latestActionByActor.get(label);
       return {
         label,
