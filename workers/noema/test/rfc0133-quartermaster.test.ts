@@ -131,12 +131,10 @@ describe("RFC-0133 quartermaster treasury and SUPPLY", () => {
       player_id: other.player_id, resource: "energy", amount: 5, acting_for: "org.c", office_id,
     });
     expect(e.ok).toBe(true);
-    const xfer = (e.events || []).find((ev: { type?: string }) => ev.type === "RESOURCE_TRANSFER") as
-      { payload?: Record<string, unknown> } | undefined;
-    if (xfer?.payload) {
-      // event-types 0.2 RESOURCE_TRANSFER_payload: additionalProperties false, transfer_id required.
-      expect(Object.keys(xfer.payload).sort()).toEqual(["amount", "from_id", "resource", "to_id", "transfer_id"]);
-    }
+    const xfer = (e.events || []).find((ev) => ev.event_type === "RESOURCE_TRANSFER");
+    expect(xfer?.payload).toBeTruthy();
+    // event-types 0.2 RESOURCE_TRANSFER_payload: additionalProperties false, transfer_id required.
+    expect(Object.keys(xfer!.payload!).sort()).toEqual(["amount", "from_id", "resource", "to_id", "transfer_id"]);
     expect(w.players[other.player_id].budgets.energy).toBe(6);
     expect(w.organizations["org.c"].treasury!.energy).toBe(5);
     const c = await run(w, qm, "SUPPLY", {
@@ -182,11 +180,32 @@ describe("RFC-0133 event shape", () => {
     const w = world();
     const { qm, other, office_id } = await seatQuartermaster(w);
     w.organizations["org.c"].treasury = { attention: 0, compute: 0, energy: 5, influence: 0, storage: 0 };
+    w.players[other.player_id].budgets.energy = 10;
     const r = await run(w, qm, "SUPPLY", { player_id: other.player_id, resource: "energy", amount: 2, acting_for: "org.c", office_id });
-    const evs = (r.events || []) as Array<{ type?: string; event_type?: string; payload?: Record<string, unknown> }>;
-    const x = evs.find((ev) => (ev.type || ev.event_type) === "RESOURCE_TRANSFER");
+    const x = (r.events || []).find((ev) => ev.event_type === "RESOURCE_TRANSFER");
     expect(x).toBeTruthy();
     expect(Object.keys(x!.payload || {}).sort()).toEqual(["amount", "from_id", "resource", "to_id", "transfer_id"]);
     expect(String(x!.payload!.transfer_id)).toMatch(/^[A-Za-z0-9_.:-]+$/);
+  });
+});
+
+describe("RFC-0133 review fixes", () => {
+  it("refuses energy SUPPLY that would exceed 80 instead of clamping it down", async () => {
+    const w = world();
+    const { qm, other, office_id } = await seatQuartermaster(w);
+    w.organizations["org.c"].treasury = { attention: 0, compute: 0, energy: 10, influence: 0, storage: 0 };
+    w.players[other.player_id].budgets.energy = 90;
+    const r = await run(w, qm, "SUPPLY", { player_id: other.player_id, resource: "energy", amount: 5, acting_for: "org.c", office_id });
+    expect(r.ok).toBe(false);
+    expect(w.players[other.player_id].budgets.energy).toBe(90);
+    expect(w.organizations["org.c"].treasury!.energy).toBe(10);
+  });
+
+  it("SUPPLY transfers stay out of WATCH", async () => {
+    const { projectionIdForEvent } = await import("../src/watch-live");
+    expect(projectionIdForEvent("RESOURCE_TRANSFER", {
+      transfer_id: "supply.r1", from_id: "org.c", to_id: "player.b", resource: "energy", amount: 2,
+    })).toBeNull();
+    expect(projectionIdForEvent("RESOURCE_TRANSFER", { from_id: "player.a", to_id: "player.b" })).toBe("resource_change");
   });
 });

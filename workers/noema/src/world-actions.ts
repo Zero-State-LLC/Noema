@@ -3868,22 +3868,26 @@ export async function applyWorldCommand(
       if (res === "storage" && (to.budgets.storage ?? 0) < amount) {
         return fail(request_id, "BUDGET_EXCEEDED", "They do not have enough free storage.");
       }
+      if (res === "energy" && (to.budgets.energy ?? 0) + amount > ENERGY_GRANT) {
+        return fail(request_id, "BUDGET_EXCEEDED", "They cannot take that much energy.");
+      }
       if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
       }
       debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
       treasury[res] = (treasury[res] ?? 0) - amount;
       if (res === "energy") {
-        to.budgets.energy = Math.min(ENERGY_GRANT, (to.budgets.energy ?? 0) + amount);
+        to.budgets.energy = (to.budgets.energy ?? 0) + amount;
       } else {
         to.budgets.storage = (to.budgets.storage ?? 0) - amount;
       }
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id, cost_paid: COSTS.ORG_OFFICE_ACT, reason: "SUPPLY",
       });
-      pushEvent("RESOURCE_TRANSFER", {
+      const xfer = pushEvent("RESOURCE_TRANSFER", {
         transfer_id: `supply.${request_id}`, from_id: grant.org_id, to_id: toId, resource: res, amount,
       });
+      await settleEv(xfer);
       const line = `You supply ${amount} ${res === "storage" ? "cargo" : res} to ${to.handle || toId}.`;
       const result = success(w, principal, request_id, events, line, settled, "supply", line);
       w.seen_idempotency[idem] = result;
@@ -4084,6 +4088,9 @@ export async function applyWorldCommand(
           action.arguments.acting_for, action.arguments.office_id, TRADE_PROFILE);
         if (!grant.ok) return failedAction(w, principal, request_id, grant.code,
           grant.message, grant.message, "harvest");
+        const vaultConflict = resolveOfficeConflict(w.organizations[grant.org_id], grant.office.office_id, "treasury");
+        if (!vaultConflict.ok) return failedAction(w, principal, request_id, vaultConflict.code,
+          vaultConflict.message, vaultConflict.message, "harvest");
         const vault = ensureTreasury(w.organizations[grant.org_id]);
         if ((vault.storage ?? 0) + amount > TREASURY_STORAGE_CAP) {
           return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
