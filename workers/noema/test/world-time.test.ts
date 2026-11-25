@@ -142,14 +142,14 @@ describe("RFC-0117 lockout WAIT rest", () => {
     expect(helpText("harvest")).toMatch(/no energy and no free storage/i);
   });
 
-  it("does not grant lockout rest when the hold is empty", async () => {
+  it("grants lockout rest (+2 energy) when energy is 0 and the hold is empty (#907)", async () => {
     const w = fixtureWorld();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets.energy = 0;
     w.players[p.player_id].budgets.storage = 16;
     await run(w, p, "WAIT");
-    expect(w.players[p.player_id].budgets.energy).toBe(0);
+    expect(w.players[p.player_id].budgets.energy).toBe(2);
     expect(w.players[p.player_id].budgets.storage).toBe(16);
   });
 });
