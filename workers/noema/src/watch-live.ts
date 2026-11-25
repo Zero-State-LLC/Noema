@@ -179,6 +179,30 @@ export function watchEventTier(projectionId: string, band?: string): WatchTier {
   return TIER_BY_PROJECTION[projectionId] || "NORMAL";
 }
 
+/**
+ * RFC-0132: an operation only opens once the completed state change is on the
+ * event, exactly as `world-actions.ts` emits it. A bare `{ operation }` is not
+ * evidence and stays closed.
+ */
+export function rfc0132Operation(
+  payload?: Record<string, unknown>,
+): "RESTORE" | "VEST" | "PROMOTE" | null {
+  if (!payload || payload.in_progress === true) return null;
+  const set = payload.set;
+  if (!set || typeof set !== "object" || Array.isArray(set)) return null;
+  const completed = set as Record<string, unknown>;
+  if (payload.operation === "RESTORE") {
+    return completed.unclaimed === false ? "RESTORE" : null;
+  }
+  if (payload.operation === "VEST") {
+    return typeof completed.owner_id === "string" && completed.owner_id !== "" ? "VEST" : null;
+  }
+  if (payload.operation === "PROMOTE") {
+    return completed.in_progress === false ? "PROMOTE" : null;
+  }
+  return null;
+}
+
 export function projectionIdForEvent(eventType: string, payload?: Record<string, unknown>): string | null {
   const t = String(eventType || "").toUpperCase();
   if (PRIVATE_EVENT_TYPES.has(t)) return null;
@@ -202,11 +226,19 @@ export function projectionIdForEvent(eventType: string, payload?: Record<string,
   if (t === "ENTITY_UPDATE") {
     if (payload?.operation === "REPURPOSE") return null;
     if (payload?.operation === "ABANDON" || payload?.unclaimed === true) return null;
-    if (payload?.operation === "RESTORE") return null;
+    if (payload?.in_progress === true) return null;
+    // RFC-0132: RESTORE/VEST/PROMOTE open only on the completed state change
+    // carried by the event. A named-but-bare operation stays closed.
+    const rfc0132 = rfc0132Operation(payload);
+    if (rfc0132 === "RESTORE" || rfc0132 === "PROMOTE") return "production";
+    if (rfc0132 === "VEST") return "organization";
+    if (
+      payload?.operation === "RESTORE" ||
+      payload?.operation === "VEST" ||
+      payload?.operation === "PROMOTE"
+    ) return null;
     if (payload?.operation === "CONSENT" || payload?.operation === "CONSENSUS") return null;
     if (payload?.operation === "RULE") return null;
-    if (payload?.operation === "PROMOTE" || payload?.in_progress === true) return null;
-    if (payload?.operation === "VEST") return null;
     if (payload?.operation === "SHARE") return null;
     if (payload?.operation === "CONNECT") return null;
     if (
@@ -424,6 +456,8 @@ export function consequenceForEvent(
     if (from === to) return undefined;
     return `${home.label}: ${from} → ${to}`;
   }
+  // RFC-0132: these three public lines carry no separate consequence.
+  if (t === "ENTITY_UPDATE" && rfc0132Operation(payload)) return undefined;
   const projectionId = projectionIdForEvent(ev.event_type, ev.payload);
   if (projectionId === "organization") {
     const act = organizationActConsequence(t);
@@ -576,6 +610,11 @@ export function phraseWatchEvent(
         // filler §4 bans if anything ever bypassed that gate.
         return site ? `Stocks recovered at ${site}` : "";
       }
+      // RFC-0132: one line per act, site only, no actor or private state.
+      const rfc0132 = rfc0132Operation(payload);
+      if (rfc0132 === "RESTORE") return site ? `An abandoned asset was restored at ${site}` : "";
+      if (rfc0132 === "VEST") return site ? `An asset at ${site} passed into institutional hands` : "";
+      if (rfc0132 === "PROMOTE") return site ? `Construction finished at ${site}` : "";
       return site ? `Public activity at ${site}` : "Public activity";
     }
     case "INFRASTRUCTURE_DISRUPTED": {
@@ -728,21 +767,29 @@ function sourceToWatchEvent(
   // repair and disruption. Narrowing it here is what left the live feed
   // rendering every maintenance event as unlocated "Public activity".
   const scopeId = entityScopeId(ev.payload);
-  if (scopeId) {
+  // RFC-0132: a completed RESTORE/VEST/PROMOTE is located by the entity's
+  // public home. The actor-room fallback above must not relocate the act to
+  // wherever the agent has since moved.
+  const rfc0132Act =
+    String(ev.event_type || "").toUpperCase() === "ENTITY_UPDATE" && rfc0132Operation(ev.payload) !== null;
+  if (scopeId || rfc0132Act) {
     // §5: resolve via the entity's public room; if none, the event is
     // omitted, not anonymized into filler. Actor-site fallback must not
     // republish a hidden-entity org act as a public Chamber Market line.
     const home = entityHome(scopeId, publicRooms);
     if (!home) return null;
-    if (!publicRoomId) publicRoomId = home.room.room_id;
+    if (!publicRoomId || rfc0132Act) publicRoomId = home.room.room_id;
   }
   const located = withResolvedPublicRoom(ev, publicRoomId);
   const band = typeof ev.payload?.band === "string" ? ev.payload.band : undefined;
   const roomRefs = Object.values(publicRooms);
-  const actor = publicOccupantLabel(ev, roomRefs) ||
-    (isRepairUpdate(ev)
-      ? publicOccupantLabel({ handle: typeof ev.payload?.last_repair_handle === "string" ? ev.payload.last_repair_handle : "" }, roomRefs)
-      : null);
+  // RFC-0132: PROMOTE is a system act — never attach an actor label.
+  const actor = ev.event_type.toUpperCase() === "ENTITY_UPDATE" && rfc0132Operation(ev.payload) === "PROMOTE"
+    ? null
+    : publicOccupantLabel(ev, roomRefs) ||
+      (isRepairUpdate(ev)
+        ? publicOccupantLabel({ handle: typeof ev.payload?.last_repair_handle === "string" ? ev.payload.last_repair_handle : "" }, roomRefs)
+        : null);
   const consequence = consequenceForEvent(located, publicRooms);
   return {
     sequence: ev.sequence,
