@@ -59,6 +59,16 @@ export function handleStudyAdminUiRequest(
     <form id="accept-invite-form" method="post" action="/api/study-admin/invites/${inviteId}/accept">
       <button type="submit">Accept Single-Use Invite</button>
     </form>
+    <pre id="accept-status" aria-live="polite"></pre>
+    <script>
+      document.getElementById("accept-invite-form")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const out = document.getElementById("accept-status");
+        const res = await fetch(form.action, { method: "POST", headers: { "Accept": "application/json" } });
+        if (out) out.textContent = await res.text();
+      });
+    </script>
   </main>
 </body>
 </html>`;
@@ -85,7 +95,24 @@ export function handleStudyAdminUiRequest(
         <label>Human Principal ID <input name="human_principal_id" required /></label>
         <button type="submit">Issue Invite</button>
       </form>
+      <pre id="issue-status" aria-live="polite"></pre>
     </section>
+    <script>
+      document.getElementById("issue-invite-form")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const fd = new FormData(form);
+        const studyId = encodeURIComponent(String(fd.get("study_id") || ""));
+        const humanPrincipalId = String(fd.get("human_principal_id") || "");
+        const out = document.getElementById("issue-status");
+        const res = await fetch("/api/admin/studies/" + studyId + "/invites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({ human_principal_id: humanPrincipalId }),
+        });
+        if (out) out.textContent = await res.text();
+      });
+    </script>
     <section id="study-admin-endpoints">
       <h2>API Endpoints</h2>
       <ul>
