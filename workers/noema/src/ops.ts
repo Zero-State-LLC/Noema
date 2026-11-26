@@ -120,12 +120,14 @@ function kindOf(id: string, p: PresencePlayer): ActorKind {
 /**
  * RFC-0134: whether a Player's public-room actions and resident dialogue
  * project into WATCH Room View (`rooms[].room_activity[]`).
- * Explicit boolean wins; otherwise `system` actors default true and `live`
- * external agents default false.
+ * Explicit boolean wins; otherwise reserved house maintenance actors
+ * (`reach-maint*`) default true, while admin-minted testers and external
+ * third-party agents stay fail-closed false.
  */
 export function isPublicActivityPlayer(id: string, p: PresencePlayer): boolean {
   if (typeof p.public_activity === "boolean") return p.public_activity;
-  return inferActorKind(id, p.actor_kind, p.controller_type) === "system";
+  const handle = String(p.handle || id || "").replace(/^player\./i, "");
+  return /^reach-maint/i.test(handle);
 }
 
 /** Primary census: present agent Player Controllers only. Humans are observers. */

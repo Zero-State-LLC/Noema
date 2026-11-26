@@ -1137,16 +1137,7 @@ export function adminHtml(): string {
         rows.forEach((row) => {
           const label = row.handle || row.player_id;
           const note = row.entered ? "present" : "idle";
-          const li = document.createElement("li");
-          const left = document.createElement("strong");
-          left.textContent = label;
-          const right = document.createElement("span");
-          right.style.display = "inline-flex";
-          right.style.alignItems = "center";
-          right.style.gap = ".45rem";
-          const status = document.createElement("span");
-          status.className = "faint";
-          status.textContent = note;
+          const li = pairLi(label, note);
           const isPublic = row.public_activity === true;
           const toggle = document.createElement("button");
           toggle.type = "button";
@@ -1154,6 +1145,7 @@ export function adminHtml(): string {
           toggle.style.minHeight = "1.75rem";
           toggle.style.padding = ".2rem .5rem";
           toggle.style.fontSize = ".68rem";
+          toggle.style.marginLeft = ".5rem";
           toggle.setAttribute("aria-pressed", isPublic ? "true" : "false");
           toggle.textContent = isPublic ? "Public WATCH" : "Private";
           toggle.addEventListener("click", async () => {
@@ -1173,8 +1165,7 @@ export function adminHtml(): string {
               toggle.disabled = false;
             }
           });
-          right.append(status, toggle);
-          li.append(left, right);
+          li.append(toggle);
           el.append(li);
         });
       };

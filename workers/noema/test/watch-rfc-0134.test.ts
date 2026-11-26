@@ -153,6 +153,7 @@ describe("RFC-0134: isPublicActivityPlayer flag & actor roster", () => {
   it("respects explicit boolean overrides and falls back to actor_kind === system", () => {
     expect(isPublicActivityPlayer("player.reach-maint3", { actor_kind: "system" })).toBe(true);
     expect(isPublicActivityPlayer("player.reach-maint3", { actor_kind: "system", public_activity: false })).toBe(false);
+    expect(isPublicActivityPlayer("player.semantic-a", { handle: "semantic-a", actor_kind: "system" })).toBe(false);
     expect(isPublicActivityPlayer("player.ext1", { actor_kind: "live", controller_type: "agent" })).toBe(false);
     expect(
       isPublicActivityPlayer("player.orin1", {
