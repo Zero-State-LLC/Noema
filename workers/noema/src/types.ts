@@ -164,7 +164,7 @@ export interface ObservationAffordance {
   /** GC1-S8. Structured REPAIR overhaul. Omitted for standard repair. */
   extent?: "overhaul";
   /** GC1-S7. Structured FOCUS track. Omitted when `clear` is set. */
-  track?: "explorer" | "surveyor" | "broker" | "engineer";
+  track?: "explorer" | "surveyor" | "broker" | "engineer" | "archivist" | "herald";
   /** GC1-S7. Structured FOCUS clear. */
   clear?: boolean;
   /** GC2. Structured BUILD.CONSTRUCT class. */

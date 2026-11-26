@@ -276,6 +276,9 @@ function verbLabel(verb) {
     case "build": return "building";
     case "repair": return "repairing";
     case "recharge": return "recharging";
+    case "commemorate": return "commemorating";
+    case "remediate": return "remediating";
+    case "contract": return "fulfilling";
     case "restore": return "restoring";
     case "repurpose": return "repurposing";
     case "promote": return "completing";
@@ -298,8 +301,8 @@ function verbLabel(verb) {
 function verbCategory(verb) {
   const v = normKey(verb);
   if (v === "harvest" || v === "commit_supply" || v === "production" || v === "recharge") return "harvest";
-  if (v === "build" || v === "repair" || v === "restore" || v === "repurpose" || v === "promote") return "weld";
-  if (v === "contest" || v === "vest" || v === "trade" || v === "org") return "charter";
+  if (v === "build" || v === "repair" || v === "restore" || v === "repurpose" || v === "promote" || v === "remediate") return "weld";
+  if (v === "contest" || v === "vest" || v === "trade" || v === "org" || v === "commemorate" || v === "contract") return "charter";
   if (v === "inspect" || v === "look" || v === "observe" || v === "wait") return "scan";
   if (v === "message") return "message";
   return "";
@@ -1507,6 +1510,22 @@ function mount(frame, opts) {
         eg.add(dish);
         roomAnimProps.push(dish);
         labelY = 2.05;
+      } else if (etype === "monument" || elabel.includes("memorial")) {
+        // RFC-0137: Permanent Civic Commemorative Stele
+        const base = pick(makeCyl(0.48, 0.62, 0.36, darkMetal, true, true));
+        base.position.y = 0.24;
+        eg.add(base);
+        const stele = pick(makeBox(0.56, 1.56, 0.28, brass, true));
+        stele.position.y = 1.18;
+        eg.add(stele);
+        const crest = pick(new Mesh(shared.oct, amberGlow));
+        crest.scale.set(0.24, 0.42, 0.24);
+        crest.position.y = 2.18;
+        crest.userData.spin = 0.6;
+        eg.add(crest);
+        roomAnimProps.push(crest);
+        labelY = 2.52;
+        addHalo(eg, 0, 0.12, 0, 2.5, 0xffc44d, 0.38);
       } else if (elabel.includes("codex") || elabel.includes("ruin") || elabel.includes("obelisk") || etype === "ruin") {
         // Ruin / Codex Monolith Stack
         const slab = pick(makeBox(0.76, 1.48, 0.36, darkMetal, true));

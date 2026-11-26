@@ -15,7 +15,7 @@ import {
   parseAccessPolicyLine,
   parseAccessScope,
 } from "./access-policy";
-import { FOCUS_TRACKS, parseFocusTrack, type FocusState } from "./focus";
+import { FOCUS_TRACKS, parseFocusTrack, type FocusId, type FocusState } from "./focus";
 import { signalFromArgs, type ActionSignal } from "./signal";
 import {
   CONSTRUCTIBLE_CLASSES,
@@ -176,6 +176,11 @@ export type EntityRuntime = {
   last_repair_handle?: string;
   /** GC2-S9 multi-cycle. Relay CONSTRUCT starts true; live after 1 committed cycle. */
   in_progress?: boolean;
+  /** RFC-0137: cycle target for multi-agent BUILD_CONTRIBUTE + contributor list. */
+  ready_cycle?: number;
+  contributors?: string[];
+  /** RFC-0137: commemorated scar_id or attractor_id for permanent MONUMENT entities. */
+  commemorated_ref?: string;
 };
 
 export type PlayerRuntime = {
@@ -207,7 +212,7 @@ export type PlayerRuntime = {
     recognition?: Partial<Record<string, string[]>>;
   };
   /** GC1-S7 declared focus. Player snapshot, not an event. */
-  focus?: { track: "explorer" | "surveyor" | "broker" | "engineer"; declared_cycle: number };
+  focus?: { track: FocusId; declared_cycle: number };
   /** GC3-S0 derived dyadic trade memory. Not WorldState. */
   trade_memory?: {
     catalog_id: "social-memory-catalog/gc3-s0";
@@ -396,6 +401,10 @@ export const COSTS = {
   AGREEMENT_FORM: { compute: 2, influence: 1 } as Partial<Budgets>,
   AGREEMENT_TERMINATE: { compute: 1 } as Partial<Budgets>,
   ACCESS_POLICY: { compute: 1, influence: 2 } as Partial<Budgets>,
+  COMMEMORATE: { attention: 2, influence: 1 } as Partial<Budgets>,
+  REMEDIATE: { energy: 3, compute: 1, storage: 2 } as Partial<Budgets>,
+  BUILD_CONTRIBUTE: { energy: 2, compute: 1, storage: 1 } as Partial<Budgets>,
+  CONTRACT_POST: { compute: 1 } as Partial<Budgets>,
   WAIT: {} as Partial<Budgets>,
 };
 
@@ -473,9 +482,23 @@ export type CanonicalAction =
           | "ACCESS_POLICY"
           | "FOCUS"
           | "SUPPLY"
-          | "RECHARGE";
+          | "RECHARGE"
+          | "COMMEMORATE"
+          | "REMEDIATE"
+          | "CONTRACT_POST"
+          | "CONTRACT_FULFILL";
         signal?: ActionSignal;
         entity_id?: string;
+        /** RFC-0137: target scar_id or attractor_id for COMMEMORATE / REMEDIATE. */
+        scar_id?: string;
+        attractor_id?: string;
+        /** RFC-0138: WS06 civic contract fields. */
+        contract_id?: string;
+        contract_kind?: string;
+        target_condition?: number;
+        target_count?: number;
+        reward_resource?: "storage" | "influence";
+        reward_amount?: number;
         /** RFC-0133 SUPPLY recipient and resource. */
         player_id?: string;
         resource?: "energy" | "storage";
@@ -546,7 +569,8 @@ export type CanonicalAction =
         | { operation: "RESTORE"; entity_id: string }
         | { operation: "VEST"; entity_id: string; org_id: string }
         | { operation: "SHARE"; entity_id: string; player_id: string }
-        | { operation: "CONNECT"; entity_id: string; dest: string };
+        | { operation: "CONNECT"; entity_id: string; dest: string }
+        | { operation: "BUILD_CONTRIBUTE"; entity_id: string };
     };
 
 export type Affordance = {
@@ -558,7 +582,7 @@ export type Affordance = {
   target_id?: string;
   target_label?: string;
   extent?: "overhaul";
-  track?: "explorer" | "surveyor" | "broker" | "engineer";
+  track?: FocusId;
   clear?: boolean;
   class?: ConstructibleClass;
   subject_id?: string;
@@ -728,6 +752,9 @@ export function enrichEntity(e: {
   last_repair_cycle?: number;
   last_repair_handle?: string;
   in_progress?: boolean;
+  ready_cycle?: number;
+  contributors?: string[];
+  commemorated_ref?: string;
   regen_rate?: number;
   max_stock?: number;
 }): EntityRuntime {
@@ -760,6 +787,9 @@ export function enrichEntity(e: {
     last_repair_cycle: e.last_repair_cycle,
     last_repair_handle: e.last_repair_handle,
     in_progress: e.in_progress === true ? true : undefined,
+    ...(e.ready_cycle != null ? { ready_cycle: e.ready_cycle } : {}),
+    ...(Array.isArray(e.contributors) && e.contributors.length ? { contributors: [...e.contributors] } : {}),
+    ...(e.commemorated_ref ? { commemorated_ref: e.commemorated_ref } : {}),
   };
 }
 
@@ -2564,6 +2594,68 @@ export function normalizeStructuredCommand(
         display: `RECHARGE ${entity_id}`,
       };
     }
+    if (operation === "COMMEMORATE") {
+      const ref = String(args.attractor_id || args.scar_id || args.target_id || args.target || "").trim();
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "COMMEMORATE",
+            ...(args.attractor_id ? { attractor_id: String(args.attractor_id) } : {}),
+            ...(args.scar_id ? { scar_id: String(args.scar_id) } : {}),
+            ...(ref && !args.attractor_id && !args.scar_id ? { scar_id: ref } : {}),
+          },
+        },
+        display: ref ? `COMMEMORATE ${ref}` : "COMMEMORATE",
+      };
+    }
+    if (operation === "REMEDIATE") {
+      const scar_id = String(args.scar_id || args.target_id || args.target || "").trim();
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "REMEDIATE", ...(scar_id ? { scar_id } : {}) },
+        },
+        display: scar_id ? `REMEDIATE ${scar_id}` : "REMEDIATE",
+      };
+    }
+    if (operation === "CONTRACT_POST") {
+      const org_id = String(args.org_id || "").trim();
+      const contract_kind = String(args.contract_kind || args.kind || "").trim();
+      if (!org_id || !contract_kind) {
+        return { ok: false, error: "org_id and contract_kind required", code: "INVALID_REQUEST" };
+      }
+      const resRaw = String(args.reward_resource || args.resource || "storage").toLowerCase();
+      const reward_resource = resRaw === "influence" ? "influence" : "storage";
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "CONTRACT_POST",
+            org_id,
+            contract_kind,
+            entity_id: args.entity_id || args.target_id ? String(args.entity_id || args.target_id) : undefined,
+            target_condition: args.target_condition != null ? Number(args.target_condition) : undefined,
+            target_count: args.target_count != null ? Number(args.target_count) : undefined,
+            reward_resource,
+            reward_amount: args.reward_amount != null ? Number(args.reward_amount) : 2,
+          },
+        },
+        display: `CONTRACT_POST ${contract_kind}`,
+      };
+    }
+    if (operation === "CONTRACT_FULFILL") {
+      const contract_id = String(args.contract_id || args.target_id || args.target || "").trim();
+      if (!contract_id) return { ok: false, error: "contract_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: { verb: "COMMIT", arguments: { operation: "CONTRACT_FULFILL", contract_id } },
+        display: `CONTRACT_FULFILL ${contract_id}`,
+      };
+    }
     if (operation === "REPAIR" || operation === "HARVEST") {
       const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
@@ -3136,6 +3228,15 @@ export function normalizeStructuredCommand(
         display: `BUILD.DISMANTLE ${entity_id}`,
       };
     }
+    if (operation === "BUILD_CONTRIBUTE" || operation === "CONTRIBUTE") {
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
+      if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "BUILD_CONTRIBUTE", entity_id } },
+        display: `BUILD.BUILD_CONTRIBUTE ${entity_id}`,
+      };
+    }
     if (operation === "UPGRADE") {
       const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
@@ -3279,6 +3380,21 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "RECONSTRUCT_PUBLISH") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT_PUBLISH" });
+  }
+  if (cmd === "COMMEMORATE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "COMMEMORATE" });
+  }
+  if (cmd === "REMEDIATE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "REMEDIATE" });
+  }
+  if (cmd === "BUILD_CONTRIBUTE") {
+    return normalizeStructuredCommand("BUILD", { ...args, operation: "BUILD_CONTRIBUTE" });
+  }
+  if (cmd === "CONTRACT_POST") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTRACT_POST" });
+  }
+  if (cmd === "CONTRACT_FULFILL") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTRACT_FULFILL" });
   }
   return { ok: false, error: `unsupported command ${cmd}`, code: "UNKNOWN_COMMAND" };
 }

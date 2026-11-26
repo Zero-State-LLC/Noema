@@ -43,6 +43,20 @@ import {
   type OrgRole,
   type PlayerRuntime,
 } from "./actions";
+import {
+  CONTRACT_CATALOG_ID,
+  DEFAULT_CONTRACT_DURATION,
+  MAX_OPEN_CONTRACTS_PER_ORG,
+  allocateContractId,
+  applyContractPayout,
+  clampContractReward,
+  contractPredicateHolds,
+  expireDueContracts,
+  openContractsForOrg,
+  parseContractKind,
+  type CivicContract,
+} from "./contracts";
+import { deterministicId } from "./ids";
 import { SUCCESSOR_WORLD_ID } from "./genesis";
 import { fourBeatFromResult, playTextFromObservation } from "./play-ui";
 import {
@@ -119,8 +133,10 @@ import {
 } from "./resource-production";
 import {
   applyPracticeCredits,
+  archivistAttentionDiscount,
   brokerWaivesCaution,
   creditsFromEvent,
+  heraldComputeDiscount,
   inspectAttentionCost,
   isTrackRecognized,
   lookAttentionCost,
@@ -609,6 +625,8 @@ export type WorldRuntime = {
   organizations: Record<string, Organization>;
   reconstructions?: Record<string, ReconstructionRecord>;
   agreements?: Record<string, FormalAgreement>;
+  /** RFC-0138: WS06 bounded, escrowed civic contracts. */
+  contracts?: Record<string, CivicContract>;
   contests?: Record<string, OpenContest>;
   access_restrictions?: Array<{
     restriction_id: string;
@@ -1887,6 +1905,7 @@ export async function runCommittedCycleWorldOps(
     });
     await settleEv(ev);
   }
+  expireDueContracts(w.contracts, w.organizations, w.players, w.cycle);
   if (shouldWriteWorldReport(w.cycle)) {
     w.last_report = {
       cycle: w.cycle,
@@ -2771,7 +2790,9 @@ export async function applyWorldCommand(
 
   // ——— MESSAGE ———
   if (action.verb === "MESSAGE") {
-    if (!canPay(pl.budgets, COSTS.MESSAGE)) {
+    const msgCompute = Math.max(0, (COSTS.MESSAGE.compute ?? 1) - heraldComputeDiscount(pl.practice, w.cycle));
+    const msgCost = msgCompute > 0 ? { ...COSTS.MESSAGE, compute: msgCompute } : {};
+    if (!canPay(pl.budgets, msgCost)) {
       return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
         "You do not have enough compute.", "You do not have enough compute.", "message");
     }
@@ -2783,7 +2804,7 @@ export async function applyWorldCommand(
       }
       const notice = action.arguments.text.slice(0, 500).trim();
       if (!notice) return fail(request_id, "INVALID_REQUEST", "Write a notice.");
-      debit(pl.budgets, COSTS.MESSAGE);
+      debit(pl.budgets, msgCost);
       here.board = [...(here.board || []), { text: notice, cycle: w.cycle }].slice(-5);
       const ev = pushEvent("MESSAGE", {
         message_id: `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`,
@@ -2791,7 +2812,7 @@ export async function applyWorldCommand(
         surface: "BOARD",
         room_id: here.room_id,
         text: notice,
-        cost_paid: COSTS.MESSAGE,
+        cost_paid: msgCost,
       });
       await settleEv(ev);
       const posted = success(
@@ -2813,7 +2834,7 @@ export async function applyWorldCommand(
       }
       const utterance = action.arguments.text.slice(0, 500).trim();
       if (!utterance) return fail(request_id, "INVALID_REQUEST", "Say something.");
-      debit(pl.budgets, COSTS.MESSAGE);
+      debit(pl.budgets, msgCost);
       here.shout = { text: utterance, cycle: w.cycle };
       const ev = pushEvent("MESSAGE", {
         message_id: `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`,
@@ -2821,7 +2842,7 @@ export async function applyWorldCommand(
         surface: "SHOUT",
         room_id: here.room_id,
         text: utterance,
-        cost_paid: COSTS.MESSAGE,
+        cost_paid: msgCost,
       });
       await settleEv(ev);
       const shouted = success(
@@ -3905,6 +3926,261 @@ export async function applyWorldCommand(
       return result;
     }
 
+    // RFC-0137 COMMEMORATE: anchor a crystallized lore attractor or fossilized public scar as a permanent MONUMENT.
+    if (action.arguments.operation === "COMMEMORATE") {
+      const room = w.rooms[pl.room_id];
+      if (!room || isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "This place cannot be commemorated.");
+      }
+      ensureDeepTime(w as never);
+      const wantRef = String(action.arguments.attractor_id || action.arguments.scar_id || "").trim();
+      const lore = (w.lore_attractors || []).find(
+        (a) =>
+          (!a.room_id || a.room_id === room.room_id) &&
+          (a.basin === "crystallized" || a.weight >= 0.8) &&
+          (!wantRef || a.attractor_id === wantRef),
+      );
+      const fossilScar = !lore
+        ? (w.scars || []).find(
+            (s) =>
+              s.room_id === room.room_id &&
+              s.visibility === "public" &&
+              s.fossilized === true &&
+              (!wantRef || s.scar_id === wantRef),
+          )
+        : undefined;
+      const targetRef = lore?.attractor_id || fossilScar?.scar_id;
+      const slugBase = (lore?.label || fossilScar?.domain || "memory")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 24) || "memory";
+      if (!targetRef) {
+        return fail(request_id, "NOT_FOUND", "There is no crystallized lore or fossilized scar here to commemorate.");
+      }
+      if (roomEntities(room).some((e) => e.commemorated_ref === targetRef)) {
+        return fail(request_id, "FORBIDDEN", "That memory has already been commemorated here.");
+      }
+      if (!canPay(pl.budgets, COSTS.COMMEMORATE)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need attention 2 and influence 1 to commemorate.");
+      }
+      debit(pl.budgets, COSTS.COMMEMORATE);
+      const monumentId = deterministicId("entity.memorial", w.sequence, w.cycle, `${room.room_id}:${targetRef}`);
+      const label = `memorial-${slugBase}`;
+      const monument: EntityRuntime = {
+        entity_id: monumentId,
+        label,
+        entity_type: "MONUMENT",
+        condition: 100,
+        owner_id: principal.player_id,
+        commemorated_ref: targetRef,
+      };
+      room.entities = [...roomEntities(room), monument];
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.COMMEMORATE,
+        reason: "COMMEMORATE",
+      });
+      const ev = pushEvent("ENTITY_CREATE", {
+        entity_id: monumentId,
+        room_id: room.room_id,
+        label,
+        entity_type: "MONUMENT",
+        actor_id: principal.player_id,
+        operation: "COMMEMORATE",
+        commemorated_ref: targetRef,
+      });
+      await settleEv(ev);
+      const line = `Commemorated ${label} in ${room.name}.`;
+      const result = success(w, principal, request_id, events, line, settled, "commemorate", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0137 REMEDIATE: steward an un-fossilized public economic scar (never RFC-0051 dismantle ruins).
+    if (action.arguments.operation === "REMEDIATE") {
+      const room = w.rooms[pl.room_id];
+      if (!room || isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "This place cannot be remediated.");
+      }
+      ensureDeepTime(w as never);
+      const wantScar = String(action.arguments.scar_id || "").trim();
+      if (wantScar && roomEntities(room).some((e) => e.entity_id === wantScar && e.scar === true)) {
+        return fail(request_id, "FORBIDDEN", "That scar cannot be remediated.");
+      }
+      const scar = (w.scars || []).find(
+        (s) =>
+          s.room_id === room.room_id &&
+          s.visibility === "public" &&
+          s.domain === "economic" &&
+          !s.fossilized &&
+          s.strength >= 0.05 &&
+          (!wantScar || s.scar_id === wantScar),
+      );
+      if (!scar) {
+        return fail(request_id, "NOT_FOUND", "There is no active pre-fossilization economic scar here to remediate.");
+      }
+      const cost = withWorkshopStorage(COSTS.REMEDIATE, workshopStorageDiscount(roomEntities(room)));
+      const cargoNeed = cost.storage || 0;
+      const fuel = { ...cost, storage: undefined };
+      if (!canPay(pl.budgets, fuel)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 3 and compute 1 to remediate.");
+      }
+      if (!canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough materials in hold to remediate.");
+      }
+      debit(pl.budgets, fuel);
+      consumeCargo(pl.budgets, cargoNeed);
+      const before = scar.strength;
+      scar.strength = Math.max(0, Math.round((scar.strength - 0.25) * 1000) / 1000);
+      if (scar.strength < 0.05) {
+        w.scars = (w.scars || []).filter((s) => s.scar_id !== scar.scar_id);
+      }
+      const co = ensureCoevo(w);
+      co.harvest_pressure[room.room_id] = Math.max(0, (co.harvest_pressure[room.room_id] || 0) - 2);
+      for (const e of roomEntities(room)) {
+        if (e.stock_resource) {
+          const curMod = co.regen_mod[e.entity_id] ?? 1.0;
+          co.regen_mod[e.entity_id] = Math.min(1.0, Math.round((curMod + 0.1) * 1000) / 1000);
+        }
+      }
+      persistDeepTime(w as never);
+      pushEvent("BUDGET_CONSUMED", { player_id: principal.player_id, cost_paid: cost, reason: "REMEDIATE" });
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: scar.scar_id,
+        room_id: room.room_id,
+        scar_id: scar.scar_id,
+        from: before,
+        to: scar.strength,
+        actor_id: principal.player_id,
+        operation: "REMEDIATE",
+      });
+      await settleEv(ev);
+      const line = `Remediated economic scar in ${room.name}.`;
+      const result = success(w, principal, request_id, events, line, settled, "remediate", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0138 CONTRACT_POST: bounded, escrowed WS06 civic contract.
+    if (action.arguments.operation === "CONTRACT_POST") {
+      const room = w.rooms[pl.room_id];
+      if (!room || isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "Contracts cannot be posted here.");
+      }
+      const orgId = String(action.arguments.org_id || "").trim();
+      const org = w.organizations[orgId];
+      if (!org) return fail(request_id, "NOT_FOUND", "Organization not found.");
+      const isFounder = org.creator_id === principal.player_id;
+      const hasOffice =
+        occupiedOfficesFor(org, principal.player_id, TRADE_PROFILE).length > 0 ||
+        occupiedOfficesFor(org, principal.player_id, "PUBLISH_NOTICE").length > 0;
+      if (!isFounder && !hasOffice) {
+        return fail(request_id, "FORBIDDEN", "Only an authorized office holder or founder may post contracts.");
+      }
+      const kind = parseContractKind(action.arguments.contract_kind);
+      if (!kind) return fail(request_id, "INVALID_REQUEST", "Contract kind must be REPAIR_TARGET or ATTEST_ROOM.");
+      w.contracts = w.contracts || {};
+      if (openContractsForOrg(w.contracts, orgId).length >= MAX_OPEN_CONTRACTS_PER_ORG) {
+        return fail(request_id, "FORBIDDEN", "This organization already has the maximum number of open contracts.");
+      }
+      const reward_resource = action.arguments.reward_resource === "influence" ? "influence" : "storage";
+      const reward_amount = clampContractReward(reward_resource, action.arguments.reward_amount);
+      if (!canPay(pl.budgets, COSTS.CONTRACT_POST)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1 to post a contract.");
+      }
+      if (reward_resource === "storage") {
+        const vault = ensureTreasury(org);
+        if ((vault.storage ?? 0) < reward_amount) {
+          return fail(request_id, "BUDGET_EXCEEDED", "Not enough cargo in the organization treasury to escrow.");
+        }
+        vault.storage = (vault.storage ?? 0) - reward_amount;
+      } else {
+        if ((pl.budgets.influence ?? 0) < reward_amount) {
+          return fail(request_id, "BUDGET_EXCEEDED", "Not enough influence to escrow for this contract.");
+        }
+        pl.budgets.influence = (pl.budgets.influence ?? 0) - reward_amount;
+      }
+      debit(pl.budgets, COSTS.CONTRACT_POST);
+      const contract_id = allocateContractId(w.sequence, w.cycle, `${orgId}:${room.room_id}:${kind}`);
+      const contract: CivicContract = {
+        contract_id,
+        org_id: orgId,
+        poster_id: principal.player_id,
+        room_id: room.room_id,
+        kind,
+        target_entity_id: action.arguments.entity_id,
+        target_condition: action.arguments.target_condition ?? 80,
+        target_count: action.arguments.target_count ?? 2,
+        reward_resource,
+        reward_amount,
+        posted_cycle: w.cycle,
+        expires_cycle: w.cycle + DEFAULT_CONTRACT_DURATION,
+        status: "OPEN",
+      };
+      w.contracts[contract_id] = contract;
+      pushEvent("BUDGET_CONSUMED", { player_id: principal.player_id, cost_paid: COSTS.CONTRACT_POST, reason: "CONTRACT_POST" });
+      const ev = pushEvent("ENTITY_CREATE", {
+        entity_id: contract_id,
+        room_id: room.room_id,
+        org_id: orgId,
+        kind,
+        catalog_id: CONTRACT_CATALOG_ID,
+        actor_id: principal.player_id,
+        operation: "CONTRACT_POST",
+      });
+      await settleEv(ev);
+      const line = `Posted ${kind} contract ${contract_id} for ${org.name}.`;
+      const result = success(w, principal, request_id, events, line, settled, "contract", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0138 CONTRACT_FULFILL: claim escrowed reward once deterministic predicate holds.
+    if (action.arguments.operation === "CONTRACT_FULFILL") {
+      const cid = String(action.arguments.contract_id || "").trim();
+      const contract = w.contracts?.[cid];
+      if (!contract || contract.status !== "OPEN") {
+        return fail(request_id, "NOT_FOUND", "That contract is not open.");
+      }
+      if (contract.poster_id === principal.player_id) {
+        return fail(request_id, "FORBIDDEN", "You cannot fulfill your own posted contract.");
+      }
+      if (pl.room_id !== contract.room_id) {
+        return fail(request_id, "NOT_COLOCATED", "You must be in the contract's room to fulfill it.");
+      }
+      const room = w.rooms[contract.room_id];
+      if (!room || !contractPredicateHolds(contract, roomEntities(room), w.evidence_fragments)) {
+        return fail(request_id, "FORBIDDEN", "The contract's completion condition has not been met yet.");
+      }
+      if (contract.reward_resource === "storage" && (pl.budgets.storage ?? 0) < contract.reward_amount) {
+        return fail(
+          request_id,
+          "BUDGET_EXCEEDED",
+          "You do not have enough free storage to receive the contract reward.",
+        );
+      }
+      const payout = applyContractPayout(contract, pl.budgets);
+      contract.status = "FULFILLED";
+      contract.fulfilled_by = principal.player_id;
+      contract.fulfilled_cycle = w.cycle;
+      const ev = pushEvent("RESOURCE_TRANSFER", {
+        transfer_id: `contract.${cid}`,
+        kind: "contract",
+        from_id: contract.org_id,
+        to_id: principal.player_id,
+        room_id: contract.room_id,
+        resource: payout.resource,
+        amount: payout.granted,
+        contract_id: cid,
+      });
+      await settleEv(ev);
+      const line = `Fulfilled contract ${cid} and received ${payout.granted} ${payout.resource === "storage" ? "cargo" : "influence"}.`;
+      const result = success(w, principal, request_id, events, line, settled, "contract", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
     // Entity-targeted ops
     const room = w.rooms[pl.room_id];
     const entity = findEntity(room, action.arguments.entity_id || "");
@@ -4288,6 +4564,55 @@ export async function applyWorldCommand(
     const room = w.rooms[pl.room_id];
     if (!room) {
       return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+    }
+
+    if (action.arguments.operation === "BUILD_CONTRIBUTE") {
+      if (isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "You cannot contribute to construction here.");
+      }
+      const target = findEntity(room, action.arguments.entity_id || "");
+      if (!target || !isInProgress(target)) {
+        return fail(request_id, "NOT_FOUND", "There is no in-progress construction with that id here.");
+      }
+      const cost = COSTS.BUILD_CONTRIBUTE;
+      const cargoNeed = cost.storage || 0;
+      const fuel = { ...cost, storage: undefined };
+      if (!canPay(pl.budgets, fuel)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 2 and compute 1 to contribute.");
+      }
+      if (!canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have materials in hold to contribute.");
+      }
+      debit(pl.budgets, fuel);
+      consumeCargo(pl.budgets, cargoNeed);
+      const prevReady = target.ready_cycle ?? (w.cycle + 1);
+      const nextReady = Math.max(w.cycle, prevReady - 1);
+      target.ready_cycle = nextReady;
+      const contribs = Array.isArray(target.contributors) ? target.contributors : [];
+      if (!contribs.includes(principal.player_id)) target.contributors = [...contribs, principal.player_id];
+      const completed = nextReady <= w.cycle;
+      if (completed) {
+        target.in_progress = undefined;
+        target.last_steward_cycle = w.cycle;
+      }
+      const idx = room.entities.findIndex((e) => e.entity_id === target.entity_id);
+      if (idx >= 0) room.entities[idx] = target;
+      pushEvent("BUDGET_CONSUMED", { player_id: principal.player_id, cost_paid: cost, reason: "BUILD_CONTRIBUTE" });
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: target.entity_id,
+        room_id: room.room_id,
+        actor_id: principal.player_id,
+        operation: "BUILD_CONTRIBUTE",
+        completed,
+        set: completed ? { in_progress: false, last_steward_cycle: w.cycle } : { ready_cycle: nextReady },
+      });
+      await settleEv(ev);
+      const line = completed
+        ? `Contributed to ${titleCaseLabel(target.label)} and completed construction.`
+        : `Contributed to ${titleCaseLabel(target.label)} construction.`;
+      const result = success(w, principal, request_id, events, line, settled, "build", line);
+      w.seen_idempotency[idem] = result;
+      return result;
     }
 
     if (action.arguments.operation === "CONSTRUCT") {
@@ -4920,6 +5245,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.messages = w.messages || [];
   w.organizations = w.organizations || {};
   w.reconstructions = w.reconstructions || {};
+  w.contracts = w.contracts || {};
   for (const org of Object.values(w.organizations)) {
     if (!org.offices) org.offices = {};
     if (!Array.isArray(org.members)) org.members = [];
@@ -6250,18 +6576,21 @@ async function applyReconstructCommand(
       }
       rec.org_id = org?.org_id;
     }
-    if (!canPay(pl.budgets, COSTS.RECONSTRUCT)) {
+    const pubAttn = Math.max(1, (COSTS.RECONSTRUCT.attention ?? 2) - archivistAttentionDiscount(pl.practice, w.cycle));
+    const pubCost = { ...COSTS.RECONSTRUCT, attention: pubAttn };
+    if (!canPay(pl.budgets, pubCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
     }
     rec.visibility = visibility;
-    debit(pl.budgets, COSTS.RECONSTRUCT);
+    debit(pl.budgets, pubCost);
     pushEvent("BUDGET_CONSUMED", {
       player_id: principal.player_id,
-      cost_paid: COSTS.RECONSTRUCT,
+      cost_paid: pubCost,
       reason: "RECONSTRUCT_PUBLISH",
     });
     const ev = pushEvent("ENTITY_UPDATE", {
       entity_id: rec.reconstruction_id,
+      subject_ref: rec.subject_ref,
       set: { reconstruction_visibility: visibility, reconstruction_kind: "PLAYER_RECONSTRUCTION" },
       unset: [],
     });
@@ -6313,7 +6642,14 @@ async function applyReconstructCommand(
     entity?.entity_id || subject,
   );
   if (!collected.ok) return fail(request_id, collected.code, collected.message);
-  if (!canPay(pl.budgets, COSTS.RECONSTRUCT)) {
+  const recRoom = w.rooms[pl.room_id];
+  const hasMonRec = Boolean(recRoom && roomEntities(recRoom).some((e) => e.entity_type === "MONUMENT"));
+  const recAttn = Math.max(
+    hasMonRec ? 0 : 1,
+    (COSTS.RECONSTRUCT.attention ?? 2) - archivistAttentionDiscount(pl.practice, w.cycle) - (hasMonRec ? 1 : 0),
+  );
+  const recCost = { ...COSTS.RECONSTRUCT, attention: recAttn };
+  if (!canPay(pl.budgets, recCost)) {
     return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
   }
 
@@ -6347,15 +6683,16 @@ async function applyReconstructCommand(
   rec.fidelity = fidelity;
   rec.epistemic = fidelity < 0.35 ? "CONTESTED" : rec.epistemic;
   const weakened = weakenScarsForReconstruction(w, subject, fidelity, controllerCount);
-  debit(pl.budgets, COSTS.RECONSTRUCT);
+  debit(pl.budgets, recCost);
   pushEvent("BUDGET_CONSUMED", {
     player_id: principal.player_id,
-    cost_paid: COSTS.RECONSTRUCT,
+    cost_paid: recCost,
     reason: op,
   });
   const created = pushEvent("ENTITY_CREATE", {
     entity_id: reconstruction_id,
     entity_type: "DOCUMENT",
+    subject_ref: subject,
     location: null,
     owner_id: principal.player_id,
     properties: {
@@ -6968,7 +7305,9 @@ async function applyOfficeCommand(
       return fail(request_id, "FORBIDDEN", "That office profile cannot act in this stage.");
     }
     if (!notice) return fail(request_id, "INVALID_REQUEST", "Notice text required.");
-    if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+    const officeActCompute = Math.max(0, (COSTS.ORG_OFFICE_ACT.compute ?? 1) - heraldComputeDiscount(pl.practice, w.cycle));
+    const officeActCost = officeActCompute > 0 ? { ...COSTS.ORG_OFFICE_ACT, compute: officeActCompute } : {};
+    if (!canPay(pl.budgets, officeActCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
     }
     org.public_notice = notice.slice(0, 280);
@@ -6988,10 +7327,10 @@ async function applyOfficeCommand(
       },
       principal.player_id,
     );
-    debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+    debit(pl.budgets, officeActCost);
     pushEvent("BUDGET_CONSUMED", {
       player_id: principal.player_id,
-      cost_paid: COSTS.ORG_OFFICE_ACT,
+      cost_paid: officeActCost,
       reason: "ORG_OFFICE_ACT",
     });
     const ev = pushEvent("ENTITY_UPDATE", {
@@ -7055,10 +7394,17 @@ async function applyAttest(
   if (entity.archive_subject_entity_id || entity.archive_claim) {
     return fail(request_id, "FORBIDDEN", "That claim is already set.");
   }
-  const attestCost = withAnnexAttention(
+  const baseAttest = withAnnexAttention(
     { ...COSTS.ATTEST },
     readyClassInRoom(roomEntities(room), "archive_annex"),
   );
+  const hasMonAtt = roomEntities(room).some((e) => e.entity_type === "MONUMENT");
+  const archDisc = archivistAttentionDiscount(pl.practice, w.cycle);
+  const attAttn = Math.max(
+    hasMonAtt ? 0 : 1,
+    (baseAttest.attention ?? 0) - archDisc - (hasMonAtt ? 1 : 0),
+  );
+  const attestCost = { ...baseAttest, attention: attAttn };
   if (!canPay(pl.budgets, attestCost)) {
     return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
   }
