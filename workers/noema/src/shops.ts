@@ -199,7 +199,44 @@ export function stallEscrowedItems(
     .filter((it): it is PortableItem => Boolean(it && it.location.kind === "CONTAINER" && it.location.container_entity_id === stall.stall_id));
 }
 
-/** Check whether a stall has 100% full reserve to cover `offer_asset * fills`. */
+const GRADE_RANK: Record<LotGrade, number> = { WORN: 0, SOUND: 1, REFINED: 2 };
+
+/** Exact bipartite feasibility check: can `slots` each be assigned a distinct escrowed item? */
+function canAllocateDistinctItems(
+  escrowed: PortableItem[],
+  slots: Array<{ item_id?: string; predicate?: ItemPredicate }>,
+): boolean {
+  if (slots.length > escrowed.length) return false;
+  if (!slots.length) return true;
+  const adj: number[][] = slots.map((slot) => {
+    const edges: number[] = [];
+    for (let j = 0; j < escrowed.length; j++) {
+      const it = escrowed[j];
+      if (slot.item_id && it.item_id !== slot.item_id) continue;
+      if (slot.predicate && !itemMatchesPredicate(it, slot.predicate)) continue;
+      edges.push(j);
+    }
+    return edges;
+  });
+  const matchItem = new Array<number>(escrowed.length).fill(-1);
+  const dfs = (u: number, seen: boolean[]): boolean => {
+    for (const v of adj[u]) {
+      if (seen[v]) continue;
+      seen[v] = true;
+      if (matchItem[v] === -1 || dfs(matchItem[v], seen)) {
+        matchItem[v] = u;
+        return true;
+      }
+    }
+    return false;
+  };
+  for (let u = 0; u < slots.length; u++) {
+    if (!dfs(u, new Array<boolean>(escrowed.length).fill(false))) return false;
+  }
+  return true;
+}
+
+/** Check whether a stall has 100% full reserve to cover `offer_asset * fills` jointly with all other OPEN listings. */
 export function stallHasFullReserve(
   stall: BarterStallState,
   items: Record<string, PortableItem> | undefined,
@@ -215,47 +252,57 @@ export function stallHasFullReserve(
       .reduce((acc, l) => acc + (l.offer_asset.kind === "RESOURCE" ? l.offer_asset.amount * l.fills_remaining : 0), 0);
     return (stall.resources[offer.resource] ?? 0) >= committed + offer.amount * n;
   }
-  if (offer.kind === "LOT") {
-    const committedLots = openOther
-      .filter((l) => l.offer_asset.kind === "LOT" && l.offer_asset.material === offer.material)
-      .reduce((acc, l) => acc + (l.offer_asset.kind === "LOT" ? l.offer_asset.amount * l.fills_remaining : 0), 0);
-    const check = consumeMaterialLots(
-      stall.material_lots,
-      { [offer.material]: committedLots + offer.amount * n },
-      { minGrade: offer.grade || "WORN" },
-    );
-    return check.ok;
-  }
-  if (offer.kind === "CARGO") {
-    const committed = openOther
-      .filter((l) => l.offer_asset.kind === "CARGO" || l.offer_asset.kind === "LOT")
-      .reduce(
-        (acc, l) =>
-          acc +
-          (l.offer_asset.kind === "CARGO" || l.offer_asset.kind === "LOT"
-            ? l.offer_asset.amount * l.fills_remaining
-            : 0),
-        0,
-      );
-    return totalMaterialLots(stall.material_lots) >= committed + offer.amount * n;
-  }
-  if (offer.kind === "ITEM") {
-    const escrowed = stallEscrowedItems(stall, items);
-    const alreadyCommitted = new Set<string>();
-    for (const l of openOther) {
-      if (l.offer_asset.kind === "ITEM" && l.offer_asset.item_id) {
-        alreadyCommitted.add(l.offer_asset.item_id);
+  if (offer.kind === "LOT" || offer.kind === "CARGO") {
+    const combinedOffers: Array<{ asset: BarterAssetSpec; fills: number }> = [
+      ...openOther
+        .filter((l) => l.offer_asset.kind === "LOT" || l.offer_asset.kind === "CARGO")
+        .map((l) => ({ asset: l.offer_asset, fills: l.fills_remaining })),
+      { asset: offer, fills: n },
+    ];
+    const lotDemands: Array<{ material: MaterialArchetype; minGrade: LotGrade; total: number }> = [];
+    let cargoTotal = 0;
+    for (const entry of combinedOffers) {
+      if (entry.asset.kind === "LOT") {
+        lotDemands.push({
+          material: entry.asset.material,
+          minGrade: entry.asset.grade || "WORN",
+          total: entry.asset.amount * entry.fills,
+        });
+      } else if (entry.asset.kind === "CARGO") {
+        cargoTotal += entry.asset.amount * entry.fills;
       }
     }
-    const available = escrowed.filter((it) => !alreadyCommitted.has(it.item_id));
-    if (offer.item_id) {
-      return n === 1 && available.some((it) => it.item_id === offer.item_id);
+    // Allocate stricter grade demands first (REFINED -> SOUND -> WORN), then verify remaining pool covers CARGO.
+    lotDemands.sort((a, b) => GRADE_RANK[b.minGrade] - GRADE_RANK[a.minGrade]);
+    let remLots = normalizeMaterialLots(stall.material_lots);
+    for (const demand of lotDemands) {
+      const check = consumeMaterialLots(
+        remLots,
+        { [demand.material]: demand.total },
+        { minGrade: demand.minGrade },
+      );
+      if (!check.ok) return false;
+      remLots = check.lots;
     }
-    if (offer.predicate) {
-      const matching = available.filter((it) => itemMatchesPredicate(it, offer.predicate!));
-      return matching.length >= n;
+    return totalMaterialLots(remLots) >= cargoTotal;
+  }
+  if (offer.kind === "ITEM") {
+    if (offer.item_id && n > 1) return false;
+    if (!offer.item_id && !offer.predicate) return false;
+    const escrowed = stallEscrowedItems(stall, items);
+    const slots: Array<{ item_id?: string; predicate?: ItemPredicate }> = [];
+    for (const l of openOther) {
+      if (l.offer_asset.kind !== "ITEM") continue;
+      const count = Math.max(0, Math.floor(l.fills_remaining));
+      if (l.offer_asset.item_id && count > 1) return false;
+      for (let i = 0; i < count; i++) {
+        slots.push({ item_id: l.offer_asset.item_id, predicate: l.offer_asset.predicate });
+      }
     }
-    return false;
+    for (let i = 0; i < n; i++) {
+      slots.push({ item_id: offer.item_id, predicate: offer.predicate });
+    }
+    return canAllocateDistinctItems(escrowed, slots);
   }
   return false;
 }

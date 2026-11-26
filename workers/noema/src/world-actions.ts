@@ -368,6 +368,7 @@ import {
   equippedItemsMap,
   equippedOperationalItem,
   hasRequiredCraftInfra,
+  isItemOperational,
   itemBulk,
   itemEntityCreatePayload,
   itemEntityUpdatePayload,
@@ -1604,11 +1605,17 @@ function recordPractice(
   w: WorldRuntime,
   actingPlayerId: string,
   events: NonNullable<CommandResult["events"]> | undefined,
+  extraTrades?: Record<string, { proposer_id: string; counterparty_id: string }>,
 ): void {
   if (!events?.length) return;
   const trades: Record<string, { proposer_id: string; counterparty_id: string }> = {};
   for (const [id, trade] of Object.entries(w.trades || {})) {
     trades[id] = { proposer_id: trade.proposer_id, counterparty_id: trade.counterparty_id };
+  }
+  if (extraTrades) {
+    for (const [id, trade] of Object.entries(extraTrades)) {
+      trades[id] = trade;
+    }
   }
   const byPlayer = new Map<string, PracticeCredit[]>();
   for (const ev of events) {
@@ -3409,9 +3416,21 @@ export async function applyWorldCommand(
           });
           item.condition = swap.give_item.condition;
           item.max_condition = swap.give_item.max_condition;
-          pl.budgets.storage = Math.max(0, Math.floor(pl.budgets.storage ?? 0) - item.bulk);
+          const storageBeforeSwap = Math.floor(pl.budgets.storage ?? 0);
           w.items[item.item_id] = item;
-          autoEquipIfSlotEmpty(w.items, principal.player_id, item, pl.budgets);
+          const willAutoEquipSwap = Boolean(
+            item.equip_slot &&
+              isItemOperational(item) &&
+              !equippedItemsMap(w.items, principal.player_id)[item.equip_slot],
+          );
+          if (willAutoEquipSwap && item.equip_slot) {
+            item.equipped_slot = item.equip_slot;
+            const capBonus = item.archetype === "cargo_rig" ? CARGO_RIG_CAPACITY_BONUS : 0;
+            const nextCap = effectiveStorageCapacity(w.items, principal.player_id);
+            pl.budgets.storage = Math.min(nextCap, Math.max(0, storageBeforeSwap - item.equipped_bulk + capBonus));
+          } else {
+            pl.budgets.storage = Math.max(0, storageBeforeSwap - item.bulk);
+          }
           const itemEv = pushEvent("ENTITY_CREATE", itemEntityCreatePayload(item));
           await settleEv(itemEv);
           const line = `WS02 emergency swap complete: traded ${swap.want_cargo} cargo for ${item.label} (${item.condition}/${item.max_condition}).`;
@@ -3489,12 +3508,11 @@ export async function applyWorldCommand(
             if (!deb.ok) {
               return fail(request_id, "BUDGET_EXCEEDED", `Not enough ${asset.material} in hold to stock.`);
             }
-            let fits = true;
-            for (const c of deb.consumed) {
-              if (!depositLotIntoStall(stall, c.material, c.grade, c.amount)) fits = false;
-            }
-            if (!fits) {
+            if (totalMaterialLots(stall.material_lots) + deb.totalUnits > STALL_TOTAL_LOTS_CAP) {
               return fail(request_id, "BUDGET_EXCEEDED", `Stall material lot cap (${STALL_TOTAL_LOTS_CAP}) exceeded.`);
+            }
+            for (const c of deb.consumed) {
+              depositLotIntoStall(stall, c.material, c.grade, c.amount);
             }
             pl.material_lots = deb.lots;
             pl.budgets.storage = Math.min(storageCap, Math.floor(pl.budgets.storage ?? 0) + deb.totalUnits);
@@ -3951,12 +3969,27 @@ export async function applyWorldCommand(
         });
         await settleEv(leg);
       } else if (listing.offer_asset.kind === "ITEM" && stallOfferItem) {
+        const storageBeforeOffer = Math.floor(pl.budgets.storage ?? 0);
         stall.item_ids = stall.item_ids.filter((id) => id !== stallOfferItem!.item_id);
         stallOfferItem.owner_id = principal.player_id;
         stallOfferItem.steward_id = principal.player_id;
         stallOfferItem.location = { kind: "CONTAINER", container_entity_id: principal.player_id };
-        pl.budgets.storage = Math.max(0, Math.floor(pl.budgets.storage ?? 0) - stallOfferItem.bulk);
-        autoEquipIfSlotEmpty(w.items, principal.player_id, stallOfferItem, pl.budgets);
+        const willAutoEquipOffer = Boolean(
+          stallOfferItem.equip_slot &&
+            isItemOperational(stallOfferItem) &&
+            !equippedItemsMap(w.items, principal.player_id)[stallOfferItem.equip_slot],
+        );
+        if (willAutoEquipOffer && stallOfferItem.equip_slot) {
+          stallOfferItem.equipped_slot = stallOfferItem.equip_slot;
+          const capBonus = stallOfferItem.archetype === "cargo_rig" ? CARGO_RIG_CAPACITY_BONUS : 0;
+          const nextCap = effectiveStorageCapacity(w.items, principal.player_id);
+          pl.budgets.storage = Math.min(
+            nextCap,
+            Math.max(0, storageBeforeOffer - stallOfferItem.equipped_bulk + capBonus),
+          );
+        } else {
+          pl.budgets.storage = Math.max(0, storageBeforeOffer - stallOfferItem.bulk);
+        }
         const leg = pushEvent(
           "ENTITY_UPDATE",
           itemEntityUpdatePayload(stallOfferItem.item_id, {
@@ -4000,8 +4033,10 @@ export async function applyWorldCommand(
           w.cycle,
         );
       }
-      recordPractice(w, principal.player_id, events);
-      if (w.players[sellerId]) recordPractice(w, sellerId, events);
+      const storefrontParties = w.players[sellerId]
+        ? { [tradeId]: { proposer_id: sellerId, counterparty_id: principal.player_id } }
+        : undefined;
+      recordPractice(w, principal.player_id, events, storefrontParties);
 
       const line = `Fulfilled ${listing.listing_kind} at ${titleCaseLabel(stallEnt.label)}: gave ${summarizeAsset(listing.ask_asset)}, received ${summarizeAsset(listing.offer_asset)}.`;
       const result = success(w, principal, request_id, events, line, settled, "barter", line);
