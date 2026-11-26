@@ -305,7 +305,7 @@ describe("RFC-0138: WS06 Civic Contracts and Archivist / Herald Mastery Tracks",
     const hostedEvents = [
       { event_id: "ev.a1", event_type: "ENTITY_UPDATE", payload: { actor_id: "player.vellum", operation: "ATTEST", subject_ref: "entity.s1" } },
       { event_id: "ev.a2", event_type: "ENTITY_CREATE", payload: { actor_id: "player.vellum", entity_id: "recon.2", subject_ref: "entity.s2" } },
-      { event_id: "ev.a3", event_type: "ENTITY_UPDATE", payload: { actor_id: "player.vellum", entity_id: "recon.3", set: { reconstruction_kind: "PLAYER_RECONSTRUCTION" } } },
+      { event_id: "ev.a3", event_type: "ENTITY_UPDATE", payload: { actor_id: "player.vellum", entity_id: "recon.3", subject_ref: "entity.s3", set: { reconstruction_kind: "PLAYER_RECONSTRUCTION" } } },
     ];
     for (let i = 0; i < hostedEvents.length; i++) {
       const credits = creditsFromEvent(hostedEvents[i]);

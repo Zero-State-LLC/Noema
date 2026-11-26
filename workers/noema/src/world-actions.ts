@@ -6590,6 +6590,7 @@ async function applyReconstructCommand(
     });
     const ev = pushEvent("ENTITY_UPDATE", {
       entity_id: rec.reconstruction_id,
+      subject_ref: rec.subject_ref,
       set: { reconstruction_visibility: visibility, reconstruction_kind: "PLAYER_RECONSTRUCTION" },
       unset: [],
     });
@@ -6691,6 +6692,7 @@ async function applyReconstructCommand(
   const created = pushEvent("ENTITY_CREATE", {
     entity_id: reconstruction_id,
     entity_type: "DOCUMENT",
+    subject_ref: subject,
     location: null,
     owner_id: principal.player_id,
     properties: {

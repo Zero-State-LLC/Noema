@@ -221,14 +221,15 @@ export function creditsFromEvent(
       const subject =
         (typeof payload.subject_ref === "string" && payload.subject_ref) ||
         (typeof payload.subject_entity_id === "string" && payload.subject_entity_id) ||
-        (typeof payload.entity_id === "string" && payload.entity_id) ||
-        ev.event_id;
-      out.push({
-        player_id: actor,
-        track_id: "track.archivist.01",
-        unit: ev.event_id,
-        recognition_unit: subject,
-      });
+        undefined;
+      if (subject) {
+        out.push({
+          player_id: actor,
+          track_id: "track.archivist.01",
+          unit: ev.event_id,
+          recognition_unit: subject,
+        });
+      }
     }
   } else if (ev.event_type === "ENTITY_CREATE") {
     const etype = String(payload.entity_type || "").toUpperCase();
@@ -240,16 +241,15 @@ export function creditsFromEvent(
       opts.actingPlayerId ||
       "";
     if ((etype === "RECONSTRUCTION" || eid.startsWith("recon.") || typeof payload.reconstruction_id === "string") && actor) {
-      const subject =
-        (typeof payload.subject_ref === "string" && payload.subject_ref) ||
-        (typeof payload.entity_id === "string" && payload.entity_id) ||
-        ev.event_id;
-      out.push({
-        player_id: actor,
-        track_id: "track.archivist.01",
-        unit: ev.event_id,
-        recognition_unit: subject,
-      });
+      const subject = typeof payload.subject_ref === "string" && payload.subject_ref ? payload.subject_ref : undefined;
+      if (subject) {
+        out.push({
+          player_id: actor,
+          track_id: "track.archivist.01",
+          unit: ev.event_id,
+          recognition_unit: subject,
+        });
+      }
     }
   } else if (ev.event_type === "ATTEST" || ev.event_type === "RECONSTRUCT" || ev.event_type === "RECONSTRUCT_PUBLISH") {
     const actor = payloadPlayer(payload) || opts.actingPlayerId || "";
