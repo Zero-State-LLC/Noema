@@ -1,0 +1,411 @@
+{
+  "schema_version": "items-catalog/0.1",
+  "catalog_id": "items-catalog/0.1",
+  "authority": "rfcs/RFC-0139-regional-lots-and-portable-items.md",
+  "event_catalog_compatibility": "event-catalog/0.2",
+  "contest_rules_version": "contest-rules/0.2.1",
+  "currency": false,
+  "hit_points": false,
+  "permadeath": false,
+  "material_archetypes": {
+    "FERROUS_ORE": {
+      "rooms": [
+        "room.foundry-corridor",
+        "room.infrastructure-vault"
+      ]
+    },
+    "SILICA_CELL": {
+      "rooms": [
+        "room.generator-hall",
+        "room.relay-quarter",
+        "room.archive"
+      ]
+    },
+    "SALVAGE_COMPOSITE": {
+      "rooms": [
+        "room.outer-works",
+        "room.storage-district",
+        "room.frontier-gate",
+        "room.civic-exchange"
+      ],
+      "generic_repair_construct_substitute_extra": 1
+    }
+  },
+  "lot_grades": {
+    "WORN": {
+      "harvest_below_condition": 50,
+      "pack_spoil_per_cycle": 1,
+      "bay_or_stall_spoil_per_cycle": 0,
+      "construct_storage_delta": 1,
+      "crafted_initial_condition": 70
+    },
+    "SOUND": {
+      "harvest_min_condition": 50,
+      "pack_spoil_per_cycle": 0,
+      "construct_storage_delta": 0,
+      "crafted_initial_condition": 100
+    },
+    "REFINED": {
+      "refine_input_sound": 2,
+      "refine_output": 1,
+      "refine_cost": {
+        "energy": 2,
+        "compute": 1
+      },
+      "plasma_cutter_harvest_min_condition": 85,
+      "pack_spoil_per_cycle": 0,
+      "construct_storage_delta": -1,
+      "crafted_quality": "TEMPERED",
+      "crafted_initial_condition": 120
+    }
+  },
+  "equip_slots": [
+    "TOOL_SLOT",
+    "WEAPON_SLOT",
+    "RIG_SLOT"
+  ],
+  "equip_prep_max_swaps_per_cycle": 2,
+  "equip_fills_tempo_slot": false,
+  "auto_equip_when_slot_empty": true,
+  "item_repair_workshop": {
+    "lot_cost": 1,
+    "budget_cost": {
+      "energy": 2,
+      "compute": 1
+    },
+    "condition_delta": 35
+  },
+  "item_scrap": {
+    "budget_cost": {
+      "energy": 1
+    },
+    "salvage_archetype": "SALVAGE_COMPOSITE",
+    "salvage_qty": 1
+  },
+  "items": [
+    {
+      "archetype": "arc_welder",
+      "label": "Arc Welder",
+      "category": "TOOL",
+      "equip_slot": "TOOL_SLOT",
+      "bulk": 2,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop"
+      ],
+      "craft_lots": {
+        "FERROUS_ORE": 2,
+        "SILICA_CELL": 1
+      },
+      "craft_budgets": {
+        "energy": 4,
+        "compute": 2
+      },
+      "effects": {
+        "repair_energy_delta": -1,
+        "repair_condition_bonus": 10,
+        "allow_zero_condition_repair": true
+      },
+      "wear_per_use": 4
+    },
+    {
+      "archetype": "plasma_cutter",
+      "label": "Plasma Cutter",
+      "category": "TOOL",
+      "equip_slot": "TOOL_SLOT",
+      "bulk": 2,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop"
+      ],
+      "craft_lots": {
+        "FERROUS_ORE": 2,
+        "SALVAGE_COMPOSITE": 2
+      },
+      "craft_budgets": {
+        "energy": 5,
+        "compute": 2
+      },
+      "effects": {
+        "harvest_energy_delta": -1,
+        "harvest_bonus_stock": 2,
+        "dismantle_energy_delta": -2,
+        "dismantle_salvage_bonus": 1
+      },
+      "wear_per_use": 3
+    },
+    {
+      "archetype": "chrono_lens",
+      "label": "Chrono-Spectrometer",
+      "category": "TOOL",
+      "equip_slot": "TOOL_SLOT",
+      "bulk": 1,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop"
+      ],
+      "craft_lots": {
+        "SILICA_CELL": 2,
+        "SALVAGE_COMPOSITE": 1
+      },
+      "craft_budgets": {
+        "energy": 3,
+        "compute": 3
+      },
+      "effects": {
+        "inspect_attest_reconstruct_attention_delta": -1,
+        "reconstruction_fidelity_millipoints": 150,
+        "unlocks_investigate": true,
+        "investigate_detection_bonus_mp": 250
+      },
+      "wear_per_use": 2
+    },
+    {
+      "archetype": "signal_transceiver",
+      "label": "Tightbeam Transceiver",
+      "category": "TOOL",
+      "equip_slot": "TOOL_SLOT",
+      "bulk": 1,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop"
+      ],
+      "craft_lots": {
+        "SILICA_CELL": 2,
+        "FERROUS_ORE": 1
+      },
+      "craft_budgets": {
+        "energy": 3,
+        "compute": 3
+      },
+      "effects": {
+        "waive_relay_25_49_delay": true,
+        "emergency_send_min_relay": 10,
+        "emergency_send_extra_energy": 1,
+        "board_trade_notice_expiry_bonus_cycles": 4
+      },
+      "wear_per_use": 2
+    },
+    {
+      "archetype": "breach_charge",
+      "label": "Kinetic Breach Wedge",
+      "category": "WEAPON",
+      "equip_slot": "WEAPON_SLOT",
+      "bulk": 2,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop"
+      ],
+      "craft_lots": {
+        "FERROUS_ORE": 2,
+        "SILICA_CELL": 2
+      },
+      "craft_budgets": {
+        "energy": 5,
+        "compute": 2,
+        "influence": 1
+      },
+      "contest_effects": {
+        "declarer_forms": [
+          "INFRASTRUCTURE_DISRUPTION",
+          "ACCESS_CONTEST"
+        ],
+        "declarer_millipoints": 140,
+        "disruption_condition_bonus": 10,
+        "restriction_duration_bonus_cycles": 2,
+        "crime_detection_signature_mp": 250
+      },
+      "wear_per_use": 50
+    },
+    {
+      "archetype": "grapnel_array",
+      "label": "Mag-Grapnel Array",
+      "category": "WEAPON",
+      "equip_slot": "WEAPON_SLOT",
+      "bulk": 2,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop"
+      ],
+      "craft_lots": {
+        "FERROUS_ORE": 2,
+        "SALVAGE_COMPOSITE": 2
+      },
+      "craft_budgets": {
+        "energy": 4,
+        "compute": 2
+      },
+      "contest_effects": {
+        "declarer_forms": [
+          "RESOURCE_SEIZURE"
+        ],
+        "declarer_millipoints": 110,
+        "max_seizure_amount_override": 8,
+        "unequipped_item_seizure_margin_mp": 100,
+        "crime_detection_signature_mp": 150
+      },
+      "wear_per_use": 15
+    },
+    {
+      "archetype": "arc_lance",
+      "label": "Deterrence Arc-Pike",
+      "category": "WEAPON",
+      "equip_slot": "WEAPON_SLOT",
+      "bulk": 2,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop"
+      ],
+      "craft_lots": {
+        "FERROUS_ORE": 2,
+        "SILICA_CELL": 2
+      },
+      "craft_budgets": {
+        "energy": 5,
+        "compute": 3
+      },
+      "contest_effects": {
+        "declarer_forms": [
+          "PRESENCE_PRESSURE"
+        ],
+        "declarer_millipoints": 90,
+        "defender_all_forms_millipoints": 120,
+        "sanction_influence_discount": 1,
+        "crime_detection_signature_mp": 100
+      },
+      "wear_per_use": 10
+    },
+    {
+      "archetype": "cipher_spike",
+      "label": "Counter-Archive Spike",
+      "category": "WEAPON",
+      "equip_slot": "WEAPON_SLOT",
+      "bulk": 1,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop",
+        "archive_annex"
+      ],
+      "craft_lots": {
+        "SILICA_CELL": 3
+      },
+      "craft_budgets": {
+        "energy": 3,
+        "compute": 4
+      },
+      "contest_effects": {
+        "declarer_forms": [
+          "INFORMATION_CONTEST"
+        ],
+        "declarer_millipoints": 125,
+        "defender_forms": [
+          "INFORMATION_CONTEST"
+        ],
+        "defender_millipoints": 110,
+        "seal_duration_bonus_cycles": 4,
+        "crime_detection_signature_mp": 120
+      },
+      "wear_per_use": 15
+    },
+    {
+      "archetype": "cargo_rig",
+      "label": "Exo-Frame Cargo Harness",
+      "category": "RIG",
+      "equip_slot": "RIG_SLOT",
+      "bulk": 2,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop"
+      ],
+      "craft_lots": {
+        "FERROUS_ORE": 2,
+        "SALVAGE_COMPOSITE": 2
+      },
+      "craft_budgets": {
+        "energy": 4,
+        "compute": 2
+      },
+      "effects": {
+        "storage_capacity_bonus": 6,
+        "waive_cargo_move_extra": true
+      },
+      "wear_per_use": 1
+    },
+    {
+      "archetype": "aegis_baffle",
+      "label": "Bastion Field Rig",
+      "category": "RIG",
+      "equip_slot": "RIG_SLOT",
+      "bulk": 2,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop"
+      ],
+      "craft_lots": {
+        "FERROUS_ORE": 2,
+        "SILICA_CELL": 2
+      },
+      "craft_budgets": {
+        "energy": 5,
+        "compute": 3
+      },
+      "contest_effects": {
+        "passive_defense_millipoints": 100,
+        "halve_seizure_loss": true,
+        "block_item_seizure": true
+      },
+      "wear_per_use": 12
+    },
+    {
+      "archetype": "power_cell",
+      "label": "Portable Power Cell",
+      "category": "CONSUMABLE",
+      "bulk": 1,
+      "equipped_bulk": 1,
+      "requires_any_infra": [
+        "workshop",
+        "generator"
+      ],
+      "craft_lots": {
+        "SILICA_CELL": 1,
+        "SALVAGE_COMPOSITE": 1
+      },
+      "craft_budgets": {
+        "energy": 4,
+        "compute": 1
+      },
+      "effects": {
+        "use_energy_grant": 12,
+        "energy_clamp": 80,
+        "cooldown_cycles": 0,
+        "transforms_to": "depleted_cell",
+        "generator_recharge_wear": 3
+      },
+      "wear_per_use": 100
+    },
+    {
+      "archetype": "stabilizer_kit",
+      "label": "Lot & Soil Stabilizer Kit",
+      "category": "CONSUMABLE",
+      "bulk": 1,
+      "equipped_bulk": 1,
+      "requires_infra": [
+        "workshop"
+      ],
+      "craft_lots": {
+        "SALVAGE_COMPOSITE": 2,
+        "SILICA_CELL": 1
+      },
+      "craft_budgets": {
+        "energy": 3,
+        "compute": 2
+      },
+      "effects": {
+        "upgrade_worn_lots_to_sound": true,
+        "scar_remediate_strength_delta": 0.5,
+        "scar_remediate_pressure_delta": -4
+      },
+      "wear_per_use": 100
+    }
+  ]
+}

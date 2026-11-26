@@ -82,6 +82,29 @@ import type { DiscoveryState } from "./discovery";
 import { moveEnergyCost } from "./transport";
 import { canConsumeCargo, reservedCargoFromTrades } from "./cargo";
 import {
+  ITEM_CATALOG,
+  ITEM_REPAIR_WORKSHOP,
+  ITEM_SCRAP,
+  REFINE_COST,
+  REFINE_INPUT_SOUND,
+  effectiveStorageCapacity,
+  equippedOperationalItem,
+  hasRequiredCraftInfra,
+  parseItemArchetype,
+  playerCarriedItems,
+  type EquipSlot,
+  type PortableItem,
+} from "./items";
+import {
+  MATERIAL_ARCHETYPES,
+  materialCount,
+  parseLotGrade,
+  parseMaterialArchetype,
+  type LotGrade,
+  type MaterialArchetype,
+  type MaterialLot,
+} from "./lots";
+import {
   BROKER_TRACK,
   ENGINEER_TRACK,
   canOverhaul,
@@ -231,10 +254,15 @@ export type PlayerRuntime = {
     edges: Record<string, string[]>;
     at?: Record<string, Record<string, number>>;
   };
-  /** GC8-S1 SOUND/WORN grades on current holdings. Not a parallel inventory. */
-  lot_grades?: Partial<Record<keyof Budgets, "SOUND" | "WORN">>;
+  /** GC8-S1 SOUND/WORN/REFINED grades on current holdings. Not a parallel inventory. */
+  lot_grades?: Partial<Record<keyof Budgets, "SOUND" | "WORN" | "REFINED">>;
   /** GC8-S2 public origin of current holdings. Hidden rooms never stored. */
   lot_origins?: Partial<Record<keyof Budgets, { room_id: string; room_name: string; producer_id: string }>>;
+  /** RFC-0139: regional material sub-lots partitioning occupied cargo. */
+  material_lots?: MaterialLot[];
+  /** RFC-0139: non-slot EQUIP/UNEQUIP swap counter (max 2 per cycle). */
+  equip_ops_cycle?: number;
+  equip_ops_count?: number;
   /** Privileged image score. Not WATCH-public. */
   image_score?: number;
   /** How this agent treated others. Privileged. */
@@ -265,7 +293,7 @@ export type OpenTrade = {
   requested: Record<string, number>;
   status: "OPEN" | "SETTLED" | "REJECTED" | "CANCELLED";
   reserved: Record<string, number>;
-  offered_grades?: Partial<Record<keyof Budgets, "SOUND" | "WORN">>;
+  offered_grades?: Partial<Record<keyof Budgets, LotGrade>>;
   offered_origins?: Partial<Record<keyof Budgets, { room_id: string; room_name: string; producer_id: string }>>;
   expires_cycle?: number;
   acting_for?: string;
@@ -486,9 +514,22 @@ export type CanonicalAction =
           | "COMMEMORATE"
           | "REMEDIATE"
           | "CONTRACT_POST"
-          | "CONTRACT_FULFILL";
+          | "CONTRACT_FULFILL"
+          | "CRAFT"
+          | "REFINE"
+          | "EQUIP"
+          | "UNEQUIP"
+          | "USE_ITEM"
+          | "SCRAP_ITEM";
         signal?: ActionSignal;
         entity_id?: string;
+        /** RFC-0139: portable item crafting, refining, equipment, use, and scrap fields. */
+        recipe_id?: string;
+        item_id?: string;
+        slot?: EquipSlot;
+        material?: MaterialArchetype;
+        grade?: LotGrade;
+        prefer_refined?: boolean;
         /** RFC-0137: target scar_id or attractor_id for COMMEMORATE / REMEDIATE. */
         scar_id?: string;
         attractor_id?: string;
@@ -625,6 +666,12 @@ export type Affordance = {
   emergency_scope_id?: string;
   successors?: string[];
   rule_id?: string;
+  /** RFC-0139: portable item crafting, refining, equipment, use, and scrap fields. */
+  recipe_id?: string;
+  item_id?: string;
+  slot?: EquipSlot;
+  material?: MaterialArchetype;
+  grade?: LotGrade;
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -1468,20 +1515,80 @@ function parseHumanCommandCore(
   }
   if (v === "recharge") {
     const raw = parts.join(" ").replace(/^["']|["']$/g, "");
-    if (!raw) return { ok: false, error: "Recharge at what? Name an active generator." };
+    if (!raw) return { ok: false, error: "Recharge what? Name an active generator or depleted cell." };
     if (ctx.entities && ctx.entities.length) {
       const r = resolveVisibleEntity(raw, ctx.entities);
-      if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
-      return {
-        ok: true,
-        action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id: r.entity.entity_id } },
-        display: `You recharge at ${titleCaseLabel(r.entity.label)}.`,
-      };
+      if (r.ok) {
+        return {
+          ok: true,
+          action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id: r.entity.entity_id } },
+          display: `You recharge at ${titleCaseLabel(r.entity.label)}.`,
+        };
+      }
+      if (r.code === "AMBIGUOUS_TARGET") {
+        return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
+      }
     }
     return {
       ok: true,
-      action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id: raw } },
-      display: `You try to recharge at ${raw}.`,
+      action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id: raw, item_id: raw } },
+      display: `You try to recharge ${raw}.`,
+    };
+  }
+  if (v === "craft") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "").trim();
+    const arch = parseItemArchetype(raw);
+    if (!arch) return { ok: false, error: "Craft what? Name a known item archetype." };
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "CRAFT", recipe_id: arch } },
+      display: `You craft ${arch.replace(/_/g, " ")}.`,
+    };
+  }
+  if (v === "refine") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "").trim();
+    const mat = parseMaterialArchetype(raw);
+    if (!mat) return { ok: false, error: "Refine what? Name FERROUS_ORE, SILICA_CELL, or SALVAGE_COMPOSITE." };
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "REFINE", material: mat } },
+      display: `You refine ${mat.toLowerCase().replace(/_/g, " ")}.`,
+    };
+  }
+  if (v === "equip") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "").trim();
+    if (!raw) return { ok: false, error: "Equip what? Name a carried item." };
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "EQUIP", item_id: raw, entity_id: raw } },
+      display: `You equip ${raw}.`,
+    };
+  }
+  if (v === "unequip") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "").trim();
+    if (!raw) return { ok: false, error: "Unequip what? Name an equipped item or slot." };
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "UNEQUIP", item_id: raw, entity_id: raw } },
+      display: `You unequip ${raw}.`,
+    };
+  }
+  if (v === "use") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "").trim();
+    if (!raw) return { ok: false, error: "Use what? Name a carried consumable item." };
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "USE_ITEM", item_id: raw, entity_id: raw } },
+      display: `You use ${raw}.`,
+    };
+  }
+  if (v === "scrap") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "").trim();
+    if (!raw) return { ok: false, error: "Scrap what? Name a carried item." };
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "SCRAP_ITEM", item_id: raw, entity_id: raw } },
+      display: `You scrap ${raw}.`,
     };
   }
   if (v === "harvest") {
@@ -2586,12 +2693,64 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "RECHARGE") {
-      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
-      if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+      const entity_id = String(args.entity_id || args.item_id || args.target_id || args.target || "").trim();
+      const item_id = args.item_id ? String(args.item_id).trim() : undefined;
+      if (!entity_id) return { ok: false, error: "entity_id or item_id required", code: "INVALID_REQUEST" };
       return {
         ok: true,
-        action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id } },
+        action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id, ...(item_id ? { item_id } : {}) } },
         display: `RECHARGE ${entity_id}`,
+      };
+    }
+    if (operation === "CRAFT") {
+      const rawRecipe = String(args.recipe_id || args.archetype || args.item || args.target_id || "").trim();
+      const arch = parseItemArchetype(rawRecipe);
+      if (!arch) return { ok: false, error: "valid recipe_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "CRAFT",
+            recipe_id: arch,
+            ...(args.prefer_refined === true ? { prefer_refined: true } : {}),
+            ...(args.grade ? { grade: parseLotGrade(args.grade) || undefined } : {}),
+          },
+        },
+        display: `CRAFT ${arch}`,
+      };
+    }
+    if (operation === "REFINE") {
+      const mat = parseMaterialArchetype(args.material || args.archetype || args.target_id);
+      if (!mat) return { ok: false, error: "valid material required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: { verb: "COMMIT", arguments: { operation: "REFINE", material: mat } },
+        display: `REFINE ${mat}`,
+      };
+    }
+    if (operation === "EQUIP" || operation === "UNEQUIP" || operation === "USE_ITEM" || operation === "SCRAP_ITEM") {
+      const item_id = String(args.item_id || args.entity_id || args.target_id || args.target || "").trim();
+      const slotRaw = args.slot ? String(args.slot).trim().toUpperCase() : "";
+      const slot =
+        slotRaw === "TOOL_SLOT" || slotRaw === "WEAPON_SLOT" || slotRaw === "RIG_SLOT"
+          ? (slotRaw as EquipSlot)
+          : undefined;
+      if (!item_id && !(operation === "UNEQUIP" && slot)) {
+        return { ok: false, error: "item_id required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation,
+            ...(item_id ? { item_id, entity_id: item_id } : {}),
+            ...(slot ? { slot } : {}),
+            ...(args.scar_id ? { scar_id: String(args.scar_id).trim() } : {}),
+          },
+        },
+        display: `${operation} ${item_id || slot}`,
       };
     }
     if (operation === "COMMEMORATE") {
@@ -3177,11 +3336,12 @@ export function normalizeStructuredCommand(
     };
   }
   if (cmd === "RECHARGE") {
-    const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
-    if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+    const entity_id = String(args.entity_id || args.item_id || args.target_id || args.target || "").trim();
+    const item_id = args.item_id ? String(args.item_id).trim() : undefined;
+    if (!entity_id) return { ok: false, error: "entity_id or item_id required", code: "INVALID_REQUEST" };
     return {
       ok: true,
-      action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id } },
+      action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id, ...(item_id ? { item_id } : {}) } },
       display: "COMMIT.RECHARGE",
     };
   }
@@ -3396,6 +3556,24 @@ export function normalizeStructuredCommand(
   if (cmd === "CONTRACT_FULFILL") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTRACT_FULFILL" });
   }
+  if (cmd === "CRAFT") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "CRAFT" });
+  }
+  if (cmd === "REFINE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "REFINE" });
+  }
+  if (cmd === "EQUIP") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "EQUIP" });
+  }
+  if (cmd === "UNEQUIP") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "UNEQUIP" });
+  }
+  if (cmd === "USE_ITEM") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "USE_ITEM" });
+  }
+  if (cmd === "SCRAP_ITEM") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "SCRAP_ITEM" });
+  }
   return { ok: false, error: `unsupported command ${cmd}`, code: "UNKNOWN_COMMAND" };
 }
 
@@ -3441,6 +3619,9 @@ export function deriveAffordances(input: {
   hearsayBlockedThisCycle?: boolean;
   /** Current world ratchet premium; omitted by standalone callers for an unratcheted world. */
   orgCreateExtraInfluence?: number;
+  /** RFC-0139: portable items & material lots for contextual tool/craft affordances. */
+  items?: Record<string, PortableItem>;
+  materialLots?: MaterialLot[];
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3450,9 +3631,18 @@ export function deriveAffordances(input: {
     (Boolean(input.observerRoomId) && p.room_id === input.observerRoomId) ||
     organizations.some((org) => org.status === "ACTIVE" && isOrgMember(org, selfId) && isOrgMember(org, p.player_id));
 
+  const hasWelder = Boolean(equippedOperationalItem(input.items, selfId, "arc_welder"));
+  const hasCutter = Boolean(equippedOperationalItem(input.items, selfId, "plasma_cutter"));
+  const hasLens = Boolean(equippedOperationalItem(input.items, selfId, "chrono_lens"));
+  const hasRig = Boolean(equippedOperationalItem(input.items, selfId, "cargo_rig"));
+  const storageCap = effectiveStorageCapacity(input.items, selfId);
+
   for (const e of entities) {
     const name = titleCaseLabel(e.label);
-    const inspectCost = withAnnexAttention({ ...COSTS.INSPECT }, readyClassInRoom(entities, "archive_annex"));
+    const baseInspect = withAnnexAttention({ ...COSTS.INSPECT }, readyClassInRoom(entities, "archive_annex"));
+    const inspectCost = hasLens && (baseInspect.attention || 0) > 0
+      ? { ...baseInspect, attention: Math.max(0, (baseInspect.attention || 0) - 1) }
+      : baseInspect;
     out.push({
       action: "INSPECT",
       verb: "INSPECT",
@@ -3466,13 +3656,16 @@ export function deriveAffordances(input: {
       kind: "primary",
     });
     if (isRepairable(e)) {
-      const repairCost = withWorkshopStorage({ ...COSTS.REPAIR }, workshopStorageDiscount(entities));
+      const baseRepair = { ...COSTS.REPAIR };
+      if (hasWelder && (baseRepair.energy || 0) > 1) baseRepair.energy = (baseRepair.energy || 0) - 1;
+      const repairCost = withWorkshopStorage(baseRepair, workshopStorageDiscount(entities));
       const fuel = { ...repairCost, storage: undefined };
       const cargoNeed = repairCost.storage || 0;
       const hasCargo = canConsumeCargo(
         budgets.storage ?? 0,
         cargoNeed,
         reservedCargoFromTrades(openTrades, selfId),
+        storageCap,
       );
       const ok = canPay(budgets, fuel) && hasCargo;
       out.push({
@@ -3544,9 +3737,12 @@ export function deriveAffordances(input: {
       });
     }
     if (e.stock_resource) {
+      const harvestCost = hasCutter
+        ? { ...COSTS.HARVEST, energy: Math.max(1, (COSTS.HARVEST.energy || 2) - 1) }
+        : COSTS.HARVEST;
       const hasStock = (e.stock_amount ?? 0) >= 1;
       const hasStorage = (budgets.storage ?? 0) >= 1;
-      const canFuel = canPay(budgets, COSTS.HARVEST);
+      const canFuel = canPay(budgets, harvestCost);
       const ok = hasStock && hasStorage && canFuel;
       const reason = ok
         ? undefined
@@ -3574,7 +3770,7 @@ export function deriveAffordances(input: {
 
   for (const x of exits) {
     const moveCost = {
-      energy: moveEnergyCost(budgets.storage ?? 0, undefined, readyClassInRoom(entities, "route_link")),
+      energy: moveEnergyCost(budgets.storage ?? 0, storageCap, readyClassInRoom(entities, "route_link") || hasRig),
     };
     const ok = canPay(budgets, moveCost);
     out.push({
@@ -4705,6 +4901,144 @@ export function deriveAffordances(input: {
         requires: COSTS.RECONSTRUCT,
         available: reconOk,
         reason: reconOk ? undefined : "You do not have enough attention.",
+        kind: "utility",
+      });
+    }
+  }
+
+  // RFC-0139: contextual item crafting, refining, equipment prep, battery recharge, and item maintenance.
+  if (!input.hiddenRoom) {
+    const carried = playerCarriedItems(input.items, selfId);
+    const hasReadyWorkshop = readyClassInRoom(entities, "workshop");
+    const hasReadyGenerator50 = entities.some(
+      (e) => infraClassOf(e) === "generator" && !e.in_progress && !e.scar && (e.condition ?? 0) >= 50,
+    );
+    if (hasReadyWorkshop || hasReadyGenerator50) {
+      for (const spec of ITEM_CATALOG) {
+        const infra = hasRequiredCraftInfra(spec, entities);
+        if (!infra.ok) continue;
+        const canLots = Object.entries(spec.craft_lots).every(
+          ([mat, qty]) => materialCount(input.materialLots, mat as MaterialArchetype, "WORN") >= (qty || 0),
+        );
+        const canBud = canPay(budgets, spec.craft_budgets);
+        const ok = canLots && canBud;
+        out.push({
+          action: "CRAFT",
+          verb: "COMMIT",
+          operation: "CRAFT",
+          label: `Craft ${spec.label}`,
+          cmd: `craft ${spec.archetype}`,
+          recipe_id: spec.archetype,
+          requires: spec.craft_budgets,
+          available: ok,
+          reason: ok ? undefined : !canLots ? "You lack the required regional material lots." : "You lack energy or compute to craft.",
+          kind: "utility",
+        });
+      }
+    }
+    if (hasReadyWorkshop) {
+      for (const mat of MATERIAL_ARCHETYPES) {
+        const soundHave = materialCount(input.materialLots, mat, "SOUND");
+        if (soundHave < REFINE_INPUT_SOUND) continue;
+        const ok = canPay(budgets, REFINE_COST);
+        out.push({
+          action: "REFINE",
+          verb: "COMMIT",
+          operation: "REFINE",
+          label: `Refine ${mat.toLowerCase().replace(/_/g, " ")}`,
+          cmd: `refine ${mat.toLowerCase()}`,
+          material: mat,
+          requires: REFINE_COST,
+          available: ok,
+          reason: ok ? undefined : "You need energy 2 and compute 1 to refine.",
+          kind: "utility",
+        });
+      }
+    }
+    for (const it of carried) {
+      if (it.equip_slot && !it.equipped_slot && it.condition > 0) {
+        out.push({
+          action: "EQUIP",
+          verb: "COMMIT",
+          operation: "EQUIP",
+          label: `Equip ${it.label}`,
+          cmd: `equip ${it.item_id}`,
+          target_id: it.item_id,
+          item_id: it.item_id,
+          slot: it.equip_slot,
+          available: true,
+          kind: "utility",
+        });
+      }
+      if (it.equipped_slot) {
+        out.push({
+          action: "UNEQUIP",
+          verb: "COMMIT",
+          operation: "UNEQUIP",
+          label: `Unequip ${it.label}`,
+          cmd: `unequip ${it.item_id}`,
+          target_id: it.item_id,
+          item_id: it.item_id,
+          slot: it.equipped_slot,
+          available: true,
+          kind: "utility",
+        });
+      }
+      if (it.archetype === "power_cell" || it.archetype === "stabilizer_kit") {
+        out.push({
+          action: "USE_ITEM",
+          verb: "COMMIT",
+          operation: "USE_ITEM",
+          label: `Use ${it.label}`,
+          cmd: `use ${it.item_id}`,
+          target_id: it.item_id,
+          item_id: it.item_id,
+          available: it.condition > 0,
+          kind: "primary",
+        });
+      }
+      if (it.archetype === "depleted_cell" && hasReadyGenerator50) {
+        const ok = canPay(budgets, { compute: 1 });
+        out.push({
+          action: "RECHARGE",
+          verb: "COMMIT",
+          operation: "RECHARGE",
+          label: `Recharge ${it.label}`,
+          cmd: `recharge ${it.item_id}`,
+          target_id: it.item_id,
+          item_id: it.item_id,
+          requires: { compute: 1 },
+          available: ok,
+          reason: ok ? undefined : "You need compute 1 to recharge a depleted cell.",
+          kind: "primary",
+        });
+      }
+      if (it.condition < it.max_condition && it.archetype !== "depleted_cell" && hasReadyWorkshop) {
+        const repairFuel = ITEM_REPAIR_WORKSHOP.budget_cost;
+        const ok = canPay(budgets, repairFuel);
+        out.push({
+          action: "REPAIR",
+          verb: "COMMIT",
+          operation: "REPAIR",
+          label: `Repair ${it.label}`,
+          cmd: `repair ${it.item_id}`,
+          target_id: it.item_id,
+          item_id: it.item_id,
+          requires: repairFuel,
+          available: ok,
+          kind: "utility",
+        });
+      }
+      out.push({
+        action: "SCRAP_ITEM",
+        verb: "COMMIT",
+        operation: "SCRAP_ITEM",
+        label: `Scrap ${it.label}`,
+        cmd: `scrap ${it.item_id}`,
+        target_id: it.item_id,
+        item_id: it.item_id,
+        requires: ITEM_SCRAP.budget_cost,
+        available: canPay(budgets, ITEM_SCRAP.budget_cost),
         kind: "utility",
       });
     }
