@@ -21,11 +21,21 @@ await esbuild.build({
       // OrbitControls and CSS2DRenderer import "three"; resolve it to the same
       // source entry so the chunk carries one copy of each class.
       build.onResolve({ filter: /^three$/ }, () => ({ path: join(root, "node_modules/three/src/Three.js") }));
-      build.onLoad({ filter: /\/three\/src\/renderers\/shaders\/.*\.glsl\.js$/ }, async ({ path }) => ({
-        // GLSL ignores indentation and trailing whitespace; strip it from the bundle.
-        contents: (await readFile(path, "utf8")).replace(/[ \t]+$/gm, "").replace(/^ +(?=\t)/gm, ""),
-        loader: "js",
-      }));
+      build.onLoad({ filter: /[\\/]three[\\/]src[\\/]renderers[\\/]shaders[\\/].*\.glsl\.js$/ }, async ({ path }) => {
+        const src = await readFile(path, "utf8");
+        // Strip comments, indentation, and blank lines inside GLSL template strings
+        // while preserving newlines so preprocessor directives (#define, #include, #if) stay valid.
+        const contents = src.replace(/`([\s\S]*?)`/g, (_, glsl) => {
+          const compact = glsl
+            .replace(/\/\*[\s\S]*?\*\//g, " ")
+            .replace(/\/\/[^\n]*/g, "")
+            .replace(/^[ \t]+|[ \t]+$/gm, "")
+            .replace(/[ \t]{2,}/g, " ")
+            .replace(/\n{2,}/g, "\n");
+          return "`" + compact + "`";
+        });
+        return { contents, loader: "js" };
+      });
     },
   }],
   banner: { js: "/*! NOEMA WATCH Chamber stage. Bundles three.js (MIT, Copyright 2010-2026 three.js authors); see /assets/THREE-LICENSE.txt */" },
