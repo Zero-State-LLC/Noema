@@ -285,8 +285,8 @@ describe("RFC-0140: barter_stall storefronts, full-reserve atomic barter, WS01 t
     const w = makeShopWorld();
     const keep = principalFor("keep2");
     const buyer = principalFor("buyer2");
-    await applyWorldCommand(w, keep, { request_id: "e1", command: "ENTER" }, noopSettle);
-    await applyWorldCommand(w, buyer, { request_id: "e2", command: "ENTER" }, noopSettle);
+    await applyWorldCommand(w, keep, { request_id: "e1", command: "ENTER_WORLD" }, noopSettle);
+    await applyWorldCommand(w, buyer, { request_id: "e2", command: "ENTER_WORLD" }, noopSettle);
 
     w.rooms["room.civic-exchange"].entities.push({
       entity_id: "entity.barter-stall-2",
