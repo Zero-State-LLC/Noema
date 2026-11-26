@@ -62,6 +62,15 @@ export const PRACTICE_TRACKS = [
     latent_play_line: "You carried the Reach's word.",
     public_title_line: "{handle} carries the Reach's word.",
   },
+  {
+    track_id: "track.artificer.01",
+    display_order: 7,
+    recognition_threshold: 3,
+    play_line: "You have been shaping the Reach's tools.",
+    recognized_play_line: "You shape the Reach's tools.",
+    latent_play_line: "You shaped the Reach's tools.",
+    public_title_line: "{handle} shapes the Reach's tools.",
+  },
 ] as const;
 
 export type PracticeTrackId = (typeof PRACTICE_TRACKS)[number]["track_id"];
@@ -251,6 +260,15 @@ export function creditsFromEvent(
         });
       }
     }
+    // RFC-0144: Artificer track credits crafted portable OBJECT items.
+    if (etype === "OBJECT" && eid.startsWith("item.") && actor) {
+      out.push({
+        player_id: actor,
+        track_id: "track.artificer.01",
+        unit: ev.event_id,
+        recognition_unit: eid,
+      });
+    }
   } else if (ev.event_type === "ATTEST" || ev.event_type === "RECONSTRUCT" || ev.event_type === "RECONSTRUCT_PUBLISH") {
     const actor = payloadPlayer(payload) || opts.actingPlayerId || "";
     const subject =
@@ -333,10 +351,12 @@ export const BROKER_TRACK: PracticeTrackId = "track.broker.01";
 export const ENGINEER_TRACK: PracticeTrackId = "track.engineer.01";
 export const ARCHIVIST_TRACK: PracticeTrackId = "track.archivist.01";
 export const HERALD_TRACK: PracticeTrackId = "track.herald.01";
+export const ARTIFICER_TRACK: PracticeTrackId = "track.artificer.01";
 export const REPAIR_BASE = 15;
 export const REPAIR_REPEAT_BONUS = 5;
 export const CONDITION_CAP = 100;
 export const LATENT_AFTER_CYCLES = 12;
+export const FOCUSED_LATENT_AFTER_CYCLES = 18;
 export const REHAB_WORKS = 3;
 export const PRACTICED_REPAIR_LINE = "You work this {label} with practiced hands.";
 export const OVERHAUL_ENERGY_EXTRA = 1;
@@ -354,13 +374,29 @@ export function isTrackLatent(
   state: PracticeState | undefined | null,
   trackId: PracticeTrackId,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): boolean {
   if (!isTrackRecognized(state, trackId)) return false;
   const snap = ensurePractice(state);
   const last = snap.last_work_cycle?.[trackId];
   if (last == null) return false;
-  if (now - last < LATENT_AFTER_CYCLES) return false;
+  const limit = focusedTrackIds?.includes(trackId) ? FOCUSED_LATENT_AFTER_CYCLES : LATENT_AFTER_CYCLES;
+  if (now - last < limit) return false;
   return (snap.latent_progress?.[trackId] || 0) < REHAB_WORKS;
+}
+
+/**
+ * RFC-0144 failed-but-legal practice rule: grants 1 maintenance unit
+ * (refreshes last_work_cycle to prevent LATENT decay) and 0 recognition units.
+ */
+export function creditMaintenanceOnly(
+  state: PracticeState | undefined,
+  trackId: PracticeTrackId,
+  cycle: number,
+): PracticeState {
+  const next = ensurePractice(state);
+  next.last_work_cycle = { ...(next.last_work_cycle || {}), [trackId]: cycle };
+  return next;
 }
 
 export function isRecognizedEngineer(state: PracticeState | undefined | null): boolean {
@@ -374,26 +410,35 @@ export function hasRepairedEntity(state: PracticeState | undefined | null, entit
   return rec.includes(entityId);
 }
 
-export function canOverhaul(state: PracticeState | undefined | null, now = 0): boolean {
-  return isRecognizedEngineer(state) && !isTrackLatent(state, ENGINEER_TRACK, now);
+export function canOverhaul(
+  state: PracticeState | undefined | null,
+  now = 0,
+  focusedTrackIds?: PracticeTrackId[],
+): boolean {
+  return isRecognizedEngineer(state) && !isTrackLatent(state, ENGINEER_TRACK, now, focusedTrackIds);
 }
 
 export function repairConditionDelta(
   state: PracticeState | undefined | null,
   entityId: string,
   now = 0,
+  focusedTrackIds?: PracticeTrackId[],
 ): { delta: 15 | 20; bonus: 0 | 5 } {
   if (
     isRecognizedEngineer(state) &&
     hasRepairedEntity(state, entityId) &&
-    !isTrackLatent(state, ENGINEER_TRACK, now)
+    !isTrackLatent(state, ENGINEER_TRACK, now, focusedTrackIds)
   ) {
     return { delta: 20, bonus: 5 };
   }
   return { delta: 15, bonus: 0 };
 }
 
-export function practiceLines(state: PracticeState | undefined | null, now = 0): string[] {
+export function practiceLines(
+  state: PracticeState | undefined | null,
+  now = 0,
+  focusedTrackIds?: PracticeTrackId[],
+): string[] {
   const snap = ensurePractice(state);
   const ordered = [...PRACTICE_TRACKS].sort((a, b) => a.display_order - b.display_order);
   const recognized: string[] = [];
@@ -404,7 +449,9 @@ export function practiceLines(state: PracticeState | undefined | null, now = 0):
     if (practiceCount <= 0) continue;
     if (recogCount >= track.recognition_threshold) {
       recognized.push(
-        isTrackLatent(snap, track.track_id, now) ? track.latent_play_line : track.recognized_play_line,
+        isTrackLatent(snap, track.track_id, now, focusedTrackIds)
+          ? track.latent_play_line
+          : track.recognized_play_line,
       );
     } else practicing.push(track.play_line);
   }
@@ -454,8 +501,9 @@ export function trackMaintained(
   state: PracticeState | undefined | null,
   trackId: PracticeTrackId,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): boolean {
-  return isTrackRecognized(state, trackId) && !isTrackLatent(state, trackId, now);
+  return isTrackRecognized(state, trackId) && !isTrackLatent(state, trackId, now, focusedTrackIds);
 }
 
 export function hasVisitedRoom(state: PracticeState | undefined | null, roomId: string): boolean {
@@ -477,8 +525,9 @@ export function lookAttentionCost(
   state: PracticeState | undefined | null,
   roomId: string,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): Partial<{ attention: number }> {
-  if (trackMaintained(state, EXPLORER_TRACK, now) && hasVisitedRoom(state, roomId)) return {};
+  if (trackMaintained(state, EXPLORER_TRACK, now, focusedTrackIds) && hasVisitedRoom(state, roomId)) return {};
   return { attention: 1 };
 }
 
@@ -486,8 +535,9 @@ export function inspectAttentionCost(
   state: PracticeState | undefined | null,
   entityId: string,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): Partial<{ attention: number }> {
-  if (trackMaintained(state, SURVEYOR_TRACK, now) && hasSurveyedEntity(state, entityId)) return {};
+  if (trackMaintained(state, SURVEYOR_TRACK, now, focusedTrackIds) && hasSurveyedEntity(state, entityId)) return {};
   return { attention: 2 };
 }
 
@@ -495,22 +545,42 @@ export function brokerWaivesCaution(
   state: PracticeState | undefined | null,
   otherId: string,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): boolean {
-  return trackMaintained(state, BROKER_TRACK, now) && hasBrokeredWith(state, otherId);
+  return trackMaintained(state, BROKER_TRACK, now, focusedTrackIds) && hasBrokeredWith(state, otherId);
 }
 
 /** RFC-0138: maintained archivist mastery discounts RECONSTRUCT/ATTEST attention by 1 (min 1). */
 export function archivistAttentionDiscount(
   state: PracticeState | undefined | null,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): number {
-  return trackMaintained(state, ARCHIVIST_TRACK, now) ? 1 : 0;
+  return trackMaintained(state, ARCHIVIST_TRACK, now, focusedTrackIds) ? 1 : 0;
 }
 
 /** RFC-0138: maintained herald mastery discounts MESSAGE/ORG_OFFICE_ACT compute by 1 (min 0). */
 export function heraldComputeDiscount(
   state: PracticeState | undefined | null,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): number {
-  return trackMaintained(state, HERALD_TRACK, now) ? 1 : 0;
+  return trackMaintained(state, HERALD_TRACK, now, focusedTrackIds) ? 1 : 0;
+}
+
+/** RFC-0144: maintained artificer mastery grants +10 crafted item condition and -1 REFINE compute. */
+export function isArtificerMaintained(
+  state: PracticeState | undefined | null,
+  now: number,
+  focusedTrackIds?: PracticeTrackId[],
+): boolean {
+  return isTrackRecognized(state, ARTIFICER_TRACK) && !isTrackLatent(state, ARTIFICER_TRACK, now, focusedTrackIds);
+}
+
+export function artificerRefineComputeDiscount(
+  state: PracticeState | undefined | null,
+  now: number,
+  focusedTrackIds?: PracticeTrackId[],
+): number {
+  return isArtificerMaintained(state, now, focusedTrackIds) ? 1 : 0;
 }

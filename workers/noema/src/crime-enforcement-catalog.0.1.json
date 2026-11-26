@@ -1,0 +1,53 @@
+{
+  "schema_version": "crime-enforcement-catalog/0.1",
+  "catalog_id": "crime-enforcement-catalog/0.1",
+  "authority": "rfcs/RFC-0143-crime-producer-and-accountable-enforcement.md",
+  "event_catalog_compatibility": "event-catalog/0.2",
+  "seed_stream_rule": "sha256_u32_be_mod_1000",
+  "domain_tag": "crime-detect/0.1",
+  "detection": {
+    "max_immediate_threshold_mp": 950,
+    "max_investigated_threshold_mp": 980,
+    "sensor_min_condition": 50,
+    "sensor_infra_classes": [
+      "relay",
+      "defensive_work"
+    ],
+    "sensor_bonus_mp": 250,
+    "witness_bonus_per_player_mp": 200,
+    "max_counted_witnesses": 2,
+    "residue_ttl_cycles": 12,
+    "investigate_cost": {
+      "attention": 2,
+      "compute": 1
+    },
+    "investigate_base_bonus_mp": 300,
+    "investigate_chrono_lens_extra_mp": 250,
+    "detection_emits_zero_influence_delta": true
+  },
+  "sanction": {
+    "window_cycles": 16,
+    "authorized_office_profiles": [
+      "GRANT_ACCESS",
+      "OPERATE_NAMED_ASSET"
+    ],
+    "allow_named_personal_victim": true,
+    "base_cost": {
+      "influence": 2,
+      "compute": 2
+    },
+    "arc_lance_influence_discount": 1,
+    "severity_influence_debit": {
+      "MINOR": 3,
+      "MODERATE": 8,
+      "MAJOR": 15
+    },
+    "room_restriction_duration_cycles": 8,
+    "max_sanctions_per_detection": 1
+  },
+  "rehabilitation_trades_by_severity": {
+    "MINOR": 3,
+    "MODERATE": 5,
+    "MAJOR": 8
+  }
+}

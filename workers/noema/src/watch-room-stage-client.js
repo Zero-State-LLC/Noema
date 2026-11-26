@@ -1560,6 +1560,24 @@ function mount(frame, opts) {
         const lamp = pick(makeBox(0.36, 0.08, 0.18, amberGlow, false));
         lamp.position.set(-0.28, 1.38, -0.16);
         eg.add(lamp);
+      } else if (etype === "barter_stall" || elabel.includes("barter") || elabel.includes("stall")) {
+        // Obsidian-Amber Barter Kiosk (RFC-0140 / RFC-0144)
+        const counter = pick(makeBox(1.32, 0.72, 0.76, darkMetal, true));
+        counter.position.y = 0.46;
+        eg.add(counter);
+        const trim = pick(makeBox(1.36, 0.08, 0.8, brass, false));
+        trim.position.y = 0.84;
+        eg.add(trim);
+        const postL = pick(makeBox(0.08, 0.96, 0.08, brass, true));
+        postL.position.set(-0.56, 1.32, -0.28);
+        eg.add(postL);
+        const postR = pick(makeBox(0.08, 0.96, 0.08, brass, true));
+        postR.position.set(0.56, 1.32, -0.28);
+        eg.add(postR);
+        const canopy = pick(makeBox(1.36, 0.12, 0.74, amberGlow, false));
+        canopy.position.set(0, 1.82, -0.02);
+        canopy.rotation.x = 0.12;
+        eg.add(canopy);
       } else {
         // Default Infrastructure / Annex / Charter Plinth
         const col = pick(makeBox(0.76, 0.96, 0.64, steel, true));
@@ -1973,7 +1991,36 @@ function mount(frame, opts) {
       bodyGroup.add(headGroup);
     }
 
-    return { root, bodyGroup, headGroup, floatProp, ringMat, accent };
+    // RFC-0144 §5: subtle category-only equipment silhouettes (tool / weapon / rig).
+    const equipGroup = new Group();
+    const toolProp = new Group();
+    const toolShaft = makeCyl(0.025, 0.03, 0.42, brassMat, false);
+    toolShaft.rotation.x = Math.PI * 0.34;
+    toolShaft.position.set(0.32, 0.68, 0.16);
+    const toolTip = new Mesh(shared.oct, glowMat);
+    toolTip.scale.set(0.06, 0.08, 0.06);
+    toolTip.position.set(0.32, 0.8, 0.32);
+    toolProp.add(toolShaft, toolTip);
+    toolProp.visible = false;
+
+    const weaponProp = new Group();
+    const lanceMat = new MeshStandardMaterial({ color: 0x3b2a34, emissive: 0xe07050, emissiveIntensity: 0.45, roughness: 0.3, metalness: 0.78 });
+    const lance = makeCyl(0.02, 0.032, 0.96, lanceMat, false);
+    lance.rotation.z = 0.14;
+    lance.position.set(-0.34, 0.78, -0.06);
+    weaponProp.add(lance);
+    weaponProp.visible = false;
+
+    const rigProp = new Group();
+    const rigFrame = makeBox(0.42, 0.38, 0.2, brassMat, false);
+    rigFrame.position.set(0, 0.62, -0.28);
+    rigProp.add(rigFrame);
+    rigProp.visible = false;
+
+    equipGroup.add(toolProp, weaponProp, rigProp);
+    bodyGroup.add(equipGroup);
+
+    return { root, bodyGroup, headGroup, floatProp, ringMat, accent, equipProps: { tool: toolProp, weapon: weaponProp, rig: rigProp } };
   }
 
   /** Build diegetic verb VFX for an acting agent (beams, weld sparks, charter sigils, scanner cones, speech arcs). */
@@ -2251,8 +2298,14 @@ function mount(frame, opts) {
 
       let st = agentStates.get(handle);
       const isFollowed = !!followHandle && followHandle === handle;
+      const eqCats = Array.isArray(info.equipped_categories) ? info.equipped_categories : [];
       if (!st) {
         const rig = buildAutomatonRig(handle, isFollowed);
+        if (rig.equipProps) {
+          rig.equipProps.tool.visible = eqCats.includes("tool");
+          rig.equipProps.weapon.visible = eqCats.includes("weapon");
+          rig.equipProps.rig.visible = eqCats.includes("rig");
+        }
         // If newly arriving in an already-framed room, walk in smoothly from a portal edge!
         const spawnPortal = framed && !reduce && portalPositions.length ? portalPositions[idx % portalPositions.length] : null;
         const sx = spawnPortal ? spawnPortal.x * 0.85 : tx;
@@ -2310,6 +2363,11 @@ function mount(frame, opts) {
         st.effAct = act || (effVerb ? { verb: effVerb, target_label: effTargetLabel } : null);
         st.speechAct = speechAct;
         st.targetEnt = targetEnt;
+        if (st.rig && st.rig.equipProps) {
+          st.rig.equipProps.tool.visible = eqCats.includes("tool");
+          st.rig.equipProps.weapon.visible = eqCats.includes("weapon");
+          st.rig.equipProps.rig.visible = eqCats.includes("rig");
+        }
         if (reduce) { st.x = tx; st.z = tz; st.yaw = st.tyaw; st.root.position.set(tx, 0, tz); }
       }
 

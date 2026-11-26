@@ -21,7 +21,13 @@ export const HOSTED_ACT_PROFILES: readonly OfficeProfile[] = ["PUBLISH_NOTICE"];
 export const TRADE_PROFILE: OfficeProfile = "OPERATE_RESOURCE_ACCOUNT";
 export const REPAIR_PROFILE: OfficeProfile = "OPERATE_NAMED_ASSET";
 export const ACCESS_PROFILE: OfficeProfile = "GRANT_ACCESS";
-export const OFFICE_REQUIRED_TRACKS = ["engineer", "broker"] as const;
+export const OFFICE_REQUIRED_TRACKS = [
+  "engineer",
+  "broker",
+  "artificer",
+  "archivist",
+  "herald",
+] as const;
 export type OfficeRequiredTrack = (typeof OFFICE_REQUIRED_TRACKS)[number];
 
 export type Treasury = {

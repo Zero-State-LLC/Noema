@@ -10,6 +10,9 @@ import { publicTitleLine, type PracticeState } from "./practice";
 import { publicFocusLine, type FocusState } from "./focus";
 import { watchPublicDescriptorLines, type SocialEvent } from "./social-memory";
 import { pressureBand, scarBand } from "./watch-map";
+import { roomMarketBand, type BarterStallState } from "./shops";
+import { roomCrimeBand, type CrimeDetectionRecord, type CrimeResidue } from "./crime";
+import { equippedCategoriesForWatch, type PortableItem } from "./items";
 import {
   glyphForEntity,
   glyphForExit,
@@ -1379,6 +1382,28 @@ function buildRoomActivityMap(
         if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
         continue;
       }
+      if (String(payload.entity_type || "").toUpperCase() === "OBJECT") {
+        const props = (payload.properties && typeof payload.properties === "object"
+          ? payload.properties
+          : {}) as Record<string, unknown>;
+        const originRoom = typeof props.origin_room_id === "string" ? props.origin_room_id : undefined;
+        const roomId = originRoom && publicRooms[originRoom] ? originRoom : resolvePublicRoomForEvent(ev, senderPlayer);
+        if (!roomId || !publicRooms[roomId]) continue;
+        const actorLabel = publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined;
+        const site = publicRooms[roomId].name;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NORMAL",
+          verb: "craft",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          line: actorLabel ? `${actorLabel} fabricated gear at ${site}` : `Equipment fabricated at ${site}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+        continue;
+      }
       const home = entityHome(scopeId, publicRooms);
       if (!home) continue;
       const targetLabel = sanitizePublicLabel(home.label);
@@ -1397,6 +1422,29 @@ function buildRoomActivityMap(
         kind: "deed",
       };
       if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
+      continue;
+    }
+
+    if (eventType === "CRIME_DETECTED") {
+      if (String(payload.visibility || "").toUpperCase() !== "PUBLIC") continue;
+      const roomId = typeof payload.room_id === "string" && publicRooms[payload.room_id] ? payload.room_id : undefined;
+      if (!roomId) continue;
+      const site = publicRooms[roomId].name;
+      const method = String(payload.detection_method || "").toUpperCase();
+      const verb = method === "INVESTIGATION" ? "investigate" : "sanction";
+      const item: WatchRoomActivity = {
+        sequence: ev.sequence,
+        cycle,
+        ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+        tier: "NOTABLE",
+        verb,
+        line:
+          verb === "investigate"
+            ? `Forensic inquiry logged an incident at ${site}`
+            : `Public sensors flagged an incident at ${site}`,
+        kind: "deed",
+      };
+      if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
       continue;
     }
 
@@ -1703,6 +1751,11 @@ export function buildWatchLive(input: {
   harvest_pressure?: Record<string, number>;
   lore_attractors?: Array<{ room_id?: string; label: string; weight: number; basin: string }>;
   culture?: CultureState | null;
+  /** RFC-0144 §5: band-redacted market, crime, and equipped-category inputs (public rooms only). */
+  stalls?: Record<string, BarterStallState>;
+  crime_residues?: CrimeResidue[];
+  crime_detections?: CrimeDetectionRecord[];
+  items?: Record<string, PortableItem>;
 }): Record<string, unknown> {
   const now = input.now ?? Date.now();
   const freshness = input.freshness || "live";
@@ -1893,6 +1946,25 @@ export function buildWatchLive(input: {
         if (schism) row.tradition_schism = true;
       }
     }
+    // RFC-0144 §5: strictly optional, band-redacted market/crime indicators & occupant equipment categories.
+    const mBand = roomMarketBand(
+      input.stalls,
+      publicEntities as Array<{ entity_id: string; infra_type?: string; condition?: number; in_progress?: boolean; scar?: boolean }>,
+    );
+    if (mBand) row.market_band = mBand;
+    const cBand = roomCrimeBand(r.room_id, input.crime_residues, input.crime_detections, input.cycle);
+    if (cBand) row.crime_band = cBand;
+    if (input.items && here.length) {
+      const occs = here
+        .map((p) => {
+          const label = publicPlayerLabel(p, roomRefs);
+          if (!label) return null;
+          const equipped_categories = equippedCategoriesForWatch(input.items, p.player_id);
+          return equipped_categories.length ? { label, equipped_categories } : null;
+        })
+        .filter((x): x is { label: string; equipped_categories: Array<"tool" | "weapon" | "rig"> } => Boolean(x));
+      if (occs.length) row.occupants = occs;
+    }
     return row;
   });
 
@@ -1944,6 +2016,7 @@ export function buildWatchLive(input: {
     const lastTargetLabel = useAct
       ? (lastAct.target_label || lastEv?.target_label)
       : (lastEv?.target_label || lastAct?.target_label);
+    const equippedCats = input.items ? equippedCategoriesForWatch(input.items, p.player_id) : [];
     return [
       {
         label,
@@ -1955,6 +2028,7 @@ export function buildWatchLive(input: {
         public_activity: isPublic,
         ...(lastVerb ? { last_verb: lastVerb } : {}),
         ...(lastTargetLabel ? { last_target_label: lastTargetLabel } : {}),
+        ...(equippedCats.length ? { equipped_categories: equippedCats } : {}),
       },
     ];
   });
