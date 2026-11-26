@@ -13,9 +13,15 @@ export const PRESSURE_CLASS = "infrastructure_failure";
 export const FIRST_CYCLE = 4;
 export const LAST_WINDOW_CYCLE = 20;
 export const CONDITION_DELTA = 15;
+export const DEFENSIVE_WORK_DELTA = 8;
 export const MIN_CONDITION_AFTER = 25;
 export const MAX_ACTIVATIONS_1_20 = 1;
 export const PREFERRED_RELAY_ID = "entity.relay-7";
+
+/** RFC-0135: recurring deterministic Perihelion orbital pressure waves past cycle 20. */
+export const ORBITAL_PERIOD_CYCLES = 60;
+export const ORBITAL_WINDOW_CYCLES = 12;
+export const WATCH_ORBITAL_SURGE_PULSE = "Perihelion surge stresses the Reach's relays.";
 
 export const RESOURCE_CLASS = "resource_scarcity";
 export const RESOURCE_FIRST_CYCLE = 8;
@@ -102,19 +108,44 @@ export function isMild(after: number, min = MIN_CONDITION_AFTER): boolean {
   return after >= min;
 }
 
-export function scheduleDue(cycle: number, activations: number): boolean {
-  return classDue(cycle, "infrastructure_failure", activations);
+export function effectiveInfraDelta(hasDefensiveWork: boolean): number {
+  return hasDefensiveWork ? DEFENSIVE_WORK_DELTA : CONDITION_DELTA;
 }
 
-export function classDue(cycle: number, cls: PressureClassId, activations: number): boolean {
-  const first =
-    cls === "infrastructure_failure"
-      ? FIRST_CYCLE
-      : cls === "resource_scarcity"
-        ? RESOURCE_FIRST_CYCLE
-        : ACCESS_FIRST_CYCLE;
-  if (cycle < first || cycle > LAST_WINDOW_CYCLE) return false;
-  return activations < MAX_ACTIVATIONS_1_20;
+export function orbitalWaveBounds(cycle: number): { waveStart: number; waveEnd: number; offset: number } | null {
+  if (cycle < ORBITAL_PERIOD_CYCLES) return null;
+  const waveStart = Math.floor(cycle / ORBITAL_PERIOD_CYCLES) * ORBITAL_PERIOD_CYCLES;
+  const offset = cycle - waveStart;
+  if (offset >= ORBITAL_WINDOW_CYCLES) return null;
+  return { waveStart, waveEnd: waveStart + ORBITAL_WINDOW_CYCLES - 1, offset };
+}
+
+export function scheduleDue(cycle: number, activations: number, lastCycle?: number): boolean {
+  return classDue(cycle, "infrastructure_failure", activations, lastCycle);
+}
+
+export function classDue(
+  cycle: number,
+  cls: PressureClassId,
+  activations: number,
+  lastCycle?: number,
+): boolean {
+  if (cycle <= LAST_WINDOW_CYCLE) {
+    const first =
+      cls === "infrastructure_failure"
+        ? FIRST_CYCLE
+        : cls === "resource_scarcity"
+          ? RESOURCE_FIRST_CYCLE
+          : ACCESS_FIRST_CYCLE;
+    if (cycle < first) return false;
+    return activations < MAX_ACTIVATIONS_1_20;
+  }
+  // RFC-0135: deterministic recurring 60-cycle Perihelion Surge waves past cycle 20.
+  const wave = orbitalWaveBounds(cycle);
+  if (!wave) return false;
+  const minOffset = cls === "infrastructure_failure" ? 0 : cls === "resource_scarcity" ? 4 : 8;
+  if (wave.offset < minOffset) return false;
+  return (lastCycle ?? 0) < wave.waveStart;
 }
 
 export type PressureTarget = RelayLike & { room_id: string };
