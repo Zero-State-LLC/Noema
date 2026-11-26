@@ -241,20 +241,7 @@ export function clampSalvage(
 }
 
 
-/** P3-04 stub: Resource economy production + conversion skeleton.
- *  Roles will drive these via future agent profiles.
- */
-export const P3_RESOURCE_PRODUCTION: Record<string, any> = {
-  salvager: { HARVEST: { materials: 1.8, influence: 0.3 } },
-  trader: { TRADE: { compute: 0.6, influence: 0.5 } },
-  archivist: { ATTEST: { influence: 1.5 } },
-};
-
-export const P3_CONVERSIONS: Record<string, any> = {
-  "materials->compute": { rate: 0.6, unlocked_by_org: true },
-};
-
-/** P4-04 Production cutover note
+/** P4-04 Production cutover note (RFC-0142: P3 float stubs removed; see COMMIT.CONVERT)
  * Enhanced genesis (EWM_ENHANCED profile) seeds:
  * - Heterogeneous archetypes (salvager/trader/archivist)
  * - Full economy params + conversions on nodes

@@ -105,13 +105,25 @@ import {
   type MaterialLot,
 } from "./lots";
 import {
+  ARCHIVIST_TRACK,
+  ARTIFICER_TRACK,
   BROKER_TRACK,
   ENGINEER_TRACK,
+  HERALD_TRACK,
   canOverhaul,
   isTrackRecognized,
   OVERHAUL_ENERGY_EXTRA,
   type PracticeState,
 } from "./practice";
+import { deterministicSuffix } from "./ids";
+import {
+  ARC_LANCE_INFLUENCE_DISCOUNT,
+  INVESTIGATE_COST,
+  SANCTION_BASE_COST,
+  SANCTION_WINDOW_CYCLES,
+  type CrimeDetectionRecord,
+  type CrimeResidue,
+} from "./crime";
 
 
 /** Split "<left> <keyword> <rightToken>" without ReDoS-prone .+? regexes. */
@@ -397,6 +409,8 @@ export type Organization = {
   governance_decisions?: import("./governance").GovernanceDecisionRecord[];
   /** GC3-S3 institution→player memory. Not WorldState. */
   institution_memory?: import("./social-memory").InstitutionMemoryState;
+  /** RFC-0144 §3: Explicit pending invitees permitted to execute ORG_JOIN. */
+  invited_player_ids?: string[];
 };
 
 /** RFC-0133: per-act SUPPLY cap and treasury vault storage cap. */
@@ -441,6 +455,12 @@ export const COSTS = {
   REMEDIATE: { energy: 3, compute: 1, storage: 2 } as Partial<Budgets>,
   BUILD_CONTRIBUTE: { energy: 2, compute: 1, storage: 1 } as Partial<Budgets>,
   CONTRACT_POST: { compute: 1 } as Partial<Budgets>,
+  CONVERT_POWER: { compute: 1 } as Partial<Budgets>,
+  CONVERT_COMPUTE: { energy: 1 } as Partial<Budgets>,
+  INVESTIGATE: { ...INVESTIGATE_COST } as Partial<Budgets>,
+  SANCTION: { ...SANCTION_BASE_COST } as Partial<Budgets>,
+  ASSIGN_STEWARD: { compute: 1 } as Partial<Budgets>,
+  ORG_JOIN: { compute: 1 } as Partial<Budgets>,
   WAIT: {} as Partial<Budgets>,
 };
 
@@ -546,7 +566,12 @@ export type CanonicalAction =
           | "EQUIP"
           | "UNEQUIP"
           | "USE_ITEM"
-          | "SCRAP_ITEM";
+          | "SCRAP_ITEM"
+          | "CONVERT"
+          | "INVESTIGATE"
+          | "SANCTION"
+          | "ASSIGN_STEWARD"
+          | "ORG_JOIN";
         signal?: ActionSignal;
         entity_id?: string;
         /** RFC-0139: portable item crafting, refining, equipment, use, and scrap fields. */
@@ -556,15 +581,25 @@ export type CanonicalAction =
         material?: MaterialArchetype;
         grade?: LotGrade;
         prefer_refined?: boolean;
+        /** RFC-0142: integer infrastructure conversion mode ("power" | "compute"). */
+        convert_mode?: "power" | "compute";
+        /** RFC-0143: crime forensic investigation & accountable enforcement fields. */
+        detection_id?: string;
+        residue_id?: string;
+        /** RFC-0144: creator/steward split assignment fields. */
+        steward_id?: string;
+        steward_office_id?: string;
         /** RFC-0137: target scar_id or attractor_id for COMMEMORATE / REMEDIATE. */
         scar_id?: string;
         attractor_id?: string;
-        /** RFC-0138: WS06 civic contract fields. */
+        /** RFC-0138 / RFC-0144: WS06 civic contract fields. */
         contract_id?: string;
         contract_kind?: string;
         target_condition?: number;
         target_count?: number;
-        reward_resource?: "storage" | "influence";
+        target_material?: MaterialArchetype;
+        target_item_archetype?: string;
+        reward_resource?: "storage" | "influence" | "energy";
         reward_amount?: number;
         /** RFC-0133 SUPPLY recipient and resource. */
         player_id?: string;
@@ -704,6 +739,10 @@ export type Affordance = {
   listing_id?: string;
   listing_kind?: string;
   swap_id?: string;
+  /** RFC-0142/0143: integer conversion and forensic crime enforcement fields. */
+  convert_mode?: "power" | "compute";
+  detection_id?: string;
+  residue_id?: string;
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -712,15 +751,15 @@ export type Affordance = {
   kind: "primary" | "secondary" | "move" | "utility" | "social" | "resource" | "org";
 };
 
-/** Stage-0 adapter: server allocates org_id (Specs SPEC GAP — human form does not invent free IDs). */
-export function allocateOrgId(name: string): string {
+/** RFC-0144 §3 / ADR-008: deterministic server-allocated org_id (`org.<slug>.<8-hex>`). */
+export function allocateOrgId(name: string, seq = 0, cycle = 0): string {
   const slug =
     name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .slice(0, 24) || "org";
-  const hex = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  const hex = deterministicSuffix("org", slug, cycle, seq);
   return `org.${slug}.${hex}`;
 }
 
@@ -893,7 +932,11 @@ export function isRepairable(e: EntityRuntime): boolean {
 }
 
 function officeTrackFor(req: NonNullable<OfficeRecord["requires_track"]>) {
-  return req === "engineer" ? ENGINEER_TRACK : BROKER_TRACK;
+  if (req === "engineer") return ENGINEER_TRACK;
+  if (req === "artificer") return ARTIFICER_TRACK;
+  if (req === "archivist") return ARCHIVIST_TRACK;
+  if (req === "herald") return HERALD_TRACK;
+  return BROKER_TRACK;
 }
 
 export function isHarvestable(e: Pick<EntityRuntime, "stock_amount" | "regen_rate" | "stock_resource">): boolean {
@@ -1627,6 +1670,66 @@ function parseHumanCommandCore(
       ok: true,
       action: { verb: "COMMIT", arguments: { operation: "SCRAP_ITEM", item_id: raw, entity_id: raw } },
       display: `You scrap ${raw}.`,
+    };
+  }
+  if (v === "convert") {
+    const mode = (parts[0] || "").toLowerCase();
+    if (mode !== "power" && mode !== "compute") {
+      return { ok: false, error: "Convert what? Use: convert power | convert compute." };
+    }
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "CONVERT", convert_mode: mode } },
+      display: `You convert cargo into ${mode}.`,
+    };
+  }
+  if (v === "investigate") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "").trim();
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: { operation: "INVESTIGATE", ...(raw ? { residue_id: raw, entity_id: raw } : {}) },
+      },
+      display: raw ? `You investigate ${raw}.` : "You investigate forensic residue here.",
+    };
+  }
+  if (v === "sanction") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "").trim();
+    if (!raw) return { ok: false, error: "Sanction what? Name a detection_id." };
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "SANCTION", detection_id: raw } },
+      display: `You sanction ${raw}.`,
+    };
+  }
+  if (v === "steward") {
+    if (parts.length < 2) {
+      return { ok: false, error: "Assign steward: steward <entity_id> <player_id|office_id>." };
+    }
+    const entity_id = parts[0];
+    const target = parts[1];
+    const isOffice = target.startsWith("office.");
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: {
+          operation: "ASSIGN_STEWARD",
+          entity_id,
+          ...(isOffice ? { steward_office_id: target } : { steward_id: target }),
+        },
+      },
+      display: `You assign steward ${target} to ${entity_id}.`,
+    };
+  }
+  if (v === "join") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "").trim();
+    if (!raw) return { ok: false, error: "Join which organization? Use: join <org_id>." };
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "ORG_JOIN", org_id: raw } },
+      display: `You join ${raw}.`,
     };
   }
   if (v === "harvest") {
@@ -2855,6 +2958,79 @@ export function normalizeStructuredCommand(
         display: scar_id ? `REMEDIATE ${scar_id}` : "REMEDIATE",
       };
     }
+    if (operation === "CONVERT") {
+      const modeRaw = String(args.convert_mode || args.mode || args.target || "").trim().toLowerCase();
+      if (modeRaw !== "power" && modeRaw !== "compute") {
+        return { ok: false, error: "convert_mode must be power or compute", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: { verb: "COMMIT", arguments: { operation: "CONVERT", convert_mode: modeRaw } },
+        display: `CONVERT ${modeRaw}`,
+      };
+    }
+    if (operation === "INVESTIGATE") {
+      const residue_id = args.residue_id || args.target_id || args.entity_id
+        ? String(args.residue_id || args.target_id || args.entity_id).trim()
+        : undefined;
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "INVESTIGATE", ...(residue_id ? { residue_id, entity_id: residue_id } : {}) },
+        },
+        display: residue_id ? `INVESTIGATE ${residue_id}` : "INVESTIGATE",
+      };
+    }
+    if (operation === "SANCTION") {
+      const detection_id = String(args.detection_id || args.target_id || args.target || "").trim();
+      if (!detection_id) return { ok: false, error: "detection_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "SANCTION",
+            detection_id,
+            ...(args.org_id ? { org_id: String(args.org_id).trim() } : {}),
+            ...(args.office_id ? { office_id: String(args.office_id).trim() } : {}),
+          },
+        },
+        display: `SANCTION ${detection_id}`,
+      };
+    }
+    if (operation === "ASSIGN_STEWARD") {
+      const entity_id = String(args.entity_id || args.item_id || args.target_id || "").trim();
+      const steward_id = args.steward_id ? String(args.steward_id).trim() : undefined;
+      const steward_office_id = args.steward_office_id ? String(args.steward_office_id).trim() : undefined;
+      if (!entity_id || (!steward_id && !steward_office_id)) {
+        return { ok: false, error: "entity_id and steward_id or steward_office_id required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "ASSIGN_STEWARD",
+            entity_id,
+            ...(steward_id ? { steward_id } : {}),
+            ...(steward_office_id ? { steward_office_id } : {}),
+            ...(args.org_id ? { org_id: String(args.org_id).trim() } : {}),
+            ...(args.office_id ? { office_id: String(args.office_id).trim() } : {}),
+          },
+        },
+        display: `ASSIGN_STEWARD ${entity_id}`,
+      };
+    }
+    if (operation === "ORG_JOIN") {
+      const org_id = String(args.org_id || args.target_id || args.target || "").trim();
+      if (!org_id) return { ok: false, error: "org_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: { verb: "COMMIT", arguments: { operation: "ORG_JOIN", org_id } },
+        display: `ORG_JOIN ${org_id}`,
+      };
+    }
     if (operation === "CONTRACT_POST") {
       const org_id = String(args.org_id || "").trim();
       const contract_kind = String(args.contract_kind || args.kind || "").trim();
@@ -2862,7 +3038,10 @@ export function normalizeStructuredCommand(
         return { ok: false, error: "org_id and contract_kind required", code: "INVALID_REQUEST" };
       }
       const resRaw = String(args.reward_resource || args.resource || "storage").toLowerCase();
-      const reward_resource = resRaw === "influence" ? "influence" : "storage";
+      const reward_resource =
+        resRaw === "influence" ? "influence" : resRaw === "energy" ? "energy" : "storage";
+      const target_material = args.target_material ? parseMaterialArchetype(args.target_material) || undefined : undefined;
+      const target_item_archetype = args.target_item_archetype ? String(args.target_item_archetype).trim() : undefined;
       return {
         ok: true,
         action: {
@@ -2874,6 +3053,8 @@ export function normalizeStructuredCommand(
             entity_id: args.entity_id || args.target_id ? String(args.entity_id || args.target_id) : undefined,
             target_condition: args.target_condition != null ? Number(args.target_condition) : undefined,
             target_count: args.target_count != null ? Number(args.target_count) : undefined,
+            ...(target_material ? { target_material } : {}),
+            ...(target_item_archetype ? { target_item_archetype } : {}),
             reward_resource,
             reward_amount: args.reward_amount != null ? Number(args.reward_amount) : 2,
           },
@@ -3649,6 +3830,21 @@ export function normalizeStructuredCommand(
   if (cmd === "SCRAP_ITEM") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "SCRAP_ITEM" });
   }
+  if (cmd === "CONVERT") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONVERT" });
+  }
+  if (cmd === "INVESTIGATE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "INVESTIGATE" });
+  }
+  if (cmd === "SANCTION") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "SANCTION" });
+  }
+  if (cmd === "ASSIGN_STEWARD") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ASSIGN_STEWARD" });
+  }
+  if (cmd === "ORG_JOIN") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_JOIN" });
+  }
   return { ok: false, error: `unsupported command ${cmd}`, code: "UNKNOWN_COMMAND" };
 }
 
@@ -3699,6 +3895,9 @@ export function deriveAffordances(input: {
   materialLots?: MaterialLot[];
   /** RFC-0140: room barter stalls for contextual TRADE fulfill affordances. */
   stalls?: Record<string, import("./shops").BarterStallState>;
+  /** RFC-0143: active forensic crime residues & recent detections for INVESTIGATE / SANCTION. */
+  crimeResidues?: CrimeResidue[];
+  crimeDetections?: CrimeDetectionRecord[];
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -4630,6 +4829,27 @@ export function deriveAffordances(input: {
         }
       }
     }
+    // RFC-0144 §3: contextual ORG_JOIN for OPEN_CHARTER or explicitly invited non-members.
+    for (const org of organizations) {
+      if (org.status !== "ACTIVE" || isOrgMember(org, selfId)) continue;
+      const openCharter = Boolean(org.governance_rule?.published && org.governance_rule.admission_mode === "OPEN_CHARTER");
+      const invited = (org.invited_player_ids || []).includes(selfId);
+      if (!openCharter && !invited) continue;
+      const ok = canPay(budgets, COSTS.ORG_JOIN);
+      out.push({
+        action: "ORG_JOIN",
+        verb: "COMMIT",
+        operation: "ORG_JOIN",
+        org_id: org.org_id,
+        target_id: org.org_id,
+        label: `Join ${org.name}`,
+        cmd: `join ${org.org_id}`,
+        requires: COSTS.ORG_JOIN,
+        available: ok,
+        reason: ok ? undefined : "Requires compute 1 to join.",
+        kind: "org",
+      });
+    }
   }
 
   if (!input.hiddenRoom) {
@@ -4901,6 +5121,27 @@ export function deriveAffordances(input: {
         }
       }
     }
+    // RFC-0144 §3: contextual ORG_JOIN for OPEN_CHARTER or explicitly invited non-members.
+    for (const org of organizations) {
+      if (org.status !== "ACTIVE" || isOrgMember(org, selfId)) continue;
+      const openCharter = Boolean(org.governance_rule?.published && org.governance_rule.admission_mode === "OPEN_CHARTER");
+      const invited = (org.invited_player_ids || []).includes(selfId);
+      if (!openCharter && !invited) continue;
+      const ok = canPay(budgets, COSTS.ORG_JOIN);
+      out.push({
+        action: "ORG_JOIN",
+        verb: "COMMIT",
+        operation: "ORG_JOIN",
+        org_id: org.org_id,
+        target_id: org.org_id,
+        label: `Join ${org.name}`,
+        cmd: `join ${org.org_id}`,
+        requires: COSTS.ORG_JOIN,
+        available: ok,
+        reason: ok ? undefined : "Requires compute 1 to join.",
+        kind: "org",
+      });
+    }
   }
 
   const reconOk = canPay(budgets, COSTS.RECONSTRUCT);
@@ -5146,6 +5387,118 @@ export function deriveAffordances(input: {
           });
         }
       }
+    }
+    // RFC-0142: contextual integer CONVERT (power at generator >= 50, compute at archive_annex >= 50).
+    const hasConvertGen = entities.some(
+      (e) => infraClassOf(e) === "generator" && !e.in_progress && !e.scar && (e.condition ?? 0) >= 50,
+    );
+    if (hasConvertGen) {
+      const ok = canPay(budgets, COSTS.CONVERT_POWER) && (budgets.energy ?? 0) < 80;
+      out.push({
+        action: "CONVERT",
+        verb: "COMMIT",
+        operation: "CONVERT",
+        convert_mode: "power",
+        label: "Convert cargo to power",
+        cmd: "convert power",
+        requires: COSTS.CONVERT_POWER,
+        available: ok,
+        reason: ok ? undefined : "Requires compute 1, cargo/silica cells, and energy < 80.",
+        kind: "resource",
+      });
+    }
+    const hasConvertAnnex = entities.some(
+      (e) => infraClassOf(e) === "archive_annex" && !e.in_progress && !e.scar && (e.condition ?? 0) >= 50,
+    );
+    if (hasConvertAnnex) {
+      const ok = canPay(budgets, COSTS.CONVERT_COMPUTE) && (budgets.compute ?? 0) < 64;
+      out.push({
+        action: "CONVERT",
+        verb: "COMMIT",
+        operation: "CONVERT",
+        convert_mode: "compute",
+        label: "Convert silica to compute",
+        cmd: "convert compute",
+        requires: COSTS.CONVERT_COMPUTE,
+        available: ok,
+        reason: ok ? undefined : "Requires energy 1, 2 SILICA_CELL, and compute < 64.",
+        kind: "resource",
+      });
+    }
+    // RFC-0143: contextual INVESTIGATE on uninvestigated public-room forensic residues.
+    const curCycle = input.cycle ?? 0;
+    const roomResidues = (input.crimeResidues || []).filter(
+      (r) => r.room_id === input.roomId && !r.resolved && r.expires_cycle >= curCycle,
+    );
+    if (roomResidues.length) {
+      const ok = canPay(budgets, COSTS.INVESTIGATE);
+      const top = roomResidues[0];
+      out.push({
+        action: "INVESTIGATE",
+        verb: "COMMIT",
+        operation: "INVESTIGATE",
+        residue_id: top.residue_id,
+        target_id: top.residue_id,
+        label: "Investigate forensic residue",
+        cmd: `investigate ${top.residue_id}`,
+        requires: COSTS.INVESTIGATE,
+        available: ok,
+        reason: ok ? undefined : "Requires attention 2 and compute 1 to investigate.",
+        kind: "primary",
+      });
+    }
+    // RFC-0143: contextual SANCTION on unsanctioned detections within window where actor is victim or officer.
+    const hasLance = Boolean(equippedOperationalItem(input.items, selfId, "arc_lance"));
+    const sanctionCost: Partial<Budgets> = {
+      influence: Math.max(0, (SANCTION_BASE_COST.influence ?? 2) - (hasLance ? ARC_LANCE_INFLUENCE_DISCOUNT : 0)),
+      compute: SANCTION_BASE_COST.compute ?? 2,
+    };
+    for (const det of input.crimeDetections || []) {
+      if (det.sanctioned || curCycle - det.detected_cycle > SANCTION_WINDOW_CYCLES) continue;
+      if (det.subject_id === selfId) continue;
+      const isVictim = det.victim_id === selfId;
+      const isOfficer = organizations.some(
+        (org) =>
+          org.status === "ACTIVE" &&
+          (occupiedOfficesFor(org, selfId, ACCESS_PROFILE).length > 0 ||
+            occupiedOfficesFor(org, selfId, REPAIR_PROFILE).length > 0),
+      );
+      if (!isVictim && !isOfficer) continue;
+      const ok = canPay(budgets, sanctionCost);
+      out.push({
+        action: "SANCTION",
+        verb: "COMMIT",
+        operation: "SANCTION",
+        detection_id: det.detection_id,
+        target_id: det.detection_id,
+        label: `Sanction ${det.subject_id}`,
+        cmd: `sanction ${det.detection_id}`,
+        requires: sanctionCost,
+        available: ok,
+        reason: ok ? undefined : "Not enough influence or compute to sanction.",
+        kind: "org",
+      });
+    }
+    // RFC-0144 §3: contextual ORG_JOIN for OPEN_CHARTER or explicitly invited non-members.
+    for (const org of organizations) {
+      if (org.status !== "ACTIVE" || isOrgMember(org, selfId)) continue;
+      const openCharter = Boolean(org.governance_rule?.published && org.governance_rule.admission_mode === "OPEN_CHARTER");
+      const invited = (org.invited_player_ids || []).includes(selfId);
+      if (!openCharter && !invited) continue;
+      const ok = canPay(budgets, COSTS.ORG_JOIN);
+      out.push({
+        action: "ORG_JOIN",
+        verb: "COMMIT",
+        operation: "ORG_JOIN",
+        org_id: org.org_id,
+        target_id: org.org_id,
+        label: `Join ${org.name}`,
+        cmd: `join ${org.org_id}`,
+        requires: COSTS.ORG_JOIN,
+        available: ok,
+        reason: ok ? undefined : "Requires compute 1 to join.",
+        kind: "org",
+      });
     }
   }
 

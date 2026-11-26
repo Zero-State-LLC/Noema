@@ -22,6 +22,8 @@ export const APPOINTMENT_MECHANISMS = [
 ] as const;
 export type AppointmentMechanism = (typeof APPOINTMENT_MECHANISMS)[number];
 
+export type GovernanceAdmissionMode = "INVITE_ONLY" | "OPEN_CHARTER";
+
 export type GovernanceRule = {
   rule_id: string;
   org_id: string;
@@ -33,6 +35,8 @@ export type GovernanceRule = {
   /** Absent on_vacancy/on_deadlock is undefined authority. Written REFUSE is defined. */
   failure: { on_vacancy?: "REFUSE" | "SUCCEED_THEN_DECIDE"; on_deadlock?: "REFUSE"; on_expiry?: "REFUSE" | "LAPSE" };
   evidence: { record: "PUBLIC_NOTICE" | "ORG_RECORD" };
+  /** RFC-0144 §4: Additive admission policy (defaults to INVITE_ONLY). */
+  admission_mode?: GovernanceAdmissionMode;
   published_by?: string;
   published_cycle?: number;
 };
@@ -207,6 +211,10 @@ export function parseGovernanceRule(
     return { ok: false, message: "Quorum cannot exceed the number of deciding offices." };
   }
 
+  const admRaw = r.admission_mode != null ? String(r.admission_mode).trim().toUpperCase() : "";
+  const admission_mode: GovernanceAdmissionMode | undefined =
+    admRaw === "OPEN_CHARTER" ? "OPEN_CHARTER" : admRaw === "INVITE_ONLY" ? "INVITE_ONLY" : undefined;
+
   return {
     ok: true,
     rule: {
@@ -222,6 +230,7 @@ export function parseGovernanceRule(
         on_deadlock: "REFUSE",
       },
       evidence: { record: record as "PUBLIC_NOTICE" | "ORG_RECORD" },
+      ...(admission_mode ? { admission_mode } : {}),
     },
   };
 }

@@ -451,6 +451,10 @@ export class NoemaWorldDO {
       harvest_pressure: this.world!.co_evolution?.harvest_pressure,
       lore_attractors: (this.world as { lore_attractors?: Array<{ room_id?: string; label: string; weight: number; basin: string }> } | null)?.lore_attractors,
       culture: this.world!.culture,
+      stalls: this.world!.stalls,
+      crime_residues: this.world!.crime_residues,
+      crime_detections: this.world!.crime_detections,
+      items: this.world!.items,
     });
     this.watchHeld = heldFromSnapshot(snap);
     return snap;

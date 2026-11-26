@@ -15,6 +15,8 @@ export const RELIABLE_THRESHOLD = 3;
 export const DANGER_THRESHOLD = 1;
 export const DECAY_CYCLES = 12;
 export const REHAB_TRADES = 3;
+export const REHAB_TRADES_BY_SEVERITY = { MINOR: 3, MODERATE: 5, MAJOR: 8 } as const;
+export type DangerSeverity = "MINOR" | "MODERATE" | "MAJOR";
 export const TRADE_CAUTION_EXTRA = 1;
 export const TRADE_CAUTION_CODE = "TRADE_CAUTION";
 export const DANGER_LINE = "You have found {name} dangerous.";
@@ -46,6 +48,8 @@ export type DangerMemoryState = {
   /** object_player_id → distinct danger evidence ids */
   edges: Record<string, string[]>;
   at?: Record<string, Record<string, number>>;
+  /** RFC-0143: optional incident severity per evidence id for 3 / 5 / 8 rehab scaling. */
+  severity?: Record<string, Record<string, DangerSeverity>>;
 };
 
 export type DeceptiveMemoryState = {
@@ -114,6 +118,7 @@ export function ensureDangerMemory(raw: DangerMemoryState | undefined | null): D
     catalog_id: DANGER_MEMORY_CATALOG_ID,
     edges: { ...(raw.edges || {}) },
     at: { ...(raw.at || {}) },
+    ...(raw.severity ? { severity: { ...raw.severity } } : {}),
   };
 }
 
@@ -188,6 +193,7 @@ export function creditDangerEvidence(
   otherPlayerId: string,
   evidenceId: string,
   cycle = 0,
+  severity?: DangerSeverity,
 ): DangerMemoryState {
   const next = ensureDangerMemory(state);
   if (!otherPlayerId || !evidenceId || otherPlayerId === evidenceId) return next;
@@ -195,6 +201,12 @@ export function creditDangerEvidence(
   if (!ids.includes(evidenceId)) ids.push(evidenceId);
   next.edges[otherPlayerId] = ids;
   next.at = stampAt(next.at, otherPlayerId, evidenceId, cycle);
+  if (severity) {
+    next.severity = {
+      ...(next.severity || {}),
+      [otherPlayerId]: { ...(next.severity?.[otherPlayerId] || {}), [evidenceId]: severity },
+    };
+  }
   return next;
 }
 
@@ -221,12 +233,12 @@ function strField(payload: Record<string, unknown> | undefined, key: string): st
 /** Victim → actor credits from contest/breach/crime events. TRADE_REJECTED and CONTEST_DECLARED ignored. */
 export function creditsFromDangerEvent(
   ev: SocialEvent,
-): Array<{ player_id: string; other_id: string; evidence_id: string }> {
+): Array<{ player_id: string; other_id: string; evidence_id: string; severity?: DangerSeverity }> {
   const et = ev.event_type;
   if ((DANGER_IGNORED_EVENTS as readonly string[]).includes(et)) return [];
   if (!(DANGER_EVIDENCE_EVENTS as readonly string[]).includes(et)) return [];
   const payload = ev.payload || {};
-  const out: Array<{ player_id: string; other_id: string; evidence_id: string }> = [];
+  const out: Array<{ player_id: string; other_id: string; evidence_id: string; severity?: DangerSeverity }> = [];
   if (et === "CONTEST_RESOLVED") {
     if (payload.outcome === "ABORTED") return [];
     const evidence = strField(payload, "contest_id") || ev.event_id;
@@ -266,8 +278,11 @@ export function creditsFromDangerEvent(
     const evidence = strField(payload, "detection_id") || ev.event_id;
     const victim = strField(payload, "victim_id");
     const subject = strField(payload, "subject_id");
+    const sevRaw = strField(payload, "severity");
+    const severity =
+      sevRaw === "MINOR" || sevRaw === "MODERATE" || sevRaw === "MAJOR" ? (sevRaw as DangerSeverity) : undefined;
     if (evidence && victim && subject && victim !== subject) {
-      out.push({ player_id: victim, other_id: subject, evidence_id: evidence });
+      out.push({ player_id: victim, other_id: subject, evidence_id: evidence, ...(severity ? { severity } : {}) });
     }
   }
   return out;
@@ -303,16 +318,32 @@ function familyLive(
   return asOfCycle - last < DECAY_CYCLES;
 }
 
+export function rehabThresholdForDanger(
+  danger: DangerMemoryState | undefined | null,
+  other: string,
+): number {
+  const sevMap = danger?.severity?.[other];
+  if (!sevMap) return REHAB_TRADES;
+  let need = REHAB_TRADES;
+  for (const id of danger?.edges?.[other] || []) {
+    const s = sevMap[id];
+    const t = s ? REHAB_TRADES_BY_SEVERITY[s] : REHAB_TRADES;
+    if (t > need) need = t;
+  }
+  return need;
+}
+
 function rehabbedHostile(
   trade: TradeMemoryState,
   other: string,
   lastHostileCycle: number | undefined,
+  requiredTrades = REHAB_TRADES,
 ): boolean {
   if (lastHostileCycle === undefined) return false;
   const ids = trade.edges[other] || [];
   const at = trade.at?.[other] || {};
   const after = ids.filter((id) => (at[id] ?? 0) > lastHostileCycle);
-  return after.length >= REHAB_TRADES;
+  return after.length >= requiredTrades;
 }
 
 export function socialMemoryLines(
@@ -342,7 +373,7 @@ export function socialMemoryLines(
   const dangerRows: Array<{ other: string; count: number; line: string }> = [];
   for (const [other, ids] of Object.entries(dangerSnap.edges)) {
     const lastH = lastCycle(dangerSnap.at?.[other], ids);
-    if (rehabbedHostile(snap, other, lastH)) continue;
+    if (rehabbedHostile(snap, other, lastH, rehabThresholdForDanger(dangerSnap, other))) continue;
     if (!familyLive(ids, dangerSnap.at?.[other], asOf)) continue;
     const count = ids.length;
     if (count < DANGER_THRESHOLD) continue;
@@ -388,7 +419,10 @@ export function liveHostileToward(
   const decIds = dec.edges[otherId] || [];
   const dLast = lastCycle(d.at?.[otherId], dIds);
   const decLast = lastCycle(dec.at?.[otherId], decIds);
-  const dangerLive = dIds.length > 0 && familyLive(dIds, d.at?.[otherId], asOfCycle) && !rehabbedHostile(tr, otherId, dLast);
+  const dangerLive =
+    dIds.length > 0 &&
+    familyLive(dIds, d.at?.[otherId], asOfCycle) &&
+    !rehabbedHostile(tr, otherId, dLast, rehabThresholdForDanger(d, otherId));
   const deceptiveLive =
     decIds.length > 0 && familyLive(decIds, dec.at?.[otherId], asOfCycle) && !rehabbedHostile(tr, otherId, decLast);
   return dangerLive || deceptiveLive;

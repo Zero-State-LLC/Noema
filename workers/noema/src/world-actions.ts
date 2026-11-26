@@ -134,16 +134,21 @@ import {
 import {
   applyPracticeCredits,
   archivistAttentionDiscount,
+  artificerRefineComputeDiscount,
   brokerWaivesCaution,
+  creditMaintenanceOnly,
   creditsFromEvent,
   heraldComputeDiscount,
   inspectAttentionCost,
+  isArtificerMaintained,
+  isTrackLatent,
   isTrackRecognized,
   lookAttentionCost,
   practiceLines,
   publicTitleLines,
   repairConditionDelta,
   canOverhaul,
+  ARTIFICER_TRACK,
   BROKER_TRACK,
   ENGINEER_TRACK,
   PRACTICED_REPAIR_LINE,
@@ -153,6 +158,19 @@ import {
   type PracticeCredit,
   type PracticeEvent,
 } from "./practice";
+import {
+  ARC_LANCE_INFLUENCE_DISCOUNT,
+  SANCTION_BASE_COST,
+  SANCTION_ROOM_RESTRICTION_CYCLES,
+  SANCTION_WINDOW_CYCLES,
+  buildCrimeDetectedPayload,
+  evaluateContestCrime,
+  evaluateInvestigation,
+  pruneExpiredResidues,
+  sanctionInfluenceDebit,
+  type CrimeDetectionRecord,
+  type CrimeResidue,
+} from "./crime";
 
 import { situationFromLive } from "./orientation";
 import { mutationGroundingOk } from "./signal";
@@ -189,7 +207,15 @@ import {
   type ScarRecord,
   type TrajectoryDigest,
 } from "./deep-time";
-import { focusSelfLine, publicFocusLine, parseFocusTrack, type FocusId } from "./focus";
+import {
+  activeFocusTrackIds,
+  declareFocusTrack,
+  focusSelfLine,
+  focusSelfLines,
+  publicFocusLine,
+  parseFocusTrack,
+  type FocusId,
+} from "./focus";
 import {
   creditAcceptedTrade,
   creditDangerEvidence,
@@ -374,6 +400,8 @@ import {
   itemEntityUpdatePayload,
   itemSpec,
   occupiedCargoExcludingItems,
+  parseItemArchetype,
+  playerCarriedItems,
   projectEquipment,
   projectInventory,
   resolveCarriedItem,
@@ -696,6 +724,9 @@ export type WorldRuntime = {
   /** RFC-0140: full-reserve barter_stall storefronts & local WS01 clearing tape. */
   stalls?: Record<string, BarterStallState>;
   clearing_tape?: ClearingTapeEntry[];
+  /** RFC-0143: forensic crime residues and seeded crime detections. */
+  crime_residues?: CrimeResidue[];
+  crime_detections?: CrimeDetectionRecord[];
   contests?: Record<string, OpenContest>;
   access_restrictions?: Array<{
     restriction_id: string;
@@ -1094,6 +1125,8 @@ export function buildObservation(
     items: w.items,
     materialLots: pl.material_lots,
     stalls: w.stalls,
+    crimeResidues: w.crime_residues,
+    crimeDetections: w.crime_detections,
   });
   const available_actions = [
     ...new Set(
@@ -1338,6 +1371,9 @@ export function buildObservation(
       listing_id: a.listing_id,
       listing_kind: a.listing_kind,
       swap_id: a.swap_id,
+      convert_mode: a.convert_mode,
+      residue_id: a.residue_id,
+      detection_id: a.detection_id,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1345,14 +1381,11 @@ export function buildObservation(
       kind: a.kind,
     })),
     consequence,
-    practice_lines: practiceLines(pl.practice, w.cycle),
+    practice_lines: practiceLines(pl.practice, w.cycle, activeFocusTrackIds(pl.focus)),
     // DEEP-TIME §3.4: succession inheritance was written to player state and
     // never read. The successor can now observe what came with the office.
     inherited_lines: inheritedLines(pl.inherited),
-    focus_lines: (() => {
-      const line = focusSelfLine(pl.focus);
-      return line ? [line] : [];
-    })(),
+    focus_lines: focusSelfLines(pl.focus),
     lot_lines: lotLines(pl.lot_grades, pl.lot_origins, pl.spoil_lines).concat(
       cargoLine(
         pl.budgets.storage ?? 0,
@@ -1377,6 +1410,75 @@ export function buildObservation(
         fills_remaining: l.fills_remaining,
         max_fills: l.max_fills,
       })),
+    open_contracts: Object.values(w.contracts || {})
+      .filter((c) => c.status === "OPEN" && c.room_id === room.room_id)
+      .map((c) => ({
+        contract_id: c.contract_id,
+        org_id: c.org_id,
+        room_id: c.room_id,
+        kind: c.kind,
+        ...(c.target_entity_id ? { target_entity_id: c.target_entity_id } : {}),
+        ...(c.target_condition != null ? { target_condition: c.target_condition } : {}),
+        ...(c.target_count != null ? { target_count: c.target_count } : {}),
+        ...(c.target_material ? { target_material: c.target_material } : {}),
+        ...(c.target_item_archetype ? { target_item_archetype: c.target_item_archetype } : {}),
+        reward_resource: c.reward_resource,
+        reward_amount: c.reward_amount,
+        expires_cycle: c.expires_cycle,
+      })),
+    unlocked_affordances: (() => {
+      const unlocks: Array<{ operation: string; unlocked_by: string }> = [];
+      const eq = equippedItemsMap(w.items, principal.player_id);
+      if (eq.TOOL_SLOT && isItemOperational(eq.TOOL_SLOT)) {
+        if (eq.TOOL_SLOT.archetype === "arc_welder") unlocks.push({ operation: "REPAIR", unlocked_by: "item:arc_welder" });
+        if (eq.TOOL_SLOT.archetype === "plasma_cutter") unlocks.push({ operation: "HARVEST", unlocked_by: "item:plasma_cutter" });
+        if (eq.TOOL_SLOT.archetype === "chrono_lens") unlocks.push({ operation: "INVESTIGATE", unlocked_by: "item:chrono_lens" });
+      }
+      if (eq.WEAPON_SLOT && isItemOperational(eq.WEAPON_SLOT) && eq.WEAPON_SLOT.archetype === "arc_lance") {
+        unlocks.push({ operation: "SANCTION", unlocked_by: "item:arc_lance" });
+      }
+      if (eq.RIG_SLOT && isItemOperational(eq.RIG_SLOT) && eq.RIG_SLOT.archetype === "cargo_rig") {
+        unlocks.push({ operation: "STORAGE_CAPACITY", unlocked_by: "item:cargo_rig" });
+      }
+      const focusTracks = activeFocusTrackIds(pl.focus);
+      if (isTrackRecognized(pl.practice, ENGINEER_TRACK) && !isTrackLatent(pl.practice, ENGINEER_TRACK, w.cycle, focusTracks)) {
+        unlocks.push({ operation: "REPAIR:overhaul", unlocked_by: "mastery:engineer" });
+      }
+      if (isArtificerMaintained(pl.practice, w.cycle, focusTracks)) {
+        unlocks.push({ operation: "CRAFT:masterwork", unlocked_by: "mastery:artificer" });
+      }
+      for (const o of orgs) {
+        if (occupiedOfficesFor(o, principal.player_id, TRADE_PROFILE).length) {
+          unlocks.push({ operation: "SUPPLY", unlocked_by: "office:OPERATE_RESOURCE_ACCOUNT" });
+        }
+        if (occupiedOfficesFor(o, principal.player_id, ACCESS_PROFILE).length) {
+          unlocks.push({ operation: "ACCESS_POLICY", unlocked_by: "office:GRANT_ACCESS" });
+        }
+        if (occupiedOfficesFor(o, principal.player_id, REPAIR_PROFILE).length) {
+          unlocks.push({ operation: "ASSIGN_STEWARD", unlocked_by: "office:OPERATE_NAMED_ASSET" });
+        }
+      }
+      if (!isHiddenRoom(room)) {
+        if (readyClassInRoom(entities, "workshop")) unlocks.push({ operation: "CRAFT", unlocked_by: "infra:workshop" });
+        if (readyClassInRoom(entities, "generator")) {
+          unlocks.push({ operation: "RECHARGE", unlocked_by: "infra:generator" });
+          unlocks.push({ operation: "CONVERT", unlocked_by: "infra:generator" });
+        }
+        if (readyClassInRoom(entities, "archive_annex")) {
+          unlocks.push({ operation: "CONVERT", unlocked_by: "infra:archive_annex" });
+        }
+        if (entities.some((e) => infraClassOf(e) === "barter_stall" && !e.in_progress && !e.scar && (e.condition ?? 0) >= STALL_MIN_OPERATIONAL_CONDITION)) {
+          unlocks.push({ operation: "TRADE:fulfill", unlocked_by: "infra:barter_stall" });
+        }
+      }
+      const seen = new Set<string>();
+      return unlocks.filter((u) => {
+        const k = `${u.operation}|${u.unlocked_by}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    })(),
     social_memory_lines: socialMemoryLines(
       pl.trade_memory,
       Object.fromEntries(
@@ -1578,6 +1680,8 @@ function isConstructSteward(
   w: WorldRuntime,
   entity: {
     owner_id?: string;
+    steward_id?: string;
+    steward_office_id?: string;
     co_owner_id?: string;
     co_owner_2_id?: string;
     co_owner_3_id?: string;
@@ -1588,6 +1692,7 @@ function isConstructSteward(
 ): boolean {
   if (
     entity.owner_id === playerId ||
+    entity.steward_id === playerId ||
     entity.co_owner_id === playerId ||
     entity.co_owner_2_id === playerId ||
     entity.co_owner_3_id === playerId ||
@@ -1595,6 +1700,15 @@ function isConstructSteward(
     entity.co_owner_5_id === playerId
   ) {
     return true;
+  }
+  if (entity.steward_office_id) {
+    for (const org of Object.values(w.organizations || {})) {
+      if (org.status !== "ACTIVE") continue;
+      const off = org.offices?.[entity.steward_office_id];
+      if (off && off.status === "OCCUPIED" && off.holder_player_id === playerId) {
+        return true;
+      }
+    }
   }
   const orgId = entity.owner_id;
   if (orgId && w.organizations[orgId]) return holdsNamedAssetOffice(w, playerId, orgId);
@@ -4037,6 +4151,14 @@ export async function applyWorldCommand(
         ? { [tradeId]: { proposer_id: sellerId, counterparty_id: principal.player_id } }
         : undefined;
       recordPractice(w, principal.player_id, events, storefrontParties);
+      // RFC-0144 §1.2: personal seller earns Artificer practice credit for crafted item sales on barter_stall.
+      if (w.players[sellerId] && listing.offer_asset.kind === "ITEM" && stallOfferItem) {
+        w.players[sellerId].practice = applyPracticeCredits(
+          w.players[sellerId].practice,
+          [{ track_id: ARTIFICER_TRACK, unit: stallOfferItem.item_id, recognition_unit: stallOfferItem.item_id }],
+          w.cycle,
+        );
+      }
 
       const line = `Fulfilled ${listing.listing_kind} at ${titleCaseLabel(stallEnt.label)}: gave ${summarizeAsset(listing.ask_asset)}, received ${summarizeAsset(listing.offer_asset)}.`;
       const result = success(w, principal, request_id, events, line, settled, "barter", line);
@@ -4564,8 +4686,12 @@ export async function applyWorldCommand(
           return fail(request_id, "FORBIDDEN", "org_id already exists");
         }
       } else {
-        org_id = allocateOrgId(name);
-        while (w.organizations[org_id]) org_id = allocateOrgId(name);
+        let salt = 0;
+        org_id = allocateOrgId(name, w.sequence + salt, w.cycle);
+        while (w.organizations[org_id]) {
+          salt += 1;
+          org_id = allocateOrgId(name, w.sequence + salt, w.cycle);
+        }
       }
       const orgQ = signalQuarantineMessage(action.arguments.signal);
       if (orgQ) {
@@ -4952,7 +5078,7 @@ export async function applyWorldCommand(
       return result;
     }
 
-    // RFC-0138 CONTRACT_POST: bounded, escrowed WS06 civic contract.
+    // RFC-0138 & RFC-0144 CONTRACT_POST: bounded, escrowed WS06 civic contract.
     if (action.arguments.operation === "CONTRACT_POST") {
       const room = w.rooms[pl.room_id];
       if (!room || isHiddenRoom(room)) {
@@ -4969,22 +5095,46 @@ export async function applyWorldCommand(
         return fail(request_id, "FORBIDDEN", "Only an authorized office holder or founder may post contracts.");
       }
       const kind = parseContractKind(action.arguments.contract_kind);
-      if (!kind) return fail(request_id, "INVALID_REQUEST", "Contract kind must be REPAIR_TARGET or ATTEST_ROOM.");
+      if (!kind) {
+        return fail(
+          request_id,
+          "INVALID_REQUEST",
+          "Contract kind must be REPAIR_TARGET, ATTEST_ROOM, DELIVER_LOT, or CRAFT_ITEM.",
+        );
+      }
+      if (kind === "DELIVER_LOT" && !action.arguments.target_material) {
+        return fail(request_id, "INVALID_REQUEST", "DELIVER_LOT contract requires target_material.");
+      }
+      const targetItemArch = action.arguments.target_item_archetype
+        ? parseItemArchetype(action.arguments.target_item_archetype)
+        : null;
+      if (kind === "CRAFT_ITEM" && !targetItemArch) {
+        return fail(request_id, "INVALID_REQUEST", "CRAFT_ITEM contract requires a valid target_item_archetype.");
+      }
       w.contracts = w.contracts || {};
       if (openContractsForOrg(w.contracts, orgId).length >= MAX_OPEN_CONTRACTS_PER_ORG) {
         return fail(request_id, "FORBIDDEN", "This organization already has the maximum number of open contracts.");
       }
-      const reward_resource = action.arguments.reward_resource === "influence" ? "influence" : "storage";
+      const reward_resource =
+        action.arguments.reward_resource === "influence"
+          ? "influence"
+          : action.arguments.reward_resource === "energy"
+            ? "energy"
+            : "storage";
       const reward_amount = clampContractReward(reward_resource, action.arguments.reward_amount);
       if (!canPay(pl.budgets, COSTS.CONTRACT_POST)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1 to post a contract.");
       }
-      if (reward_resource === "storage") {
+      if (reward_resource === "storage" || reward_resource === "energy") {
         const vault = ensureTreasury(org);
-        if ((vault.storage ?? 0) < reward_amount) {
-          return fail(request_id, "BUDGET_EXCEEDED", "Not enough cargo in the organization treasury to escrow.");
+        if ((vault[reward_resource] ?? 0) < reward_amount) {
+          return fail(
+            request_id,
+            "BUDGET_EXCEEDED",
+            `Not enough ${reward_resource === "storage" ? "cargo" : "energy"} in the organization treasury to escrow.`,
+          );
         }
-        vault.storage = (vault.storage ?? 0) - reward_amount;
+        vault[reward_resource] = (vault[reward_resource] ?? 0) - reward_amount;
       } else {
         if ((pl.budgets.influence ?? 0) < reward_amount) {
           return fail(request_id, "BUDGET_EXCEEDED", "Not enough influence to escrow for this contract.");
@@ -4993,6 +5143,10 @@ export async function applyWorldCommand(
       }
       debit(pl.budgets, COSTS.CONTRACT_POST);
       const contract_id = allocateContractId(w.sequence, w.cycle, `${orgId}:${room.room_id}:${kind}`);
+      const clampedCount =
+        kind === "DELIVER_LOT"
+          ? Math.max(1, Math.min(6, Math.floor(action.arguments.target_count ?? 2)))
+          : Math.max(1, Math.floor(action.arguments.target_count ?? 2));
       const contract: CivicContract = {
         contract_id,
         org_id: orgId,
@@ -5001,7 +5155,9 @@ export async function applyWorldCommand(
         kind,
         target_entity_id: action.arguments.entity_id,
         target_condition: action.arguments.target_condition ?? 80,
-        target_count: action.arguments.target_count ?? 2,
+        target_count: clampedCount,
+        ...(action.arguments.target_material ? { target_material: action.arguments.target_material } : {}),
+        ...(targetItemArch ? { target_item_archetype: targetItemArch } : {}),
         reward_resource,
         reward_amount,
         posted_cycle: w.cycle,
@@ -5026,7 +5182,7 @@ export async function applyWorldCommand(
       return result;
     }
 
-    // RFC-0138 CONTRACT_FULFILL: claim escrowed reward once deterministic predicate holds.
+    // RFC-0138 & RFC-0144 CONTRACT_FULFILL: claim escrowed reward once deterministic predicate holds.
     if (action.arguments.operation === "CONTRACT_FULFILL") {
       const cid = String(action.arguments.contract_id || "").trim();
       const contract = w.contracts?.[cid];
@@ -5040,33 +5196,512 @@ export async function applyWorldCommand(
         return fail(request_id, "NOT_COLOCATED", "You must be in the contract's room to fulfill it.");
       }
       const room = w.rooms[contract.room_id];
-      if (!room || !contractPredicateHolds(contract, roomEntities(room), w.evidence_fragments)) {
+      const ents = room ? roomEntities(room) : [];
+      if (!room || !contractPredicateHolds(contract, ents, w.evidence_fragments)) {
         return fail(request_id, "FORBIDDEN", "The contract's completion condition has not been met yet.");
       }
-      if (contract.reward_resource === "storage" && (pl.budgets.storage ?? 0) < contract.reward_amount) {
+      w.items = w.items || {};
+      const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+      const org = w.organizations[contract.org_id];
+      const orgStallEnt = ents.find(
+        (e) =>
+          infraClassOf(e) === "barter_stall" &&
+          e.owner_id === contract.org_id &&
+          !e.in_progress &&
+          !e.scar &&
+          (e.condition ?? 0) >= STALL_MIN_OPERATIONAL_CONDITION,
+      );
+
+      // Validate & prepare delivery for DELIVER_LOT / CRAFT_ITEM before mutating anything.
+      let deliveryStorageFreed = 0;
+      let lotDelivery: ReturnType<typeof consumeMaterialLots> | null = null;
+      let itemDelivery: PortableItem | undefined;
+      if (contract.kind === "DELIVER_LOT") {
+        const mat = contract.target_material;
+        const qty = Math.max(1, Math.min(6, contract.target_count ?? 2));
+        if (!mat) return fail(request_id, "INVALID_REQUEST", "Contract missing target_material.");
+        const occCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
+        const reconciled = reconcileMaterialLots(pl.material_lots, occCargo, pl.lot_grades?.storage || "SOUND");
+        lotDelivery = consumeMaterialLots(reconciled, { [mat]: qty }, { minGrade: "SOUND" });
+        if (!lotDelivery.ok) {
+          return fail(request_id, "BUDGET_EXCEEDED", `You need ${qty} SOUND+ ${mat} to fulfill this contract.`);
+        }
+        deliveryStorageFreed = lotDelivery.totalUnits;
+      } else if (contract.kind === "CRAFT_ITEM") {
+        const arch = contract.target_item_archetype;
+        if (!arch) return fail(request_id, "INVALID_REQUEST", "Contract missing target_item_archetype.");
+        const candidates = playerCarriedItems(w.items, principal.player_id).filter(
+          (it) => it.archetype === arch && !it.equipped_slot && it.condition >= 80 && it.quality !== "WORN" && !it.makeshift,
+        );
+        candidates.sort((a, b) => a.condition - b.condition || a.item_id.localeCompare(b.item_id));
+        itemDelivery = candidates[0];
+        if (!itemDelivery) {
+          return fail(
+            request_id,
+            "BUDGET_EXCEEDED",
+            `You must carry an unequipped SOUND+ ${arch} (condition >= 80) to fulfill this contract.`,
+          );
+        }
+        deliveryStorageFreed = itemBulk(itemDelivery);
+      }
+
+      const freeAfterDelivery = Math.min(storageCap, Math.floor(pl.budgets.storage ?? 0) + deliveryStorageFreed);
+      if (contract.reward_resource === "storage" && freeAfterDelivery < contract.reward_amount) {
         return fail(
           request_id,
           "BUDGET_EXCEEDED",
           "You do not have enough free storage to receive the contract reward.",
         );
       }
+
+      // Execute delivery leg if DELIVER_LOT or CRAFT_ITEM.
+      if (contract.kind === "DELIVER_LOT" && lotDelivery?.ok) {
+        pl.material_lots = lotDelivery.lots;
+        pl.budgets.storage = freeAfterDelivery;
+        let destId = contract.org_id;
+        if (orgStallEnt && w.stalls?.[orgStallEnt.entity_id] && totalMaterialLots(w.stalls[orgStallEnt.entity_id].material_lots) + lotDelivery.totalUnits <= STALL_TOTAL_LOTS_CAP) {
+          for (const c of lotDelivery.consumed) {
+            depositLotIntoStall(w.stalls[orgStallEnt.entity_id], c.material, c.grade, c.amount);
+          }
+          destId = orgStallEnt.entity_id;
+        } else if (org) {
+          const vault = ensureTreasury(org);
+          vault.storage = Math.min(TREASURY_STORAGE_CAP, (vault.storage ?? 0) + lotDelivery.totalUnits);
+        }
+        const delEv = pushEvent("RESOURCE_TRANSFER", {
+          transfer_id: `contract.${cid}.deliver`,
+          from_id: principal.player_id,
+          to_id: destId,
+          resource: "storage",
+          amount: lotDelivery.totalUnits,
+        });
+        await settleEv(delEv);
+      } else if (contract.kind === "CRAFT_ITEM" && itemDelivery) {
+        pl.budgets.storage = freeAfterDelivery;
+        itemDelivery.owner_id = contract.org_id;
+        itemDelivery.steward_id = contract.org_id;
+        if (orgStallEnt && w.stalls?.[orgStallEnt.entity_id] && w.stalls[orgStallEnt.entity_id].item_ids.length < STALL_DISCRETE_ITEMS_CAP) {
+          itemDelivery.location = { kind: "CONTAINER", container_entity_id: orgStallEnt.entity_id };
+          w.stalls[orgStallEnt.entity_id].item_ids.push(itemDelivery.item_id);
+        } else {
+          itemDelivery.location = { kind: "ROOM", room_id: room.room_id };
+        }
+        const delEv = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(itemDelivery.item_id, {
+            owner_id: itemDelivery.owner_id,
+            steward_id: itemDelivery.steward_id,
+            location: itemDelivery.location,
+          }),
+        );
+        await settleEv(delEv);
+      }
+
       const payout = applyContractPayout(contract, pl.budgets);
       contract.status = "FULFILLED";
       contract.fulfilled_by = principal.player_id;
       contract.fulfilled_cycle = w.cycle;
       const ev = pushEvent("RESOURCE_TRANSFER", {
         transfer_id: `contract.${cid}`,
-        kind: "contract",
         from_id: contract.org_id,
         to_id: principal.player_id,
-        room_id: contract.room_id,
         resource: payout.resource,
         amount: payout.granted,
-        contract_id: cid,
       });
       await settleEv(ev);
-      const line = `Fulfilled contract ${cid} and received ${payout.granted} ${payout.resource === "storage" ? "cargo" : "influence"}.`;
+      const unitLabel =
+        payout.resource === "storage" ? "cargo" : payout.resource === "energy" ? "energy" : "influence";
+      const line = `Fulfilled contract ${cid} and received ${payout.granted} ${unitLabel}.`;
       const result = success(w, principal, request_id, events, line, settled, "contract", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0142 §1: Deterministic Integer Infrastructure Synthesis (COMMIT.CONVERT).
+    if (action.arguments.operation === "CONVERT") {
+      const room = w.rooms[pl.room_id];
+      if (!room || isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "Infrastructure conversion is available in public rooms only.");
+      }
+      const mode = action.arguments.convert_mode;
+      if (mode !== "power" && mode !== "compute") {
+        return fail(request_id, "INVALID_REQUEST", "convert_mode must be power or compute.");
+      }
+      const ents = roomEntities(room);
+      const requiredClass = mode === "power" ? "generator" : "archive_annex";
+      const infra = ents.find(
+        (e) => infraClassOf(e) === requiredClass && !e.in_progress && !e.scar && (e.condition ?? 0) >= 50,
+      );
+      if (!infra) {
+        return fail(
+          request_id,
+          "FORBIDDEN",
+          `Convert ${mode} requires an operational ${requiredClass} (condition >= 50) in this room.`,
+        );
+      }
+      const protoStrength = Math.max(0, Math.floor(w.co_evolution?.protocol_strength?.[room.room_id] ?? 0));
+      w.items = w.items || {};
+      const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+      const occCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
+      const reconciled = reconcileMaterialLots(pl.material_lots, occCargo, pl.lot_grades?.storage || "SOUND");
+
+      if (mode === "power") {
+        if ((pl.budgets.energy ?? 0) >= 80) {
+          return fail(request_id, "BUDGET_EXCEEDED", "Your energy is already at the cap (80).");
+        }
+        if (!canPay(pl.budgets, COSTS.CONVERT_POWER)) {
+          return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1 to convert cargo into power.");
+        }
+        // Prefer 2 SILICA_CELL; fallback to 3 untyped/SALVAGE_COMPOSITE cargo.
+        let spentLots: ReturnType<typeof consumeMaterialLots> | null = null;
+        let spentGeneric: ReturnType<typeof consumeGenericCargoLots> | null = null;
+        const trySilica = consumeMaterialLots(reconciled, { SILICA_CELL: 2 });
+        if (trySilica.ok) {
+          spentLots = trySilica;
+        } else if (occCargo - reservedCargoFor(w, principal.player_id) >= 3) {
+          spentGeneric = consumeGenericCargoLots(reconciled, 3);
+        } else {
+          return fail(request_id, "BUDGET_EXCEEDED", "Convert power requires 2 SILICA_CELL or 3 cargo in hold.");
+        }
+        const freed = spentLots?.ok ? spentLots.totalUnits : spentGeneric!.consumed.reduce((a, c) => a + c.amount, 0);
+        pl.material_lots = spentLots?.ok ? spentLots.lots : spentGeneric!.lots;
+        pl.budgets.storage = Math.min(storageCap, Math.floor(pl.budgets.storage ?? 0) + freed);
+        debit(pl.budgets, COSTS.CONVERT_POWER);
+        const rawGain = 6 + Math.min(4, Math.floor(protoStrength / 3));
+        const beforeE = Math.floor(pl.budgets.energy ?? 0);
+        const afterE = Math.min(80, beforeE + rawGain);
+        const gain = afterE - beforeE;
+        pl.budgets.energy = afterE;
+        infra.condition = Math.max(25, (infra.condition ?? 100) - 1);
+        const iIdx = room.entities.findIndex((e) => e.entity_id === infra.entity_id);
+        if (iIdx >= 0) room.entities[iIdx] = infra;
+        pushEvent("BUDGET_CONSUMED", {
+          player_id: principal.player_id,
+          cost_paid: COSTS.CONVERT_POWER,
+          reason: "CONVERT",
+        });
+        const txEv = pushEvent("RESOURCE_TRANSFER", {
+          transfer_id: `convert.power.${w.sequence + 1}`,
+          from_id: infra.entity_id,
+          to_id: principal.player_id,
+          resource: "energy",
+          amount: gain,
+        });
+        await settleEv(txEv);
+        const wearEv = pushEvent("ENTITY_UPDATE", {
+          entity_id: infra.entity_id,
+          set: { condition: infra.condition },
+          unset: [],
+        });
+        await settleEv(wearEv);
+        const line = `Converted ${freed} cargo at ${titleCaseLabel(infra.label)} into +${gain} energy.`;
+        const result = success(w, principal, request_id, events, line, settled, "convert", line);
+        w.seen_idempotency[idem] = result;
+        return result;
+      }
+
+      // mode === "compute"
+      if ((pl.budgets.compute ?? 0) >= 64) {
+        return fail(request_id, "BUDGET_EXCEEDED", "Your compute is already at the cap (64).");
+      }
+      if (!canPay(pl.budgets, COSTS.CONVERT_COMPUTE)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 1 to convert silica into compute.");
+      }
+      const spentSilica = consumeMaterialLots(reconciled, { SILICA_CELL: 2 });
+      if (!spentSilica.ok) {
+        return fail(request_id, "BUDGET_EXCEEDED", "Convert compute requires 2 SILICA_CELL in hold.");
+      }
+      pl.material_lots = spentSilica.lots;
+      pl.budgets.storage = Math.min(storageCap, Math.floor(pl.budgets.storage ?? 0) + spentSilica.totalUnits);
+      debit(pl.budgets, COSTS.CONVERT_COMPUTE);
+      const rawGain = 5 + Math.min(3, Math.floor(protoStrength / 3));
+      const beforeC = Math.floor(pl.budgets.compute ?? 0);
+      const afterC = Math.min(64, beforeC + rawGain);
+      const gain = afterC - beforeC;
+      pl.budgets.compute = afterC;
+      infra.condition = Math.max(25, (infra.condition ?? 100) - 1);
+      const iIdx = room.entities.findIndex((e) => e.entity_id === infra.entity_id);
+      if (iIdx >= 0) room.entities[iIdx] = infra;
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.CONVERT_COMPUTE,
+        reason: "CONVERT",
+      });
+      const txEv = pushEvent("RESOURCE_TRANSFER", {
+        transfer_id: `convert.compute.${w.sequence + 1}`,
+        from_id: infra.entity_id,
+        to_id: principal.player_id,
+        resource: "compute",
+        amount: gain,
+      });
+      await settleEv(txEv);
+      const wearEv = pushEvent("ENTITY_UPDATE", {
+        entity_id: infra.entity_id,
+        set: { condition: infra.condition },
+        unset: [],
+      });
+      await settleEv(wearEv);
+      const line = `Converted 2 SILICA_CELL at ${titleCaseLabel(infra.label)} into +${gain} compute.`;
+      const result = success(w, principal, request_id, events, line, settled, "convert", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0143: Forensic INVESTIGATE of unresolved public-room CrimeResidue.
+    if (action.arguments.operation === "INVESTIGATE") {
+      const room = w.rooms[pl.room_id];
+      if (!room || isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "Forensic investigation is available in public rooms only.");
+      }
+      if (!canPay(pl.budgets, COSTS.INVESTIGATE)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need attention 2 and compute 1 to investigate.");
+      }
+      w.crime_residues = pruneExpiredResidues(w.crime_residues, w.cycle);
+      w.crime_detections = w.crime_detections || [];
+      const hasLiveResidue = w.crime_residues.some((r) => r.room_id === room.room_id && !r.resolved);
+      if (!hasLiveResidue) {
+        return fail(request_id, "NOT_FOUND", "No unresolved forensic residue remains in this room.");
+      }
+      debit(pl.budgets, COSTS.INVESTIGATE);
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.INVESTIGATE,
+        reason: "INVESTIGATE",
+      });
+      const hasLens = Boolean(equippedOperationalItem(w.items, principal.player_id, "chrono_lens"));
+      const inv = evaluateInvestigation({
+        residues: w.crime_residues,
+        roomId: room.room_id,
+        cycle: w.cycle,
+        hasChronoLens: hasLens,
+      });
+      if (inv.matched) {
+        w.crime_detections.push(inv.matched.record);
+        const detEv = pushEvent("CRIME_DETECTED", inv.matched.payload);
+        await settleEv(detEv);
+        const line = `Forensic investigation detected ${inv.matched.record.category} (${inv.matched.record.severity}) by ${inv.matched.record.subject_id} [${inv.matched.record.detection_id}].`;
+        const result = success(w, principal, request_id, events, line, settled, "investigate", line);
+        w.seen_idempotency[idem] = result;
+        return result;
+      }
+      const line = "Your forensic sweep found faint traces, but not enough to establish a formal detection.";
+      const result = success(w, principal, request_id, events, line, settled, "investigate", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0143: Accountable Institutional or Personal-Victim SANCTION.
+    if (action.arguments.operation === "SANCTION") {
+      const detId = String(action.arguments.detection_id || "").trim();
+      w.crime_detections = w.crime_detections || [];
+      const det = w.crime_detections.find((d) => d.detection_id === detId);
+      if (!det) return fail(request_id, "NOT_FOUND", "Unknown crime detection.");
+      if (det.sanctioned) return fail(request_id, "FORBIDDEN", "That crime detection has already been sanctioned.");
+      if (w.cycle - det.detected_cycle > SANCTION_WINDOW_CYCLES) {
+        return fail(request_id, "FORBIDDEN", "The sanction window for that crime detection has closed.");
+      }
+      if (det.subject_id === principal.player_id) {
+        return fail(request_id, "FORBIDDEN", "You cannot sanction yourself.");
+      }
+      const isVictim = det.victim_id === principal.player_id;
+      const officerOrg = Object.values(w.organizations || {}).find(
+        (org) =>
+          org.status === "ACTIVE" &&
+          (occupiedOfficesFor(org, principal.player_id, ACCESS_PROFILE).length > 0 ||
+            occupiedOfficesFor(org, principal.player_id, REPAIR_PROFILE).length > 0),
+      );
+      if (!isVictim && !officerOrg) {
+        return fail(
+          request_id,
+          "FORBIDDEN",
+          "Sanction requires being the named victim or holding a GRANT_ACCESS / OPERATE_NAMED_ASSET office.",
+        );
+      }
+      const hasLance = Boolean(equippedOperationalItem(w.items, principal.player_id, "arc_lance"));
+      const cost: Partial<Budgets> = {
+        influence: Math.max(0, (SANCTION_BASE_COST.influence ?? 2) - (hasLance ? ARC_LANCE_INFLUENCE_DISCOUNT : 0)),
+        compute: SANCTION_BASE_COST.compute ?? 2,
+      };
+      if (!canPay(pl.budgets, cost)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough influence and compute to levy a sanction.");
+      }
+      debit(pl.budgets, cost);
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: cost,
+        reason: "SANCTION",
+      });
+      det.sanctioned = true;
+      det.sanctioned_by = principal.player_id;
+      det.sanctioned_cycle = w.cycle;
+      const targetPlayer = w.players[det.subject_id];
+      const desiredDebit = sanctionInfluenceDebit(det.severity);
+      let appliedDebit = 0;
+      if (targetPlayer) {
+        const beforeInf = Math.max(0, Math.floor(targetPlayer.budgets.influence ?? 0));
+        appliedDebit = Math.min(beforeInf, desiredDebit);
+        targetPlayer.budgets.influence = beforeInf - appliedDebit;
+      }
+      if (appliedDebit > 0) {
+        const txEv = pushEvent("RESOURCE_TRANSFER", {
+          transfer_id: `sanction.${det.detection_id}`,
+          from_id: det.subject_id,
+          to_id: "world.sanction-sink",
+          resource: "influence",
+          amount: appliedDebit,
+        });
+        await settleEv(txEv);
+      }
+      // Apply 8-cycle room access restriction on the crime's room.
+      w.access_restrictions = w.access_restrictions || [];
+      const restrictionId = deterministicId("restrict.sanction", det.detection_id, w.cycle);
+      w.access_restrictions.push({
+        restriction_id: restrictionId,
+        scope: "ROOM",
+        mode: "DENY",
+        applies_to: det.subject_id,
+        room_id: det.room_id,
+        expires_cycle: w.cycle + SANCTION_ROOM_RESTRICTION_CYCLES,
+      });
+      // Record severity-scaled danger memory on sanctioner / institution.
+      pl.danger_memory = creditDangerEvidence(pl.danger_memory, det.subject_id, det.detection_id, w.cycle, det.severity);
+      if (officerOrg) {
+        officerOrg.institution_memory = creditInstitutionDanger(
+          officerOrg.institution_memory,
+          det.subject_id,
+          det.detection_id,
+          w.cycle,
+        );
+      }
+      const line = `Sanctioned ${det.subject_id} for ${det.severity} ${det.category}: debited ${appliedDebit} influence and restricted room access for ${SANCTION_ROOM_RESTRICTION_CYCLES} cycles.`;
+      const result = success(w, principal, request_id, events, line, settled, "sanction", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0144 §2: Creator Attribution vs. Active Steward Split (COMMIT.ASSIGN_STEWARD).
+    if (action.arguments.operation === "ASSIGN_STEWARD") {
+      if (!canPay(pl.budgets, COSTS.ASSIGN_STEWARD)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1 to assign stewardship.");
+      }
+      const targetId = String(action.arguments.entity_id || "").trim();
+      const stewardId = action.arguments.steward_id;
+      const stewardOfficeId = action.arguments.steward_office_id;
+      const room = w.rooms[pl.room_id];
+      const roomEnt = room ? findEntity(room, targetId) : null;
+      const itemEnt = w.items?.[targetId];
+      if (!roomEnt && !itemEnt) {
+        return fail(request_id, "NOT_FOUND", `Entity ${targetId} not found.`);
+      }
+      const ownerId = roomEnt ? roomEnt.owner_id : itemEnt!.owner_id;
+      const isPersonalOwner = ownerId === principal.player_id;
+      const ownerOrg = ownerId && ownerId.startsWith("org.") ? w.organizations[ownerId] : undefined;
+      const isOrgOfficerSteward = Boolean(
+        ownerOrg &&
+          (occupiedOfficesFor(ownerOrg, principal.player_id, REPAIR_PROFILE).length > 0 ||
+            occupiedOfficesFor(ownerOrg, principal.player_id, TRADE_PROFILE).length > 0),
+      );
+      if (!isPersonalOwner && !isOrgOfficerSteward) {
+        return fail(
+          request_id,
+          "FORBIDDEN",
+          "Only the asset owner or a seated OPERATE_NAMED_ASSET / OPERATE_RESOURCE_ACCOUNT officer may assign a steward.",
+        );
+      }
+      if (stewardOfficeId) {
+        const officeExists = Object.values(w.organizations || {}).some(
+          (o) => o.status === "ACTIVE" && Boolean(o.offices?.[stewardOfficeId]),
+        );
+        if (!officeExists) {
+          return fail(request_id, "NOT_FOUND", `Office ${stewardOfficeId} does not exist.`);
+        }
+      }
+      debit(pl.budgets, COSTS.ASSIGN_STEWARD);
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.ASSIGN_STEWARD,
+        reason: "ASSIGN_STEWARD",
+      });
+      if (roomEnt) {
+        if (stewardId) roomEnt.steward_id = stewardId;
+        if (stewardOfficeId) roomEnt.steward_office_id = stewardOfficeId;
+        const idx = room!.entities.findIndex((e) => e.entity_id === roomEnt.entity_id);
+        if (idx >= 0) room!.entities[idx] = roomEnt;
+        const ev = pushEvent("ENTITY_UPDATE", {
+          entity_id: roomEnt.entity_id,
+          set: {
+            ...(stewardId ? { steward_id: stewardId } : {}),
+            ...(stewardOfficeId ? { steward_office_id: stewardOfficeId } : {}),
+          },
+          unset: [],
+        });
+        await settleEv(ev);
+      } else if (itemEnt) {
+        if (stewardId) itemEnt.steward_id = stewardId;
+        if (stewardOfficeId) itemEnt.steward_office_id = stewardOfficeId;
+        const ev = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(itemEnt.item_id, {
+            ...(stewardId ? { steward_id: stewardId } : {}),
+            ...(stewardOfficeId ? { steward_office_id: stewardOfficeId } : {}),
+          }),
+        );
+        await settleEv(ev);
+      }
+      const targetWho = stewardOfficeId || stewardId || "steward";
+      const line = `Assigned ${targetWho} as steward of ${targetId}.`;
+      const result = success(w, principal, request_id, events, line, settled, "steward", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0144 §3: Charter-Gated or Invite-Gated Self-Join (COMMIT.ORG_JOIN).
+    if (action.arguments.operation === "ORG_JOIN") {
+      const orgId = String(action.arguments.org_id || "").trim();
+      const org = w.organizations[orgId];
+      if (!org || org.status !== "ACTIVE") {
+        return fail(request_id, "NOT_FOUND", "Organization not found or inactive.");
+      }
+      if (isOrgMember(org, principal.player_id)) {
+        return fail(request_id, "FORBIDDEN", "You are already a member of that organization.");
+      }
+      if (liveInstitutionHostileToward(org.institution_memory, principal.player_id, w.cycle)) {
+        return fail(request_id, "FORBIDDEN", "You have an active institutional hostility record with this organization.");
+      }
+      const openCharter = Boolean(org.governance_rule?.published && org.governance_rule.admission_mode === "OPEN_CHARTER");
+      const invited = (org.invited_player_ids || []).includes(principal.player_id);
+      if (!openCharter && !invited) {
+        return fail(
+          request_id,
+          "FORBIDDEN",
+          "Joining requires either an active OPEN_CHARTER governance rule or an explicit invitation.",
+        );
+      }
+      if (!canPay(pl.budgets, COSTS.ORG_JOIN)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1 to join an organization.");
+      }
+      debit(pl.budgets, COSTS.ORG_JOIN);
+      org.members.push({ agent_id: principal.player_id, role: "member" });
+      if (org.invited_player_ids?.length) {
+        org.invited_player_ids = org.invited_player_ids.filter((id) => id !== principal.player_id);
+      }
+      const decidingOfficeId = org.governance_rule?.decision?.offices?.[0];
+      const decidingHolder = decidingOfficeId ? org.offices?.[decidingOfficeId]?.holder_player_id : undefined;
+      const authorizedBy = decidingHolder || org.creator_id;
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.ORG_JOIN,
+        reason: "ORG_JOIN",
+      });
+      const ev = pushEvent("ORG_MEMBER_ADD", {
+        org_id: org.org_id,
+        agent_id: principal.player_id,
+        role: "member",
+        authorized_by: authorizedBy,
+      });
+      await settleEv(ev);
+      const line = `Joined ${org.name} (${org.org_id}).`;
+      const result = success(w, principal, request_id, events, line, settled, "org", line);
       w.seen_idempotency[idem] = result;
       return result;
     }
@@ -5121,12 +5756,18 @@ export async function applyWorldCommand(
         sequence: w.sequence + 1,
         lowestLotGrade: consumed.lowestGrade,
         allRefined: consumed.allRefined,
+        artificerMastery: isArtificerMaintained(pl.practice, w.cycle, activeFocusTrackIds(pl.focus)),
       });
       w.items[item.item_id] = item;
       const auto = autoEquipIfSlotEmpty(w.items, principal.player_id, item, pl.budgets);
       const remCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
       pl.lot_grades = spendLot(pl.lot_grades, remCargo, "storage");
       pl.lot_origins = spendOrigin(pl.lot_origins, remCargo, "storage");
+      pl.practice = applyPracticeCredits(
+        pl.practice,
+        [{ track_id: ARTIFICER_TRACK, unit: item.item_id, recognition_unit: item.item_id }],
+        w.cycle,
+      );
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
         cost_paid: spec.craft_budgets,
@@ -5148,9 +5789,13 @@ export async function applyWorldCommand(
       }
       const mat = action.arguments.material;
       if (!mat) return fail(request_id, "INVALID_REQUEST", "Material archetype required.");
-      const refineCost = { ...REFINE_COST };
+      const artDiscount = artificerRefineComputeDiscount(pl.practice, w.cycle, activeFocusTrackIds(pl.focus));
+      const refineCost = {
+        ...REFINE_COST,
+        compute: Math.max(0, (REFINE_COST.compute ?? 1) - artDiscount),
+      };
       if (!canPay(pl.budgets, refineCost)) {
-        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 2 and compute 1 to refine.");
+        return fail(request_id, "BUDGET_EXCEEDED", `You need energy ${refineCost.energy ?? 2} and compute ${refineCost.compute} to refine.`);
       }
       w.items = w.items || {};
       const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
@@ -6078,6 +6723,8 @@ export async function applyWorldCommand(
         entity_type: "INFRASTRUCTURE",
         condition: 100,
         owner_id: builtOwner,
+        creator_id: principal.player_id,
+        steward_id: builtOwner,
         infra_type: classId,
         last_steward_cycle: w.cycle,
         ...(isMultiCycleClass(classId) ? { in_progress: true } : {}),
@@ -6100,8 +6747,12 @@ export async function applyWorldCommand(
         location: target.room_id,
         room_id: target.room_id,
         label,
-        properties: { infra_type: classId, ...(isMultiCycleClass(classId) ? { in_progress: true } : {}) },
-        state: { condition: 100 },
+        properties: {
+          infra_type: classId,
+          creator_id: principal.player_id,
+          ...(isMultiCycleClass(classId) ? { in_progress: true } : {}),
+        },
+        state: { condition: 100, steward_id: builtOwner },
       });
       await settleEv(ev);
       const result = success(
@@ -6282,6 +6933,11 @@ export async function applyWorldCommand(
         unset: [],
       });
       await settleEv(ev);
+      pl.practice = applyPracticeCredits(
+        pl.practice,
+        [{ track_id: ARTIFICER_TRACK, unit: here.entity_id, recognition_unit: here.entity_id }],
+        w.cycle,
+      );
       const posted = success(w, principal, request_id, events, "The workshop was upgraded.", settled);
       w.seen_idempotency[idem] = posted;
       return posted;
@@ -7451,15 +8107,22 @@ function applyFocus(
 ): CommandResult {
   if (!pl.entered) return fail(request_id, "FORBIDDEN", "You must enter the world first.");
   const parsed = parseFocusTrack(args.clear ? "clear" : String(args.track || ""));
-  if (!parsed) return fail(request_id, "INVALID_REQUEST", "Focus: explorer, surveyor, broker, engineer, or clear.");
+  if (!parsed) {
+    return fail(
+      request_id,
+      "INVALID_REQUEST",
+      "Focus: explorer, surveyor, broker, engineer, archivist, herald, artificer, or clear.",
+    );
+  }
   if (parsed === "clear") {
     delete pl.focus;
     const result = success(w, principal, request_id, [], "You clear your focus.", true);
     w.seen_idempotency[idem] = result;
     return result;
   }
-  pl.focus = { track: parsed as FocusId, declared_cycle: w.cycle };
-  const line = focusSelfLine(pl.focus) || "You set a focus.";
+  pl.focus = declareFocusTrack(pl.focus, parsed as FocusId, w.cycle);
+  const lines = focusSelfLines(pl.focus);
+  const line = lines.length ? lines.join(" ") : focusSelfLine(pl.focus) || "You set a focus.";
   const result = success(w, principal, request_id, [], line, true);
   w.seen_idempotency[idem] = result;
   return result;
@@ -9215,8 +9878,65 @@ async function resolveDueContests(
       }
     }
 
+    // RFC-0144 §1.3: Legal CONTEST_DEFEND on an unfavorable or partial contest grants 1 maintenance unit (0 recognition).
+    if (!expired && activelyDefended && contest.defender_id && (outcome === "SUCCESS" || outcome === "PARTIAL_SUCCESS")) {
+      const defPlayer = w.players[contest.defender_id];
+      if (defPlayer) {
+        defPlayer.practice = creditMaintenanceOnly(defPlayer.practice, ENGINEER_TRACK, w.cycle);
+      }
+    }
+
     if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") continue;
     await applyContestSuccessFollowOns(w, contest, outcome, pushEvent, settleEv, equipFx, score);
+
+    // RFC-0143: Deterministic seeded CRIME_DETECTED / CrimeResidue producer on public-room contest resolution.
+    const cRoom = w.rooms[contest.room_id];
+    if (cRoom && !isHiddenRoom(cRoom)) {
+      const cEnts = roomEntities(cRoom);
+      const targetEnt =
+        contest.target.kind === "ENTITY"
+          ? cEnts.find((e) => e.entity_id === (contest.target as { entity_id: string }).entity_id)
+          : undefined;
+      const victimId =
+        contest.defender_id ||
+        (contest.target.kind === "HOLDING"
+          ? contest.target.holder_id
+          : contest.target.kind === "AGENT"
+            ? contest.target.agent_id
+            : targetEnt?.owner_id);
+      const subjectOrgMembers = new Set<string>();
+      for (const org of Object.values(w.organizations || {})) {
+        if (org.status === "ACTIVE" && isOrgMember(org, contest.declarer_id)) {
+          for (const m of org.members || []) subjectOrgMembers.add(m.agent_id);
+        }
+      }
+      const crimeOutcome = await evaluateContestCrime({
+        contest,
+        sourceEventId: ev.event_id,
+        cycle: w.cycle,
+        roomEntities: cEnts,
+        players: w.players,
+        subjectOrgMemberIds: subjectOrgMembers,
+        victimId,
+        violatedNonAggression: Boolean(
+          victimId && forbiddenByNonAggression(w.agreements, contest.declarer_id, victimId),
+        ),
+        targetIsBarterStall: Boolean(targetEnt && infraClassOf(targetEnt) === "barter_stall"),
+        usedBreachCharge: false,
+        weaponAssisted: Boolean(equipFx?.attackerWeapon),
+        weaponSignatureMp: equipFx?.crimeDetectionSignatureMp ?? 0,
+        conditionAfter: targetEnt?.condition,
+      });
+      w.crime_residues = pruneExpiredResidues(w.crime_residues, w.cycle);
+      w.crime_detections = w.crime_detections || [];
+      if (crimeOutcome.kind === "DETECTED") {
+        w.crime_detections.push(crimeOutcome.record);
+        const crimeEv = pushEvent("CRIME_DETECTED", crimeOutcome.payload);
+        await settleEv(crimeEv);
+      } else if (crimeOutcome.kind === "RESIDUE") {
+        w.crime_residues.push(crimeOutcome.residue);
+      }
+    }
   }
 }
 
