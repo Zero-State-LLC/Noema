@@ -245,7 +245,7 @@ describe("RFC-0133 amendment 1: treasury construction", () => {
     const look = await run(w, qm, "LOOK");
     const affs = (look.observation as { affordances?: Array<Record<string, unknown>> })?.affordances || [];
     const builds = affs.filter((a) => a.operation === "CONSTRUCT" && a.office_id === office_id);
-    expect(builds.map((a) => a.class).sort()).toEqual(["generator", "storage_bay"]);
+    expect(builds.map((a) => a.class).sort()).toEqual(["barter_stall", "generator", "storage_bay"]);
   });
 });
 

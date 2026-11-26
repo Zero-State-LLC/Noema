@@ -223,6 +223,12 @@ export interface ObservationAffordance {
   slot?: string;
   material?: string;
   grade?: string;
+  /** RFC-0140: storefront barter phases & listings. */
+  phase?: string;
+  stall_id?: string;
+  listing_id?: string;
+  listing_kind?: string;
+  swap_id?: string;
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;
@@ -385,6 +391,17 @@ export interface Observation {
     amount: number;
     origin_room_id?: string;
   }>;
+  /** RFC-0140: open barter_stall listings in the current room. */
+  shop_listings?: Array<{
+    listing_id: string;
+    stall_id: string;
+    owner_id: string;
+    listing_kind: string;
+    offer_asset: unknown;
+    ask_asset: unknown;
+    fills_remaining: number;
+    max_fills: number;
+  }>;
   /** GC3-S0 self-only trade-memory lines. Never put on WATCH or players_here. */
   social_memory_lines?: string[];
   /** GC9-S0 site custom lines for the current room. Never put on WATCH. */
@@ -429,6 +446,14 @@ export interface Observation {
     cannot: string[];
     suggested_cmds: string[];
     line: string;
+    local_clearing_tape?: Array<{
+      cycle: number;
+      room_id: string;
+      stall_id: string;
+      listing_kind: string;
+      offer_summary: string;
+      ask_summary: string;
+    }>;
   }>;
 }
 

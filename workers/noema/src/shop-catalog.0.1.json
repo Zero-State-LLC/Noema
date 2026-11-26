@@ -1,0 +1,101 @@
+{
+  "schema_version": "shop-catalog/0.1",
+  "catalog_id": "shop-catalog/0.1",
+  "authority": "rfcs/RFC-0140-storefronts-barter-and-supersession.md",
+  "event_catalog_compatibility": "event-catalog/0.2",
+  "currency": false,
+  "global_order_book": false,
+  "constructible_class": {
+    "class_id": "barter_stall",
+    "construct_cost": {
+      "energy": 6,
+      "compute": 3,
+      "storage": 4,
+      "influence": 2
+    },
+    "salvage_storage": 2,
+    "multi_cycle": true,
+    "min_operational_condition": 25,
+    "zero_spoilage_min_condition": 50,
+    "treasury_construct_allowed": true,
+    "treasury_construct_profile": "OPERATE_RESOURCE_ACCOUNT"
+  },
+  "escrow_caps": {
+    "per_resource_cap": 40,
+    "transferable_resources": [
+      "energy",
+      "compute",
+      "influence"
+    ],
+    "total_material_lots_cap": 32,
+    "discrete_items_cap": 8,
+    "max_open_listings_per_stall": 8,
+    "max_fills_per_listing": 16
+  },
+  "full_reserve_required": true,
+  "item_match_selection_order": [
+    "unequipped_before_equipped",
+    "lowest_condition_first",
+    "lexicographic_entity_id"
+  ],
+  "trade_phases": {
+    "stock": {
+      "compute_cost": 0,
+      "requires_owner_or_office": true
+    },
+    "withdraw": {
+      "compute_cost": 0,
+      "requires_owner_or_office": true,
+      "allowed_when_degraded": true
+    },
+    "list": {
+      "compute_cost": 1,
+      "requires_owner_or_office": true
+    },
+    "unlist": {
+      "compute_cost": 0,
+      "requires_owner_or_office": true
+    },
+    "fulfill": {
+      "compute_cost": 1,
+      "caution_extra_compute": 1,
+      "reliable_discount_max": 1,
+      "same_room_required": true,
+      "self_fill_allowed": false,
+      "credits_social_memory": true,
+      "credits_broker_mastery": true
+    }
+  },
+  "world_services": {
+    "ws01_local_clearing_tape_cap": 5,
+    "ws01_local_clearing_window_cycles": 20,
+    "ws01_cross_room_aggregation": false,
+    "ws02_supersession": {
+      "superseded_when_ready_stall_open_listings_at_least": 1,
+      "stall_min_condition": 25,
+      "reverts_to_available_when_unmet": true
+    },
+    "ws02_emergency_swaps": [
+      {
+        "swap_id": "emergency_field_welder",
+        "requires_room_node_stock_min": 2,
+        "node_stock_debit": 1,
+        "want_cargo": 5,
+        "give_item": {
+          "archetype": "arc_welder",
+          "quality": "MAKESHIFT",
+          "condition": 40,
+          "max_condition": 60
+        }
+      },
+      {
+        "swap_id": "emergency_ration_charge",
+        "requires_room_node_stock_min": 2,
+        "node_stock_debit": 1,
+        "want_cargo": 3,
+        "give_energy": 5,
+        "energy_clamp": 80
+      }
+    ]
+  }
+}
