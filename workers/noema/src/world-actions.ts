@@ -308,15 +308,52 @@ import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } fro
 import { publicReportLines, shouldWriteWorldReport } from "./world-reports";
 import {
   constructStorageCost,
+  consumeGenericCargoLots,
+  consumeMaterialLots,
   creditLot,
+  creditMaterialLot,
   creditOrigin,
   harvestGrade,
   lotLines,
   publicHarvestOrigin,
+  reconcileMaterialLots,
+  roomMaterialArchetype,
   spendLot,
   spendOrigin,
+  spoilPersonalMaterialLots,
   spoilWornLots,
+  stabilizeWornLots,
 } from "./lots";
+import {
+  CARGO_RIG_CAPACITY_BONUS,
+  DEPLETED_CELL_SPEC,
+  EQUIP_PREP_MAX_SWAPS_PER_CYCLE,
+  FAILED_CONTEST_DOUBLE_WEAR_SCORE,
+  ITEM_REPAIR_WORKSHOP,
+  ITEM_SCRAP,
+  REFINE_COST,
+  REFINE_INPUT_SOUND,
+  REFINE_OUTPUT,
+  applyItemWear,
+  autoEquipIfSlotEmpty,
+  computeContestEquipment,
+  createCraftedItem,
+  effectiveStorageCapacity,
+  equippedItemsMap,
+  equippedOperationalItem,
+  hasRequiredCraftInfra,
+  itemBulk,
+  itemEntityCreatePayload,
+  itemEntityUpdatePayload,
+  itemSpec,
+  occupiedCargoExcludingItems,
+  projectEquipment,
+  projectInventory,
+  resolveCarriedItem,
+  selectSeizableUnequippedItem,
+  type ContestEquipmentEffects,
+  type PortableItem,
+} from "./items";
 import { cargoLine, moveEnergyCost } from "./transport";
 import {
   applyCargoFuel,
@@ -627,6 +664,8 @@ export type WorldRuntime = {
   agreements?: Record<string, FormalAgreement>;
   /** RFC-0138: WS06 bounded, escrowed civic contracts. */
   contracts?: Record<string, CivicContract>;
+  /** RFC-0139: portable items (OBJECT entities in player/stall/room containers). */
+  items?: Record<string, PortableItem>;
   contests?: Record<string, OpenContest>;
   access_restrictions?: Array<{
     restriction_id: string;
@@ -1022,6 +1061,8 @@ export function buildObservation(
     ),
     harvestPressure: w.co_evolution?.harvest_pressure?.[room.room_id] || 0,
     hearsayBlockedThisCycle: (w.co_evolution?.last_quarantine_cycle || -1) === w.cycle,
+    items: w.items,
+    materialLots: pl.material_lots,
   });
   const available_actions = [
     ...new Set(
@@ -1248,6 +1289,11 @@ export function buildObservation(
       emergency_scope_id: a.emergency_scope_id,
       successors: a.successors,
       rule_id: a.rule_id,
+      recipe_id: a.recipe_id,
+      item_id: a.item_id,
+      slot: a.slot,
+      material: a.material,
+      grade: a.grade,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1266,10 +1312,14 @@ export function buildObservation(
     lot_lines: lotLines(pl.lot_grades, pl.lot_origins, pl.spoil_lines).concat(
       cargoLine(
         pl.budgets.storage ?? 0,
-        undefined,
-        readyClassInRoom(roomEntities(room), "route_link"),
+        effectiveStorageCapacity(w.items, principal.player_id),
+        readyClassInRoom(roomEntities(room), "route_link") ||
+          Boolean(equippedOperationalItem(w.items, principal.player_id, "cargo_rig")),
       ) || [],
     ),
+    inventory: projectInventory(w.items, principal.player_id),
+    equipment: projectEquipment(w.items, principal.player_id),
+    material_lots: (pl.material_lots || []).map((l) => ({ ...l })),
     social_memory_lines: socialMemoryLines(
       pl.trade_memory,
       Object.fromEntries(
@@ -1817,10 +1867,29 @@ export async function runCommittedCycleWorldOps(
   }) => Promise<void>,
 ): Promise<void> {
   for (const [pid, player] of Object.entries(w.players)) {
-    const spoiled = spoilWornLots(player.lot_grades, player.budgets, player.lot_origins);
+    const hasWornMaterialLots = (player.material_lots || []).some((l) => l.grade === "WORN" && l.amount > 0);
+    const gradesForLegacy = hasWornMaterialLots
+      ? { ...(player.lot_grades || {}), storage: undefined }
+      : player.lot_grades;
+    const spoiled = spoilWornLots(gradesForLegacy, player.budgets, player.lot_origins);
     player.lot_grades = spoiled.grades;
     player.lot_origins = spoiled.origins;
-    player.spoil_lines = spoiled.lines;
+    const extraSpoilLines: string[] = [...spoiled.lines];
+    if (hasWornMaterialLots) {
+      const cap = effectiveStorageCapacity(w.items, pid);
+      const matSpoil = spoilPersonalMaterialLots(player.material_lots, player.budgets, cap, false);
+      player.material_lots = matSpoil.lots;
+      extraSpoilLines.push(...matSpoil.lines);
+      if (matSpoil.spoiledUnits > 0) {
+        const spoilEv = pushEvent("BUDGET_CONSUMED", {
+          player_id: pid,
+          cost_paid: { storage: matSpoil.spoiledUnits },
+          reason: "SPOILAGE",
+        });
+        await settleEv(spoilEv);
+      }
+    }
+    player.spoil_lines = extraSpoilLines;
     for (const loss of spoiled.losses) {
       const spoilEv = pushEvent("BUDGET_CONSUMED", {
         player_id: pid,
@@ -2038,7 +2107,8 @@ async function admitPinnedTempoIfNeeded(
     if (!resolved.ok) return resolved.result;
     adv = advanceTempoAdmissionClock(w, now);
   }
-  if (!fillsActionSlot(verb)) return null;
+  const tempoOp = String(envl.arguments?.operation || envl.command || "").trim().toUpperCase();
+  if (!fillsActionSlot(verb, tempoOp)) return null;
   if (opts.worldPaused) {
     return tempoErrorResult(request_id, paceLimitedError(w, now, "The world is paused."));
   }
@@ -2664,8 +2734,11 @@ export async function applyWorldCommand(
     if (!room) {
       return failedMove(w, principal, request_id, "NOT_FOUND", "You are not in a known room.");
     }
-    const waivesCargo = readyClassInRoom(roomEntities(room), "route_link");
-    const moveCost = { energy: moveEnergyCost(pl.budgets.storage ?? 0, undefined, waivesCargo) };
+    const cargoRig = equippedOperationalItem(w.items, principal.player_id, "cargo_rig");
+    const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+    const hasRouteLink = readyClassInRoom(roomEntities(room), "route_link");
+    const waivesCargo = hasRouteLink || Boolean(cargoRig);
+    const moveCost = { energy: moveEnergyCost(pl.budgets.storage ?? 0, storageCap, waivesCargo) };
     if (!canPay(pl.budgets, moveCost)) {
       return failedMove(w, principal, request_id, "BUDGET_EXCEEDED", "You do not have enough energy.");
     }
@@ -2687,6 +2760,17 @@ export async function applyWorldCommand(
       return failedMove(w, principal, request_id, "MOVE_REJECTED", "That route is restricted.", exit.direction);
     }
     debit(pl.budgets, moveCost);
+    if (cargoRig && !hasRouteLink && (pl.budgets.storage ?? 0) < storageCap) {
+      const wres = applyItemWear(w.items!, cargoRig, 1, pl.budgets);
+      const rigEv = pushEvent(
+        "ENTITY_UPDATE",
+        itemEntityUpdatePayload(cargoRig.item_id, {
+          condition: wres.after,
+          equipped_slot: cargoRig.equipped_slot ?? null,
+        }),
+      );
+      await settleEv(rigEv);
+    }
     const from = room.room_id;
     pl.room_id = exit.to_room_id;
     const ev = pushEvent("MOVE", {
@@ -2730,15 +2814,31 @@ export async function applyWorldCommand(
       return failedAction(w, principal, request_id, "FORBIDDEN",
         "The record is sealed.", "The record is sealed.", "inspect");
     }
-    const inspectCost = withAnnexAttention(
+    const chronoLens = equippedOperationalItem(w.items, principal.player_id, "chrono_lens");
+    const baseInspectCost = withAnnexAttention(
       inspectAttentionCost(pl.practice, entity.entity_id, w.cycle),
       readyClassInRoom(roomEntities(room), "archive_annex"),
     );
+    const inspectCost =
+      chronoLens && (baseInspectCost.attention || 0) > 0
+        ? { ...baseInspectCost, attention: Math.max(0, (baseInspectCost.attention || 0) - 1) }
+        : baseInspectCost;
     if (!canPay(pl.budgets, inspectCost)) {
       return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
         "You do not have enough attention.", "You do not have enough attention.", "inspect");
     }
     debit(pl.budgets, inspectCost);
+    if (chronoLens) {
+      const lensWear = applyItemWear(w.items!, chronoLens, 2, pl.budgets);
+      const lensEv = pushEvent(
+        "ENTITY_UPDATE",
+        itemEntityUpdatePayload(chronoLens.item_id, {
+          condition: lensWear.after,
+          equipped_slot: chronoLens.equipped_slot ?? null,
+        }),
+      );
+      await settleEv(lensEv);
+    }
     const detail = inspectDetail(entity);
     const inspEv = pushEvent("INSPECT", {
       player_id: principal.player_id,
@@ -3257,7 +3357,7 @@ export async function applyWorldCommand(
       }
       debit(pl.budgets, tradeCost);
       const reserved: Record<string, number> = {};
-      const offered_grades: Partial<Record<keyof Budgets, "SOUND" | "WORN">> = {};
+      const offered_grades: Partial<Record<keyof Budgets, import("./lots").LotGrade>> = {};
       const offered_origins: NonNullable<OpenTrade["offered_origins"]> = {};
       for (const [res, amt] of Object.entries(offered)) {
         const key = res as keyof Budgets;
@@ -4181,6 +4281,455 @@ export async function applyWorldCommand(
       return result;
     }
 
+    // RFC-0139: CRAFT portable item at workshop / generator.
+    if (action.arguments.operation === "CRAFT") {
+      const room = w.rooms[pl.room_id];
+      if (!room || isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "You cannot craft here.");
+      }
+      const spec = itemSpec(action.arguments.recipe_id || "");
+      if (!spec) {
+        return fail(request_id, "INVALID_REQUEST", "Unknown item recipe.");
+      }
+      const infra = hasRequiredCraftInfra(spec, roomEntities(room));
+      if (!infra.ok) {
+        return fail(request_id, "FORBIDDEN", `Crafting ${spec.label} requires an operational ${infra.missing} here.`);
+      }
+      if (!canPay(pl.budgets, spec.craft_budgets)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough energy or compute to craft that.");
+      }
+      w.items = w.items || {};
+      const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+      const occCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
+      const reconciled = reconcileMaterialLots(pl.material_lots, occCargo, pl.lot_grades?.storage || "SOUND");
+      const consumed = consumeMaterialLots(reconciled, spec.craft_lots, {
+        minGrade: action.arguments.grade,
+        preferRefined: action.arguments.prefer_refined,
+      });
+      if (!consumed.ok) {
+        return fail(
+          request_id,
+          "BUDGET_EXCEEDED",
+          `You need ${consumed.required} ${consumed.missingMaterial} (have ${consumed.available}) to craft ${spec.label}.`,
+        );
+      }
+      const freeAfterLots = Math.min(storageCap, Math.max(0, Math.floor(pl.budgets.storage ?? 0)) + consumed.totalUnits);
+      const slotEmpty = Boolean(spec.equip_slot && !equippedItemsMap(w.items, principal.player_id)[spec.equip_slot]);
+      const neededBulk = slotEmpty ? spec.equipped_bulk : spec.bulk;
+      if (freeAfterLots < neededBulk) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough free storage to carry the crafted item.");
+      }
+      debit(pl.budgets, spec.craft_budgets);
+      pl.material_lots = consumed.lots;
+      pl.budgets.storage = Math.max(0, freeAfterLots - spec.bulk);
+      const item = createCraftedItem({
+        archetype: spec.archetype,
+        owner_id: principal.player_id,
+        creator_id: principal.player_id,
+        origin_room_id: room.room_id,
+        forged_cycle: w.cycle,
+        sequence: w.sequence + 1,
+        lowestLotGrade: consumed.lowestGrade,
+        allRefined: consumed.allRefined,
+      });
+      w.items[item.item_id] = item;
+      const auto = autoEquipIfSlotEmpty(w.items, principal.player_id, item, pl.budgets);
+      const remCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
+      pl.lot_grades = spendLot(pl.lot_grades, remCargo, "storage");
+      pl.lot_origins = spendOrigin(pl.lot_origins, remCargo, "storage");
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: spec.craft_budgets,
+        reason: "CRAFT",
+      });
+      const ev = pushEvent("ENTITY_CREATE", itemEntityCreatePayload(item));
+      await settleEv(ev);
+      const line = `Crafted ${item.label} (${item.quality}, condition ${item.condition}/${item.max_condition})${auto.equipped ? ` and equipped to ${item.equipped_slot}` : ""}.`;
+      const result = success(w, principal, request_id, events, line, settled, "craft", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0139: REFINE 2 SOUND -> 1 REFINED lot at a ready workshop.
+    if (action.arguments.operation === "REFINE") {
+      const room = w.rooms[pl.room_id];
+      if (!room || isHiddenRoom(room) || !readyClassInRoom(roomEntities(room), "workshop")) {
+        return fail(request_id, "FORBIDDEN", "Refining requires an operational workshop in a public room.");
+      }
+      const mat = action.arguments.material;
+      if (!mat) return fail(request_id, "INVALID_REQUEST", "Material archetype required.");
+      const refineCost = { ...REFINE_COST };
+      if (!canPay(pl.budgets, refineCost)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 2 and compute 1 to refine.");
+      }
+      w.items = w.items || {};
+      const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+      const occCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
+      const reconciled = reconcileMaterialLots(pl.material_lots, occCargo, pl.lot_grades?.storage || "SOUND");
+      const consumed = consumeMaterialLots(reconciled, { [mat]: REFINE_INPUT_SOUND }, { minGrade: "SOUND" });
+      if (!consumed.ok) {
+        return fail(
+          request_id,
+          "BUDGET_EXCEEDED",
+          `You need ${REFINE_INPUT_SOUND} SOUND ${mat} lots to refine (have ${consumed.available}).`,
+        );
+      }
+      debit(pl.budgets, refineCost);
+      pl.material_lots = creditMaterialLot(consumed.lots, mat, "REFINED", REFINE_OUTPUT, room.room_id);
+      const netFreed = REFINE_INPUT_SOUND - REFINE_OUTPUT;
+      pl.budgets.storage = Math.min(storageCap, Math.max(0, Math.floor(pl.budgets.storage ?? 0)) + netFreed);
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: refineCost,
+        reason: "REFINE",
+      });
+      const ws = roomEntities(room).find((e) => infraClassOf(e) === "workshop" && !e.in_progress);
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: ws?.entity_id || principal.player_id,
+        set: { last_refine_cycle: w.cycle, refined_material: mat },
+        unset: [],
+      });
+      await settleEv(ev);
+      const line = `Refined ${REFINE_INPUT_SOUND} SOUND ${mat} into ${REFINE_OUTPUT} REFINED ${mat}.`;
+      const result = success(w, principal, request_id, events, line, settled, "craft", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0139: EQUIP carried item (non-slot preparation, max 2/cycle).
+    if (action.arguments.operation === "EQUIP") {
+      if (pl.equip_ops_cycle !== w.cycle) {
+        pl.equip_ops_cycle = w.cycle;
+        pl.equip_ops_count = 0;
+      }
+      if ((pl.equip_ops_count ?? 0) >= EQUIP_PREP_MAX_SWAPS_PER_CYCLE) {
+        return fail(request_id, "FORBIDDEN", "You can perform at most 2 equipment swaps per cycle.");
+      }
+      w.items = w.items || {};
+      const ref = action.arguments.item_id || action.arguments.entity_id || "";
+      const res = resolveCarriedItem(w.items, principal.player_id, ref);
+      if (!res.ok) return fail(request_id, res.code, res.message, res.choices);
+      const item = res.item;
+      if (!item.equip_slot) {
+        return fail(request_id, "FORBIDDEN", `${item.label} cannot be equipped.`);
+      }
+      if (item.condition <= 0) {
+        return fail(request_id, "FORBIDDEN", `${item.label} is broken and must be repaired before equipping.`);
+      }
+      if (item.equipped_slot) {
+        return fail(request_id, "FORBIDDEN", `${item.label} is already equipped.`);
+      }
+      const eq = equippedItemsMap(w.items, principal.player_id);
+      const prev = eq[item.equip_slot];
+      let storageDelta = 0;
+      if (prev) {
+        storageDelta -= prev.bulk - prev.equipped_bulk;
+        if (prev.archetype === "cargo_rig") storageDelta -= CARGO_RIG_CAPACITY_BONUS;
+      }
+      storageDelta += item.bulk - item.equipped_bulk;
+      if (item.archetype === "cargo_rig") storageDelta += CARGO_RIG_CAPACITY_BONUS;
+      const nextFree = Math.floor(pl.budgets.storage ?? 0) + storageDelta;
+      if (nextFree < 0) {
+        return fail(request_id, "BUDGET_EXCEEDED", "Not enough free storage to swap equipment.");
+      }
+      if (prev) prev.equipped_slot = undefined;
+      item.equipped_slot = item.equip_slot;
+      const nextCap = effectiveStorageCapacity(w.items, principal.player_id);
+      pl.budgets.storage = Math.min(nextCap, nextFree);
+      pl.equip_ops_count = (pl.equip_ops_count ?? 0) + 1;
+      if (prev) {
+        const prevEv = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(prev.item_id, { equipped_slot: null }),
+        );
+        await settleEv(prevEv);
+      }
+      const ev = pushEvent(
+        "ENTITY_UPDATE",
+        itemEntityUpdatePayload(item.item_id, { equipped_slot: item.equipped_slot }),
+      );
+      await settleEv(ev);
+      const line = `Equipped ${item.label} to ${item.equipped_slot}.`;
+      const result = success(w, principal, request_id, events, line, settled, "equip", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0139: UNEQUIP equipped item (non-slot preparation, max 2/cycle).
+    if (action.arguments.operation === "UNEQUIP") {
+      if (pl.equip_ops_cycle !== w.cycle) {
+        pl.equip_ops_cycle = w.cycle;
+        pl.equip_ops_count = 0;
+      }
+      if ((pl.equip_ops_count ?? 0) >= EQUIP_PREP_MAX_SWAPS_PER_CYCLE) {
+        return fail(request_id, "FORBIDDEN", "You can perform at most 2 equipment swaps per cycle.");
+      }
+      w.items = w.items || {};
+      const eq = equippedItemsMap(w.items, principal.player_id);
+      let item: PortableItem | undefined = action.arguments.slot ? eq[action.arguments.slot] : undefined;
+      if (!item) {
+        const ref = action.arguments.item_id || action.arguments.entity_id || "";
+        const upper = ref.toUpperCase();
+        if (upper === "TOOL_SLOT" || upper === "WEAPON_SLOT" || upper === "RIG_SLOT") {
+          item = eq[upper];
+        } else {
+          const res = resolveCarriedItem(w.items, principal.player_id, ref);
+          if (!res.ok) return fail(request_id, res.code, res.message, res.choices);
+          item = res.item;
+        }
+      }
+      if (!item || !item.equipped_slot) {
+        return fail(request_id, "FORBIDDEN", "That item is not equipped.");
+      }
+      const storageLoss =
+        (item.bulk - item.equipped_bulk) + (item.archetype === "cargo_rig" ? CARGO_RIG_CAPACITY_BONUS : 0);
+      const nextFree = Math.floor(pl.budgets.storage ?? 0) - storageLoss;
+      if (nextFree < 0) {
+        return fail(request_id, "BUDGET_EXCEEDED", "Free up hold space before unequipping that item.");
+      }
+      item.equipped_slot = undefined;
+      pl.budgets.storage = nextFree;
+      pl.equip_ops_count = (pl.equip_ops_count ?? 0) + 1;
+      const ev = pushEvent(
+        "ENTITY_UPDATE",
+        itemEntityUpdatePayload(item.item_id, { equipped_slot: null }),
+      );
+      await settleEv(ev);
+      const line = `Unequipped ${item.label}.`;
+      const result = success(w, principal, request_id, events, line, settled, "equip", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0139: USE_ITEM (power_cell -> +12 energy & depleted_cell; stabilizer_kit -> WORN->SOUND / scar relief).
+    if (action.arguments.operation === "USE_ITEM") {
+      w.items = w.items || {};
+      const ref = action.arguments.item_id || action.arguments.entity_id || "";
+      const res = resolveCarriedItem(w.items, principal.player_id, ref);
+      if (!res.ok) return fail(request_id, res.code, res.message, res.choices);
+      const item = res.item;
+      if (item.archetype === "power_cell") {
+        if (item.condition <= 0) {
+          return fail(request_id, "FORBIDDEN", "That power cell is depleted.");
+        }
+        const before = Math.floor(pl.budgets.energy ?? 0);
+        const after = Math.min(ENERGY_GRANT, before + 12);
+        const gain = after - before;
+        pl.budgets.energy = after;
+        item.archetype = "depleted_cell";
+        item.label = DEPLETED_CELL_SPEC.label;
+        item.condition = 0;
+        const ev = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(item.item_id, {
+            archetype: "depleted_cell",
+            label: item.label,
+            condition: 0,
+          }),
+        );
+        await settleEv(ev);
+        const line = `Discharged Portable Power Cell (+${gain} energy, energy ${after}/${ENERGY_GRANT}); depleted core retained.`;
+        const result = success(w, principal, request_id, events, line, settled, "use", line);
+        w.seen_idempotency[idem] = result;
+        return result;
+      }
+      if (item.archetype === "stabilizer_kit") {
+        const room = w.rooms[pl.room_id];
+        const stab = stabilizeWornLots(pl.material_lots);
+        pl.material_lots = stab.lots;
+        if (pl.lot_grades?.storage === "WORN") pl.lot_grades.storage = "SOUND";
+        let scarNote = "";
+        if (room && w.scars?.length) {
+          const targetScar = action.arguments.scar_id
+            ? w.scars.find((s) => s.scar_id === action.arguments.scar_id && s.room_id === room.room_id)
+            : w.scars.find((s) => s.room_id === room.room_id && s.strength > 0);
+          if (targetScar) {
+            targetScar.strength = Math.max(0, Number((targetScar.strength - 0.5).toFixed(2)));
+            if (w.co_evolution?.harvest_pressure) {
+              w.co_evolution.harvest_pressure[room.room_id] = Math.max(
+                0,
+                (w.co_evolution.harvest_pressure[room.room_id] || 0) - 4,
+              );
+            }
+            scarNote = ` and reduced scar ${targetScar.scar_id} strength`;
+          }
+        }
+        const freed = itemBulk(item);
+        delete w.items[item.item_id];
+        const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+        pl.budgets.storage = Math.min(storageCap, Math.max(0, Math.floor(pl.budgets.storage ?? 0)) + freed);
+        const ev = pushEvent("ENTITY_DESTROY", {
+          entity_id: item.item_id,
+          reason: "CONSUMED",
+        });
+        await settleEv(ev);
+        const line = `Used Lot & Soil Stabilizer Kit (upgraded ${stab.upgraded} worn lot${stab.upgraded === 1 ? "" : "s"} to SOUND${scarNote}).`;
+        const result = success(w, principal, request_id, events, line, settled, "use", line);
+        w.seen_idempotency[idem] = result;
+        return result;
+      }
+      return fail(request_id, "FORBIDDEN", `${item.label} is not a consumable item.`);
+    }
+
+    // RFC-0139: SCRAP_ITEM -> destroys carried item, yields 1 SALVAGE_COMPOSITE (SOUND).
+    if (action.arguments.operation === "SCRAP_ITEM") {
+      w.items = w.items || {};
+      const ref = action.arguments.item_id || action.arguments.entity_id || "";
+      const res = resolveCarriedItem(w.items, principal.player_id, ref);
+      if (!res.ok) return fail(request_id, res.code, res.message, res.choices);
+      const item = res.item;
+      if (!canPay(pl.budgets, ITEM_SCRAP.budget_cost)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 1 to scrap an item.");
+      }
+      const wasEquippedRig = Boolean(item.equipped_slot && item.archetype === "cargo_rig");
+      const freedBulk = itemBulk(item);
+      if (wasEquippedRig) {
+        const freeAfter = Math.floor(pl.budgets.storage ?? 0) + freedBulk - CARGO_RIG_CAPACITY_BONUS;
+        if (freeAfter < ITEM_SCRAP.salvage_qty) {
+          return fail(request_id, "BUDGET_EXCEEDED", "Free up hold space before scrapping an equipped cargo rig.");
+        }
+      }
+      debit(pl.budgets, ITEM_SCRAP.budget_cost);
+      delete w.items[item.item_id];
+      const nextCap = effectiveStorageCapacity(w.items, principal.player_id);
+      const freeAfterRemove = Math.min(
+        nextCap,
+        Math.max(
+          0,
+          Math.floor(pl.budgets.storage ?? 0) + freedBulk - (wasEquippedRig ? CARGO_RIG_CAPACITY_BONUS : 0),
+        ),
+      );
+      const salvageAdded = Math.min(ITEM_SCRAP.salvage_qty, freeAfterRemove);
+      pl.budgets.storage = Math.max(0, freeAfterRemove - salvageAdded);
+      if (salvageAdded > 0) {
+        pl.material_lots = creditMaterialLot(pl.material_lots, "SALVAGE_COMPOSITE", "SOUND", salvageAdded);
+      }
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: ITEM_SCRAP.budget_cost,
+        reason: "SCRAP_ITEM",
+      });
+      const ev = pushEvent("ENTITY_DESTROY", {
+        entity_id: item.item_id,
+        reason: "SCRAPPED",
+      });
+      await settleEv(ev);
+      const line = `Scrapped ${item.label} for ${salvageAdded} SALVAGE_COMPOSITE.`;
+      const result = success(w, principal, request_id, events, line, settled, "scrap", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // RFC-0139: RECHARGE carried depleted_cell at an operational generator (condition >= 50).
+    if (action.arguments.operation === "RECHARGE") {
+      const ref = action.arguments.item_id || action.arguments.entity_id || "";
+      const carriedCell = resolveCarriedItem(w.items, principal.player_id, ref);
+      if (carriedCell.ok && carriedCell.item.archetype === "depleted_cell") {
+        const room = w.rooms[pl.room_id];
+        const gen = room
+          ? roomEntities(room).find(
+              (e) =>
+                infraClassOf(e) === "generator" &&
+                !isInProgress(e) &&
+                !e.scar &&
+                (e.condition ?? 0) >= 50,
+            )
+          : undefined;
+        if (!gen) {
+          return fail(request_id, "FORBIDDEN", "Recharging a depleted cell requires an operational generator (condition >= 50) here.");
+        }
+        if (!canPay(pl.budgets, DEPLETED_CELL_SPEC.recharge_cost)) {
+          return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1 to recharge a depleted cell.");
+        }
+        debit(pl.budgets, DEPLETED_CELL_SPEC.recharge_cost);
+        const genBefore = gen.condition ?? 50;
+        const genAfter = Math.max(RECHARGE_MIN_GENERATOR_CONDITION, genBefore - DEPLETED_CELL_SPEC.generator_recharge_wear);
+        gen.condition = genAfter;
+        const eIdx = room.entities.findIndex((e) => e.entity_id === gen.entity_id);
+        if (eIdx >= 0) room.entities[eIdx] = gen;
+        carriedCell.item.archetype = "power_cell";
+        carriedCell.item.label = "Portable Power Cell";
+        carriedCell.item.condition = 100;
+        carriedCell.item.max_condition = 100;
+        pushEvent("BUDGET_CONSUMED", {
+          player_id: principal.player_id,
+          cost_paid: DEPLETED_CELL_SPEC.recharge_cost,
+          reason: "RECHARGE_CELL",
+        });
+        const genEv = pushEvent("ENTITY_UPDATE", {
+          entity_id: gen.entity_id,
+          set: { condition: genAfter },
+          unset: [],
+        });
+        await settleEv(genEv);
+        const cellEv = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(carriedCell.item.item_id, {
+            archetype: "power_cell",
+            label: carriedCell.item.label,
+            condition: 100,
+          }),
+        );
+        await settleEv(cellEv);
+        const line = `Recharged Portable Power Cell at ${titleCaseLabel(gen.label)} (generator condition ${genAfter}%).`;
+        const result = success(w, principal, request_id, events, line, settled, "recharge", line);
+        w.seen_idempotency[idem] = result;
+        return result;
+      }
+    }
+
+    // RFC-0139: REPAIR carried portable item at a ready workshop.
+    if (action.arguments.operation === "REPAIR") {
+      const ref = action.arguments.item_id || action.arguments.entity_id || "";
+      const roomForCheck = w.rooms[pl.room_id];
+      const roomEnt = roomForCheck ? findEntity(roomForCheck, ref) : undefined;
+      if (!roomEnt) {
+        const carried = resolveCarriedItem(w.items, principal.player_id, ref);
+        if (carried.ok) {
+          const item = carried.item;
+          if (item.archetype === "depleted_cell") {
+            return fail(request_id, "FORBIDDEN", "Recharge a depleted power cell at a generator instead of repairing it.");
+          }
+          if (item.condition >= item.max_condition) {
+            return fail(request_id, "FORBIDDEN", `${item.label} is already at full condition.`);
+          }
+          if (!roomForCheck || isHiddenRoom(roomForCheck) || !readyClassInRoom(roomEntities(roomForCheck), "workshop")) {
+            return fail(request_id, "FORBIDDEN", "Repairing portable items requires an operational workshop here.");
+          }
+          const repairFuel = ITEM_REPAIR_WORKSHOP.budget_cost;
+          if (!canPay(pl.budgets, repairFuel)) {
+            return fail(request_id, "BUDGET_EXCEEDED", "You need energy 2 and compute 1 to repair an item.");
+          }
+          const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+          const occCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
+          if (occCargo - reservedCargoFor(w, principal.player_id) < ITEM_REPAIR_WORKSHOP.lot_cost) {
+            return fail(request_id, "BUDGET_EXCEEDED", "You need 1 cargo lot in hold to repair an item.");
+          }
+          const reconciled = reconcileMaterialLots(pl.material_lots, occCargo, pl.lot_grades?.storage || "SOUND");
+          const spent = consumeGenericCargoLots(reconciled, ITEM_REPAIR_WORKSHOP.lot_cost);
+          debit(pl.budgets, repairFuel);
+          pl.material_lots = spent.lots;
+          pl.budgets.storage = Math.min(storageCap, Math.max(0, Math.floor(pl.budgets.storage ?? 0)) + ITEM_REPAIR_WORKSHOP.lot_cost);
+          const before = item.condition;
+          item.condition = Math.min(item.max_condition, before + ITEM_REPAIR_WORKSHOP.condition_delta);
+          pushEvent("BUDGET_CONSUMED", {
+            player_id: principal.player_id,
+            cost_paid: { ...repairFuel, storage: ITEM_REPAIR_WORKSHOP.lot_cost },
+            reason: "REPAIR_ITEM",
+          });
+          const ev = pushEvent(
+            "ENTITY_UPDATE",
+            itemEntityUpdatePayload(item.item_id, { condition: item.condition }),
+          );
+          await settleEv(ev);
+          const line = `Repaired ${item.label} (${before}% → ${item.condition}%).`;
+          const result = success(w, principal, request_id, events, line, settled, "repair", line);
+          w.seen_idempotency[idem] = result;
+          return result;
+        }
+      }
+    }
+
     // Entity-targeted ops
     const room = w.rooms[pl.room_id];
     const entity = findEntity(room, action.arguments.entity_id || "");
@@ -4320,7 +4869,12 @@ export async function applyWorldCommand(
           "You lack the practiced hands for an overhaul.",
           "You lack the practiced hands for an overhaul.", "overhaul");
       }
+      const arcWelder = equippedOperationalItem(w.items, principal.player_id, "arc_welder");
+      const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
       const baseRepair = { ...COSTS.REPAIR };
+      if (arcWelder && (baseRepair.energy || 0) > 1) {
+        baseRepair.energy = (baseRepair.energy || 0) - 1;
+      }
       if (overhaul) baseRepair.energy = (baseRepair.energy || 0) + OVERHAUL_ENERGY_EXTRA;
       const repairCost = withWorkshopStorage(baseRepair, workshopStorageDiscount(roomEntities(room)));
       const cargoNeed = repairCost.storage || 0;
@@ -4337,7 +4891,7 @@ export async function applyWorldCommand(
       }
       if (
         payFrom === pl.budgets &&
-        !canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))
+        !canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id), storageCap)
       ) {
         return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
           "You do not have materials in hold.",
@@ -4352,14 +4906,31 @@ export async function applyWorldCommand(
       const quality = repairConditionDelta(pl.practice, entity.entity_id, w.cycle);
       debit(payFrom, fuel);
       if (payFrom === pl.budgets) {
-        consumeCargo(pl.budgets, cargoNeed);
-        const remaining = occupiedHold(pl.budgets.storage ?? 0);
+        if (cargoNeed > 0) {
+          const occCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
+          const reconciled = reconcileMaterialLots(pl.material_lots, occCargo, pl.lot_grades?.storage || "SOUND");
+          pl.material_lots = consumeGenericCargoLots(reconciled, cargoNeed).lots;
+        }
+        consumeCargo(pl.budgets, cargoNeed, storageCap);
+        const remaining = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
         pl.lot_grades = spendLot(pl.lot_grades, remaining, "storage");
         pl.lot_origins = spendOrigin(pl.lot_origins, remaining, "storage");
       } else {
         debit(payFrom, { storage: cargoNeed });
       }
-      entity.condition = Math.min(100, before + quality.delta + (overhaul ? OVERHAUL_CONDITION_EXTRA : 0));
+      const welderBonus = arcWelder ? 10 : 0;
+      entity.condition = Math.min(100, before + quality.delta + welderBonus + (overhaul ? OVERHAUL_CONDITION_EXTRA : 0));
+      if (arcWelder) {
+        const wres = applyItemWear(w.items!, arcWelder, 4, pl.budgets);
+        const toolEv = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(arcWelder.item_id, {
+            condition: wres.after,
+            equipped_slot: arcWelder.equipped_slot ?? null,
+          }),
+        );
+        await settleEv(toolEv);
+      }
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
       if (
@@ -4474,42 +5045,70 @@ export async function applyWorldCommand(
         await coevolveAfterAction(w, principal, "HARVEST", result);
         return result;
       }
+      const plasmaCutter = equippedOperationalItem(w.items, principal.player_id, "plasma_cutter");
+      const harvestCost = plasmaCutter
+        ? { ...COSTS.HARVEST, energy: Math.max(1, (COSTS.HARVEST.energy || 2) - 1) }
+        : COSTS.HARVEST;
       if ((pl.budgets.storage ?? 0) < amount) {
         return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
           "You do not have enough free storage.",
           "You do not have enough free storage.", "harvest");
       }
-      if (!canPay(pl.budgets, COSTS.HARVEST)) {
+      if (!canPay(pl.budgets, harvestCost)) {
         return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
-          "You need energy 2 and compute 1 to harvest.",
-          "You need energy 2 and compute 1 to harvest.", "harvest");
+          `You need energy ${harvestCost.energy} and compute ${harvestCost.compute} to harvest.`,
+          `You need energy ${harvestCost.energy} and compute ${harvestCost.compute} to harvest.`, "harvest");
       }
       const stockKind = (entity.stock_resource || "energy").toLowerCase();
       const fillsHoldOnly = stockKind === "materials" || stockKind === "cargo" || stockKind === "storage";
-      debit(pl.budgets, COSTS.HARVEST);
-      entity.stock_amount = (entity.stock_amount ?? 0) - amount;
+      const cutterBonus = plasmaCutter
+        ? Math.min(2, Math.max(0, (entity.stock_amount ?? 0) - amount), Math.max(0, (pl.budgets.storage ?? 0) - amount))
+        : 0;
+      const actualAmount = amount + cutterBonus;
+      debit(pl.budgets, harvestCost);
+      entity.stock_amount = (entity.stock_amount ?? 0) - actualAmount;
 
-      pl.budgets.storage = (pl.budgets.storage ?? 0) - amount;
+      pl.budgets.storage = (pl.budgets.storage ?? 0) - actualAmount;
       const credited = (
         fillsHoldOnly ? "storage" : stockKind in pl.budgets ? stockKind : "energy"
       ) as keyof Budgets;
-      const incoming = harvestGrade(entity.condition);
+      const incoming = harvestGrade(entity.condition, Boolean(plasmaCutter));
       if (!fillsHoldOnly) {
-        pl.budgets[credited] = (pl.budgets[credited] ?? 0) + amount;
+        pl.budgets[credited] = (pl.budgets[credited] ?? 0) + actualAmount;
+      } else {
+        const archetype = roomMaterialArchetype(room.room_id);
+        pl.material_lots = creditMaterialLot(
+          pl.material_lots,
+          archetype,
+          incoming,
+          actualAmount,
+          isHiddenRoom(room) ? undefined : room.room_id,
+        );
       }
-      pl.lot_grades = creditLot(pl.lot_grades, pl.budgets, credited, amount, incoming);
+      pl.lot_grades = creditLot(pl.lot_grades, pl.budgets, credited, actualAmount, incoming);
       pl.lot_origins = creditOrigin(
         pl.lot_origins,
         pl.budgets,
         credited,
-        amount,
+        actualAmount,
         publicHarvestOrigin(isHiddenRoom(room) ? undefined : room, principal.player_id),
       );
+      if (plasmaCutter) {
+        const wres = applyItemWear(w.items!, plasmaCutter, 3, pl.budgets);
+        const toolEv = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(plasmaCutter.item_id, {
+            condition: wres.after,
+            equipped_slot: plasmaCutter.equipped_slot ?? null,
+          }),
+        );
+        await settleEv(toolEv);
+      }
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
-        cost_paid: COSTS.HARVEST,
+        cost_paid: harvestCost,
         reason: "HARVEST",
       });
       const transferResource = fillsHoldOnly ? stockKind : credited;
@@ -4518,7 +5117,7 @@ export async function applyWorldCommand(
         from_id: entity.entity_id,
         to_id: principal.player_id,
         resource: transferResource,
-        amount,
+        amount: actualAmount,
         grade: incoming,
       });
       const ev = pushEvent("ENTITY_UPDATE", {
@@ -4539,10 +5138,10 @@ export async function applyWorldCommand(
         player_id: principal.player_id,
         controller_id: principal.controller_id,
         grounding: "observed",
-        claim: `harvest ${amount}`,
+        claim: `harvest ${actualAmount}`,
       });
 
-      const harvestConsequence = `Harvested ${amount} ${fillsHoldOnly ? stockKind : credited} from ${titleCaseLabel(entity.label)}${incoming === "WORN" ? " — worn." : "."}`;
+      const harvestConsequence = `Harvested ${actualAmount} ${fillsHoldOnly ? stockKind : credited} from ${titleCaseLabel(entity.label)}${incoming === "WORN" ? " — worn." : incoming === "REFINED" ? " — refined." : "."}`;
       const result = success(
         w,
         principal,
@@ -4766,17 +5365,33 @@ export async function applyWorldCommand(
       if (!here.unclaimed && !isConstructSteward(w, here, principal.player_id)) {
         return fail(request_id, "NOT_OWNER", "You do not own that.");
       }
-      if (!canPay(pl.budgets, DISMANTLE_COST)) {
-        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 4 and compute 2 to dismantle.");
+      const plasmaCutter = equippedOperationalItem(w.items, principal.player_id, "plasma_cutter");
+      const dismantleCost = plasmaCutter
+        ? { ...DISMANTLE_COST, energy: Math.max(1, (DISMANTLE_COST.energy || 4) - 2) }
+        : DISMANTLE_COST;
+      if (!canPay(pl.budgets, dismantleCost)) {
+        return fail(request_id, "BUDGET_EXCEEDED", `You need energy ${dismantleCost.energy} and compute ${dismantleCost.compute} to dismantle.`);
       }
-      debit(pl.budgets, DISMANTLE_COST);
-      const salvage = SALVAGE_STORAGE[classId];
-      const clamped = clampSalvage(pl.budgets.storage ?? 0, salvage);
+      debit(pl.budgets, dismantleCost);
+      const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+      const salvage = SALVAGE_STORAGE[classId] + (plasmaCutter ? 1 : 0);
+      const clamped = clampSalvage(pl.budgets.storage ?? 0, salvage, storageCap);
       pl.budgets.storage = clamped.next;
+      if (plasmaCutter) {
+        const wres = applyItemWear(w.items!, plasmaCutter, 3, pl.budgets);
+        const toolEv = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(plasmaCutter.item_id, {
+            condition: wres.after,
+            equipped_slot: plasmaCutter.equipped_slot ?? null,
+          }),
+        );
+        await settleEv(toolEv);
+      }
       room.entities = roomEntities(room).filter((e) => e.entity_id !== here.entity_id);
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
-        cost_paid: DISMANTLE_COST,
+        cost_paid: dismantleCost,
         reason: "DISMANTLE",
         salvage_storage: clamped.added,
         salvage_overflow: clamped.overflow,
@@ -5246,6 +5861,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.organizations = w.organizations || {};
   w.reconstructions = w.reconstructions || {};
   w.contracts = w.contracts || {};
+  w.items = w.items || {};
   for (const org of Object.values(w.organizations)) {
     if (!org.offices) org.offices = {};
     if (!Array.isArray(org.members)) org.members = [];
@@ -7400,9 +8016,10 @@ async function applyAttest(
   );
   const hasMonAtt = roomEntities(room).some((e) => e.entity_type === "MONUMENT");
   const archDisc = archivistAttentionDiscount(pl.practice, w.cycle);
+  const chronoLens = equippedOperationalItem(w.items, principal.player_id, "chrono_lens");
   const attAttn = Math.max(
-    hasMonAtt ? 0 : 1,
-    (baseAttest.attention ?? 0) - archDisc - (hasMonAtt ? 1 : 0),
+    hasMonAtt || chronoLens ? 0 : 1,
+    (baseAttest.attention ?? 0) - archDisc - (hasMonAtt ? 1 : 0) - (chronoLens ? 1 : 0),
   );
   const attestCost = { ...baseAttest, attention: attAttn };
   if (!canPay(pl.budgets, attestCost)) {
@@ -7475,16 +8092,26 @@ async function applyContestSuccessFollowOns(
   outcome: "SUCCESS" | "PARTIAL_SUCCESS" | "FAILURE" | "EXPIRED" | "ABORTED",
   pushEvent: PushEv,
   settleEv: SettleEv,
-): Promise<void> {
-  if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") return;
+  equipFx?: ContestEquipmentEffects,
+  scoreMp = 0,
+): Promise<{ seizedItemId?: string; disruptionConditionAfter?: number }> {
+  if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") return {};
+  let seizedItemId: string | undefined;
+  let disruptionConditionAfter: number | undefined;
   if (contest.contest_form === "INFRASTRUCTURE_DISRUPTION" && contest.target.kind === "ENTITY") {
     const room = w.rooms[contest.room_id];
     const ent = room ? findEntity(room, contest.target.entity_id) : null;
     if (ent && room) {
       const before = ent.condition ?? 0;
-      const after = disruptionAfter(contest.contest_form, outcome, before);
+      const after = disruptionAfter(
+        contest.contest_form,
+        outcome,
+        before,
+        equipFx?.disruptionConditionBonus || 0,
+      );
       if (after != null) {
         ent.condition = after;
+        disruptionConditionAfter = after;
         const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
         if (idx >= 0) room.entities[idx] = ent;
         const d = pushEvent("INFRASTRUCTURE_DISRUPTED", {
@@ -7507,7 +8134,10 @@ async function applyContestSuccessFollowOns(
     const taker = w.players[contest.declarer_id];
     const resource = contest.target.resource as keyof Budgets;
     const available = holder?.budgets?.[resource] ?? 0;
-    const amt = seizureAmount(contest.contest_form, outcome, available);
+    const amt = seizureAmount(contest.contest_form, outcome, available, {
+      maxOverride: equipFx?.maxSeizureOverride,
+      halveLoss: equipFx?.halveSeizureLoss,
+    });
     if (amt > 0 && holder && taker) {
       holder.budgets[resource] = available - amt;
       taker.budgets[resource] = (taker.budgets[resource] ?? 0) + amt;
@@ -7519,10 +8149,41 @@ async function applyContestSuccessFollowOns(
         contest_id: contest.contest_id,
       });
       await settleEv(t);
+    } else if (
+      amt === 0 &&
+      available === 0 &&
+      holder &&
+      taker &&
+      equipFx?.unequippedItemSeizureMarginMp != null &&
+      !equipFx.blockItemSeizure &&
+      scoreMp - FORM_SPECS.RESOURCE_SEIZURE.success_threshold_millipoints >=
+        equipFx.unequippedItemSeizureMarginMp
+    ) {
+      // RFC-0139 bounded disarm: seize one UNEQUIPPED carried item (never TOOL_SLOT/equipped).
+      const targetItem = selectSeizableUnequippedItem(w.items, contest.target.holder_id);
+      if (targetItem && (taker.budgets.storage ?? 0) >= targetItem.bulk) {
+        const holderCap = effectiveStorageCapacity(w.items, contest.target.holder_id);
+        holder.budgets.storage = Math.min(holderCap, Math.floor(holder.budgets.storage ?? 0) + targetItem.bulk);
+        taker.budgets.storage = Math.max(0, Math.floor(taker.budgets.storage ?? 0) - targetItem.bulk);
+        targetItem.owner_id = contest.declarer_id;
+        targetItem.steward_id = contest.declarer_id;
+        targetItem.location = { kind: "CONTAINER", container_entity_id: contest.declarer_id };
+        seizedItemId = targetItem.item_id;
+        const itemEv = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(targetItem.item_id, {
+            owner_id: targetItem.owner_id,
+            location: targetItem.location,
+          }),
+        );
+        await settleEv(itemEv);
+      }
     }
   }
   if (contest.contest_form === "ACCESS_CONTEST") {
-    const dur = FORM_SPECS.ACCESS_CONTEST.restriction_duration_cycles || 8;
+    const dur =
+      (FORM_SPECS.ACCESS_CONTEST.restriction_duration_cycles || 8) +
+      (equipFx?.restrictionDurationBonus || 0);
     const restriction_id = `restr.${contest.contest_id}`;
     w.access_restrictions = w.access_restrictions || [];
     w.access_restrictions.push({
@@ -7551,9 +8212,10 @@ async function applyContestSuccessFollowOns(
     if (ent && room) {
       const spec = FORM_SPECS.INFORMATION_CONTEST;
       const dur =
-        outcome === "SUCCESS"
+        (outcome === "SUCCESS"
           ? spec.restriction_duration_cycles || 8
-          : spec.partial_restriction_duration_cycles || 4;
+          : spec.partial_restriction_duration_cycles || 4) +
+        (equipFx?.sealDurationBonus || 0);
       ent.inspect_restricted_until = w.cycle + dur;
       const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
       if (idx >= 0) room.entities[idx] = ent;
@@ -7598,6 +8260,7 @@ async function applyContestSuccessFollowOns(
       }
     }
   }
+  return { seizedItemId, disruptionConditionAfter };
 }
 
 async function resolveDueContests(
@@ -7614,6 +8277,8 @@ async function resolveDueContests(
     let score = 0;
     const spentDeclarer: StakeMap = expired ? {} : { ...contest.stake };
     const spentDefender: StakeMap = expired ? {} : { ...contest.defender_stake };
+    let equipFx: ContestEquipmentEffects | undefined;
+    const activelyDefended = Object.keys(contest.defender_stake || {}).length > 0;
     if (expired) {
       releaseStake(contestStakeBudgets(w, contest.declarer_id, contest.acting_for), contest.stake);
       releaseStake(
@@ -7628,6 +8293,20 @@ async function resolveDueContests(
         const ent = room ? findEntity(room, contest.target.entity_id) : null;
         infra = ent?.condition ?? 0;
       }
+      const defenderLookup =
+        contest.defender_id ||
+        (contest.target.kind === "HOLDING"
+          ? contest.target.holder_id
+          : contest.target.kind === "AGENT"
+            ? contest.target.agent_id
+            : undefined);
+      equipFx = computeContestEquipment({
+        items: w.items,
+        form: contest.contest_form,
+        declarerId: contest.declarer_id,
+        defenderId: defenderLookup,
+        defenderActivelyDefended: activelyDefended,
+      });
       const pert = await seedPerturbation(contest.seed_stream_id, contest.contest_id);
       const scored = scoreContest({
         form: contest.contest_form,
@@ -7639,6 +8318,8 @@ async function resolveDueContests(
           w.rooms[contest.room_id] &&
             readyClassInRoom(roomEntities(w.rooms[contest.room_id]), "defensive_work"),
         ),
+        attacker_weapon_bonus_mp: equipFx.attackerBonusMp,
+        defender_gear_bonus_mp: equipFx.defenderBonusMp,
         seed_perturbation: pert,
       });
       score = scored.score;
@@ -7669,8 +8350,77 @@ async function resolveDueContests(
       resolution_digest: digest,
     });
     await settleEv(ev);
+
+    // RFC-0139 weapon & rig wear + failed-attack double-wear drop-to-room.
+    if (!expired && equipFx && w.items) {
+      if (equipFx.attackerWeapon) {
+        const spec = itemSpec(equipFx.attackerWeapon.archetype);
+        const baseWear = spec?.wear_per_use || 10;
+        const failedHard = outcome === "FAILURE" && activelyDefended && score <= FAILED_CONTEST_DOUBLE_WEAR_SCORE;
+        const wear = failedHard ? baseWear * 2 : baseWear;
+        const attackerPlayer = w.players[contest.declarer_id];
+        const wres = applyItemWear(w.items, equipFx.attackerWeapon, wear, attackerPlayer?.budgets);
+        if (wres.after === 0 && failedHard) {
+          if (attackerPlayer) {
+            const cap = effectiveStorageCapacity(w.items, contest.declarer_id);
+            attackerPlayer.budgets.storage = Math.min(
+              cap,
+              Math.floor(attackerPlayer.budgets.storage ?? 0) + equipFx.attackerWeapon.bulk,
+            );
+          }
+          equipFx.attackerWeapon.owner_id = null;
+          equipFx.attackerWeapon.steward_id = null;
+          equipFx.attackerWeapon.location = { kind: "ROOM", room_id: contest.room_id };
+        }
+        const wev = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(equipFx.attackerWeapon.item_id, {
+            condition: wres.after,
+            equipped_slot: equipFx.attackerWeapon.equipped_slot ?? null,
+            owner_id: equipFx.attackerWeapon.owner_id,
+            location: equipFx.attackerWeapon.location,
+          }),
+        );
+        await settleEv(wev);
+      }
+      if (equipFx.defenderWeapon) {
+        const spec = itemSpec(equipFx.defenderWeapon.archetype);
+        const defPlayer = contest.defender_id ? w.players[contest.defender_id] : undefined;
+        const wres = applyItemWear(w.items, equipFx.defenderWeapon, spec?.wear_per_use || 10, defPlayer?.budgets);
+        const wev = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(equipFx.defenderWeapon.item_id, {
+            condition: wres.after,
+            equipped_slot: equipFx.defenderWeapon.equipped_slot ?? null,
+          }),
+        );
+        await settleEv(wev);
+      }
+      if (equipFx.defenderRig) {
+        const spec = itemSpec(equipFx.defenderRig.archetype);
+        const defPlayer =
+          w.players[
+            contest.defender_id ||
+              (contest.target.kind === "HOLDING"
+                ? contest.target.holder_id
+                : contest.target.kind === "AGENT"
+                  ? contest.target.agent_id
+                  : "")
+          ];
+        const wres = applyItemWear(w.items, equipFx.defenderRig, spec?.wear_per_use || 12, defPlayer?.budgets);
+        const rev = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(equipFx.defenderRig.item_id, {
+            condition: wres.after,
+            equipped_slot: equipFx.defenderRig.equipped_slot ?? null,
+          }),
+        );
+        await settleEv(rev);
+      }
+    }
+
     if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") continue;
-    await applyContestSuccessFollowOns(w, contest, outcome, pushEvent, settleEv);
+    await applyContestSuccessFollowOns(w, contest, outcome, pushEvent, settleEv, equipFx, score);
   }
 }
 

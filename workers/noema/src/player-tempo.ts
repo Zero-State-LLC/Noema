@@ -124,6 +124,7 @@ export type TempoPinResult =
   | { ok: false; code: string; message: string };
 
 const PASSIVE_VERBS = new Set(["OBSERVE", "HELP", "QUERY"]);
+const NON_SLOT_COMMIT_OPERATIONS = new Set(["EQUIP", "UNEQUIP"]);
 
 const ACTION_PRIORITY: Record<string, number> = {
   WAIT: 10,
@@ -230,10 +231,14 @@ export function isPlayerTempoPinned(w: { player_tempo_policy_version?: string } 
   return w?.player_tempo_policy_version === PLAYER_TEMPO_POLICY_VERSION;
 }
 
-export function fillsActionSlot(verb: string): boolean {
+export function fillsActionSlot(verb: string, operation?: string): boolean {
   const normalized = String(verb || "").trim().toUpperCase();
   if (!normalized) return true;
   if (PASSIVE_VERBS.has(normalized)) return false;
+  if (normalized === "COMMIT" && operation) {
+    const op = String(operation).trim().toUpperCase();
+    if (NON_SLOT_COMMIT_OPERATIONS.has(op)) return false;
+  }
   return true;
 }
 

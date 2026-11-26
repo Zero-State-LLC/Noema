@@ -217,6 +217,12 @@ export interface ObservationAffordance {
   emergency_scope_id?: string;
   successors?: string[];
   rule_id?: string;
+  /** RFC-0139: portable items, crafting, refining, equipment. */
+  recipe_id?: string;
+  item_id?: string;
+  slot?: string;
+  material?: string;
+  grade?: string;
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;
@@ -345,6 +351,40 @@ export interface Observation {
   inherited_lines?: string[];
   /** GC8-S1 self-only worn holdings. Never put on WATCH. */
   lot_lines?: string[];
+  /** RFC-0139: carried portable items, equipped slots, and regional material sub-lots. */
+  inventory?: Array<{
+    item_id: string;
+    archetype_id: string;
+    label: string;
+    category: string;
+    equip_slot?: string;
+    equipped_slot?: string;
+    quality: string;
+    condition: number;
+    max_condition: number;
+    bulk: number;
+    equipped_bulk: number;
+    forged_cycle: number;
+  }>;
+  equipment?: Partial<
+    Record<
+      "TOOL_SLOT" | "WEAPON_SLOT" | "RIG_SLOT",
+      {
+        item_id: string;
+        archetype_id: string;
+        label: string;
+        condition: number;
+        max_condition: number;
+        quality: string;
+      }
+    >
+  >;
+  material_lots?: Array<{
+    material: string;
+    grade: string;
+    amount: number;
+    origin_room_id?: string;
+  }>;
   /** GC3-S0 self-only trade-memory lines. Never put on WATCH or players_here. */
   social_memory_lines?: string[];
   /** GC9-S0 site custom lines for the current room. Never put on WATCH. */

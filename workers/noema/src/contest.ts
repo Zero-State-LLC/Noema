@@ -9,6 +9,7 @@ import type { Budgets } from "./actions";
 
 export const CONFLICT_CATALOG_ID = "conflict-catalog/gc7-thaw-play";
 export const CONTEST_RULES_VERSION = "contest-rules/0.2.0";
+export const CONTEST_RULES_VERSION_021 = "contest-rules/0.2.1";
 
 export const CONTEST_FORMS = [
   "RESOURCE_SEIZURE",
@@ -230,11 +231,17 @@ export function scoreContest(input: {
   infra_condition: number;
   org_defense_support_millipoints?: number;
   defensive_work?: boolean;
+  attacker_weapon_bonus_mp?: number;
+  defender_gear_bonus_mp?: number;
   seed_perturbation: number;
 }): { score: number; declarer_power: number; defender_power: number; infra_mod: number } {
   const spec = FORM_SPECS[input.form];
-  const declarer_power = stakePower(input.declarer_stake, spec.stake_weights_millipoints);
-  const defender_power = stakePower(input.defender_stake, spec.defense_weights_millipoints);
+  const declarer_power =
+    stakePower(input.declarer_stake, spec.stake_weights_millipoints) +
+    Math.max(0, Math.floor(input.attacker_weapon_bonus_mp || 0));
+  const defender_power =
+    stakePower(input.defender_stake, spec.defense_weights_millipoints) +
+    Math.max(0, Math.floor(input.defender_gear_bonus_mp || 0));
   const infra_mod = infraModifier(input.infra_condition);
   const org = Math.max(
     0,
@@ -276,23 +283,32 @@ export async function resolutionDigest(input: {
   return `sha256:${await sha256Hex(material)}`;
 }
 
-export function seizureAmount(form: ContestForm, outcome: ContestOutcome, available: number): number {
+export function seizureAmount(
+  form: ContestForm,
+  outcome: ContestOutcome,
+  available: number,
+  options?: { maxOverride?: number; halveLoss?: boolean },
+): number {
   if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") return 0;
-  const max = FORM_SPECS[form].max_seizure_amount;
+  const max = options?.maxOverride ?? FORM_SPECS[form].max_seizure_amount;
   const want = outcome === "PARTIAL_SUCCESS" ? Math.ceil(max / 2) : max;
-  return Math.max(0, Math.min(want, Math.max(0, available)));
+  const raw = Math.max(0, Math.min(want, Math.max(0, available)));
+  if (options?.halveLoss && raw > 0) return Math.floor(raw / 2);
+  return raw;
 }
 
 export function disruptionAfter(
   form: ContestForm,
   outcome: ContestOutcome,
   before: number,
+  bonusDelta = 0,
 ): number | null {
   if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") return null;
   const spec = FORM_SPECS[form];
-  const delta =
+  const baseDelta =
     outcome === "SUCCESS" ? spec.max_condition_delta : (spec.partial_condition_delta ?? 0);
-  if (!delta) return null;
+  if (!baseDelta) return null;
+  const delta = baseDelta + Math.max(0, Math.floor(bonusDelta));
   return Math.max(0, before - delta);
 }
 
