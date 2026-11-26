@@ -38,9 +38,10 @@ import {
 
 const LIFT = { NORMAL: 0.25, NOTABLE: 0.45, MAJOR: 0.7 };
 /** Pressure warms the plate toward the warning colour; scar residue strengthens its violet outline. */
-const PRESSURE_MIX = { low: 0.14, moderate: 0.28, high: 0.42 };
-const SCAR_OPACITY = { faint: 0.45, marked: 0.7, deep: 1 };
+const PRESSURE_MIX = { low: 0.12, moderate: 0.24, high: 0.38 };
+const SCAR_OPACITY = { faint: 0.45, marked: 0.72, deep: 1 };
 const PLATE = 2.4;
+const SUNKEN_Y = -0.82;
 const UP = new Vector3(0, 1, 0);
 const CAMERA_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]);
 
@@ -55,17 +56,18 @@ function token(name, fallback) {
 
 function palette() {
   return {
-    world: new Color(token("--color-surface-world", "#111720")),
-    plate: new Color("#435364"),
-    raised: new Color("#566A7E"),
-    edge: new Color("#9BA8B4"),
+    world: new Color(token("--color-surface-world", "#0B0F15")),
+    plate: new Color("#212C39"),
+    raised: new Color("#273444"),
+    selected: new Color("#304052"),
+    edge: new Color("#3A4E63"),
     ink: new Color(token("--color-text-primary", "#F0EAE0")),
     active: new Color(token("--color-state-active", "#3DDCFF")),
     warning: new Color(token("--color-state-warning", "#FFB020")),
     social: new Color(token("--color-state-social", "#D4B68A")),
-    unknown: new Color(token("--color-state-unknown", "#A67BFF")),
-    machine: new Color(token("--color-text-machine", "#A4C6D4")),
-    route: new Color("#6B8698"),
+    unknown: new Color(token("--color-state-unknown", "#9B6DFF")),
+    machine: new Color(token("--color-text-machine", "#8CB8C8")),
+    route: new Color("#35495E"),
   };
 }
 
@@ -146,34 +148,38 @@ function makeBeaconTexture() {
   return new CanvasTexture(canvas);
 }
 
-/** Atmospheric twilight frontier horizon backdrop gradient with faint stars. */
+/** Deep nocturnal midnight-slate sky backdrop gradient with crisp pinprick starfield. */
 function makeHorizonTexture() {
   const c = makeCanvas(256, 256);
   if (!c) return null;
   const { canvas, ctx2d } = c;
   const grad = ctx2d.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0, "#0b111c");
-  grad.addColorStop(0.32, "#152132");
-  grad.addColorStop(0.58, "#243342");
-  grad.addColorStop(0.76, "#43382e");
-  grad.addColorStop(0.88, "#62452b");
-  grad.addColorStop(1, "#26201c");
+  grad.addColorStop(0, "#06090F");
+  grad.addColorStop(0.36, "#090E17");
+  grad.addColorStop(0.64, "#0D1521");
+  grad.addColorStop(0.84, "#101927");
+  grad.addColorStop(0.94, "#142030");
+  grad.addColorStop(1, "#0B0F15");
   ctx2d.fillStyle = grad;
   ctx2d.fillRect(0, 0, 256, 256);
   const rand = mulberry32(4117);
-  for (let i = 0; i < 110; i++) {
+  for (let i = 0; i < 155; i++) {
     const x = rand() * 256;
-    const y = rand() * 135;
-    const a = 0.22 + rand() * 0.65;
-    ctx2d.fillStyle = `rgba(236,242,252,${a.toFixed(2)})`;
-    ctx2d.fillRect(x, y, rand() > 0.78 ? 1.6 : 1, rand() > 0.78 ? 1.6 : 1);
+    const y = rand() * 150;
+    const bright = rand();
+    const a = 0.2 + bright * 0.72;
+    const sz = bright > 0.86 ? 1.5 : 1;
+    ctx2d.fillStyle = bright > 0.7
+      ? `rgba(214,234,255,${a.toFixed(2)})`
+      : `rgba(186,208,232,${(a * 0.75).toFixed(2)})`;
+    ctx2d.fillRect(x, y, sz, sz);
   }
   const tex = new CanvasTexture(canvas);
   tex.colorSpace = SRGBColorSpace;
   return tex;
 }
 
-/** Procedural basalt/obsidian planetary basin albedo + bump texture (512x512). */
+/** Procedural nocturnal obsidian-basalt planetary basin albedo + bump texture (512x512). */
 function makeTerrainTextures() {
   const albedo = makeCanvas(512, 512);
   const bump = makeCanvas(512, 512);
@@ -181,56 +187,55 @@ function makeTerrainTextures() {
   const ctx = albedo.ctx2d;
   const bctx = bump.ctx2d;
 
-  // Sculpted volcanic basalt basin transitioning to warm ochre-sienna canyon ridges
+  // Deep volcanic obsidian-basalt basin floor -> sculpted basalt contour terraces -> outer slate rim
   const baseGrad = ctx.createRadialGradient(256, 256, 16, 256, 256, 256);
-  baseGrad.addColorStop(0, "#232a35");
-  baseGrad.addColorStop(0.22, "#292c34");
-  baseGrad.addColorStop(0.38, "#3e3229");
-  baseGrad.addColorStop(0.62, "#513c2c");
-  baseGrad.addColorStop(0.84, "#3b2c22");
-  baseGrad.addColorStop(1, "#221c19");
+  baseGrad.addColorStop(0, "#0D121A");
+  baseGrad.addColorStop(0.26, "#111824");
+  baseGrad.addColorStop(0.50, "#172230");
+  baseGrad.addColorStop(0.76, "#1F2D40");
+  baseGrad.addColorStop(1, "#111824");
   ctx.fillStyle = baseGrad;
   ctx.fillRect(0, 0, 512, 512);
 
   bctx.fillStyle = "#808080";
   bctx.fillRect(0, 0, 512, 512);
 
-  // Warm ochre & cool slate mineral strata patches
+  // Subtle cool basalt & slate mineral strata variation (zero warm ochre dirt)
   const rand = mulberry32(9021);
   for (let i = 0; i < 72; i++) {
     const ang = rand() * Math.PI * 2;
-    const dist = 76 + rand() * 170;
+    const dist = 68 + rand() * 176;
     const x = 256 + Math.cos(ang) * dist;
     const y = 256 + Math.sin(ang) * dist;
-    const r = 20 + rand() * 48;
+    const r = 22 + rand() * 52;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    const warm = rand() > 0.3;
-    g.addColorStop(0, warm ? "rgba(186,128,74,0.22)" : "rgba(74,126,154,0.16)");
+    const cool = rand() > 0.38;
+    g.addColorStop(0, cool ? "rgba(38,56,78,0.20)" : "rgba(12,18,28,0.28)");
     g.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = g;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
 
-  // Sunken architectural foundation shadow beneath the settlement basin (128u plane -> 15u = 60px)
-  const sink = ctx.createRadialGradient(256, 256, 14, 256, 256, 66);
-  sink.addColorStop(0, "rgba(10,14,22,0.46)");
-  sink.addColorStop(0.8, "rgba(12,16,24,0.28)");
+  // Sunken foundation shadow beneath the settlement basin
+  const sink = ctx.createRadialGradient(256, 256, 12, 256, 256, 66);
+  sink.addColorStop(0, "rgba(4,6,10,0.56)");
+  sink.addColorStop(0.78, "rgba(7,10,16,0.32)");
   sink.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = sink;
   ctx.fillRect(184, 184, 144, 144);
 
-  // Crisp concentric topographic contour rings & survey arcs centered on Perihelion Reach
-  ctx.lineWidth = 1.25;
+  // Carved basalt topographic contour terraces
+  ctx.lineWidth = 1.1;
   bctx.lineWidth = 1.5;
-  for (let r = 20; r <= 240; r += 12) {
+  for (let r = 22; r <= 240; r += 13) {
     const inBasin = r < 62;
-    ctx.strokeStyle = inBasin ? "rgba(224,186,130,0.24)" : "rgba(238,188,128,0.19)";
-    bctx.strokeStyle = inBasin ? "rgba(56,56,56,0.52)" : "rgba(196,196,196,0.4)";
+    ctx.strokeStyle = inBasin ? "rgba(46,66,88,0.22)" : "rgba(58,82,108,0.24)";
+    bctx.strokeStyle = inBasin ? "rgba(58,58,58,0.52)" : "rgba(188,188,188,0.44)";
     ctx.beginPath();
     bctx.beginPath();
     for (let a = 0; a <= 72; a++) {
       const th = (a / 72) * Math.PI * 2;
-      const wob = inBasin ? 0 : Math.sin(th * 5 + r * 0.08) * 3.0 + Math.cos(th * 3 - r * 0.05) * 2.2;
+      const wob = inBasin ? 0 : Math.sin(th * 5 + r * 0.08) * 2.8 + Math.cos(th * 3 - r * 0.05) * 2.0;
       const px = 256 + Math.cos(th) * (r + wob);
       const py = 256 + Math.sin(th) * (r + wob);
       if (a === 0) { ctx.moveTo(px, py); bctx.moveTo(px, py); }
@@ -240,28 +245,24 @@ function makeTerrainTextures() {
     bctx.stroke();
   }
 
-  // Radial brass cartographic survey lines & cyan settlement boundary arc
-  ctx.strokeStyle = "rgba(218,178,122,0.2)";
-  ctx.lineWidth = 1.0;
+  // Hairline architectural slate-steel radial survey lines + restrained antique-brass cardinal ticks
+  ctx.lineWidth = 0.85;
   for (let i = 0; i < 12; i++) {
     const th = (i / 12) * Math.PI * 2;
+    const isCardinal = i % 3 === 0;
+    ctx.strokeStyle = isCardinal ? "rgba(140,117,88,0.24)" : "rgba(52,72,96,0.16)";
     ctx.beginPath();
-    ctx.moveTo(256 + Math.cos(th) * 18, 256 + Math.sin(th) * 18);
-    ctx.lineTo(256 + Math.cos(th) * 110, 256 + Math.sin(th) * 110);
+    ctx.moveTo(256 + Math.cos(th) * 20, 256 + Math.sin(th) * 20);
+    ctx.lineTo(256 + Math.cos(th) * 108, 256 + Math.sin(th) * 108);
     ctx.stroke();
   }
-  ctx.strokeStyle = "rgba(92,216,255,0.26)";
-  ctx.lineWidth = 1.4;
-  ctx.beginPath();
-  ctx.arc(256, 256, 56, 0, Math.PI * 2);
-  ctx.stroke();
 
-  // Fine mineral grain for both albedo and bump relief
+  // Fine volcanic basalt micro-grain for albedo and bump relief
   for (let i = 0; i < 4200; i++) {
     const x = (rand() * 512) | 0;
     const y = (rand() * 512) | 0;
     const v = rand();
-    ctx.fillStyle = v > 0.5 ? "rgba(255,232,200,0.055)" : "rgba(0,0,0,0.08)";
+    ctx.fillStyle = v > 0.5 ? "rgba(164,196,226,0.036)" : "rgba(0,0,0,0.09)";
     ctx.fillRect(x, y, 2, 2);
     const bv = (92 + v * 72) | 0;
     bctx.fillStyle = `rgb(${bv},${bv},${bv})`;
@@ -274,7 +275,7 @@ function makeTerrainTextures() {
   return { map, bump: bumpMap };
 }
 
-/** Procedural brushed titanium/slate industrial deck plate texture (256x256). */
+/** Procedural brushed obsidian-slate industrial deck plate texture (256x256). */
 function makeDeckTextures() {
   const albedo = makeCanvas(256, 256);
   const bump = makeCanvas(256, 256);
@@ -282,27 +283,27 @@ function makeDeckTextures() {
   const ctx = albedo.ctx2d;
   const bctx = bump.ctx2d;
 
-  // High-value neutral slate base so material.color tints cleanly without darkening
-  ctx.fillStyle = "#c8d0d8";
+  // Neutral brushed-slate base so dark obsidian-titanium material.color tints cleanly
+  ctx.fillStyle = "#b8c4d0";
   ctx.fillRect(0, 0, 256, 256);
-  bctx.fillStyle = "#a8a8a8";
+  bctx.fillStyle = "#a0a0a0";
   bctx.fillRect(0, 0, 256, 256);
 
   const rand = mulberry32(3141);
-  // 4x4 brushed metallic tiles with subtle per-panel specular/tonal variation
+  // 4x4 brushed metallic tiles with subtle per-panel tonal & bump relief
   const step = 64;
   for (let gy = 0; gy < 4; gy++) {
     for (let gx = 0; gx < 4; gx++) {
-      const shade = 192 + ((rand() * 24) | 0);
-      ctx.fillStyle = `rgb(${shade},${shade + 4},${shade + 9})`;
+      const shade = 176 + ((rand() * 24) | 0);
+      ctx.fillStyle = `rgb(${shade},${shade + 6},${shade + 14})`;
       ctx.fillRect(gx * step + 2, gy * step + 2, step - 4, step - 4);
-      const bShade = 152 + ((rand() * 34) | 0);
+      const bShade = 148 + ((rand() * 36) | 0);
       bctx.fillStyle = `rgb(${bShade},${bShade},${bShade})`;
       bctx.fillRect(gx * step + 2, gy * step + 2, step - 4, step - 4);
 
       // Corner fastener rivets
-      ctx.fillStyle = "#6c7680";
-      bctx.fillStyle = "#505050";
+      ctx.fillStyle = "#525e6b";
+      bctx.fillStyle = "#484848";
       for (const [rx, ry] of [[7, 7], [step - 9, 7], [7, step - 9], [step - 9, step - 9]]) {
         ctx.fillRect(gx * step + rx, gy * step + ry, 2.5, 2.5);
         bctx.fillRect(gx * step + rx, gy * step + ry, 2.5, 2.5);
@@ -311,9 +312,9 @@ function makeDeckTextures() {
   }
 
   // Recessed panel seams
-  ctx.strokeStyle = "#5e6872";
+  ctx.strokeStyle = "#485462";
   ctx.lineWidth = 2;
-  bctx.strokeStyle = "#363636";
+  bctx.strokeStyle = "#323232";
   bctx.lineWidth = 2.5;
   for (let i = 0; i <= 256; i += step) {
     ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.stroke();
@@ -322,20 +323,20 @@ function makeDeckTextures() {
     bctx.beginPath(); bctx.moveTo(0, i); bctx.lineTo(256, i); bctx.stroke();
   }
 
-  // Clean inset architectural trim border
-  ctx.strokeStyle = "#e6ecf2";
-  ctx.lineWidth = 3;
+  // Restrained machined bevel inset (no bright grey frame)
+  ctx.strokeStyle = "#8a99a8";
+  ctx.lineWidth = 2;
   ctx.strokeRect(8, 8, 240, 240);
-  bctx.strokeStyle = "#dcdcdc";
-  bctx.lineWidth = 3;
+  bctx.strokeStyle = "#d0d0d0";
+  bctx.lineWidth = 2.5;
   bctx.strokeRect(8, 8, 240, 240);
 
-  // Fine horizontal brushed-metal micro-streaks
+  // Fine brushed-slate micro-streaks
   for (let i = 0; i < 420; i++) {
     const x = rand() * 256;
     const y = rand() * 256;
     const len = 10 + rand() * 34;
-    ctx.fillStyle = rand() > 0.5 ? "rgba(255,255,255,0.055)" : "rgba(30,38,48,0.055)";
+    ctx.fillStyle = rand() > 0.5 ? "rgba(220,238,255,0.045)" : "rgba(18,24,34,0.065)";
     ctx.fillRect(x, y, len, 1);
   }
 
@@ -347,34 +348,90 @@ function makeDeckTextures() {
   return { map, bump: bumpMap };
 }
 
+/** Build a continuous sculpted dark-basalt terraced canyon rim ring around the basin. */
+function makeBasaltTerraceRing(rIn, rOut, hBase, hVar, seed, mat) {
+  const segs = 80;
+  const cols = segs + 1;
+  const rings = 4;
+  const positions = new Float32Array(cols * rings * 3);
+  const indices = [];
+  for (let i = 0; i <= segs; i++) {
+    const th = (i / segs) * Math.PI * 2;
+    const cos = Math.cos(th);
+    const sin = Math.sin(th);
+    const wave = 0.5
+      + 0.25 * Math.sin(th * 3 + seed)
+      + 0.15 * Math.cos(th * 5 - seed * 1.3)
+      + 0.08 * Math.sin(th * 8 + seed * 0.7);
+    const hy = hBase + wave * hVar;
+    const ri0 = rIn + (wave - 0.5) * 1.3;
+    const ri1 = ri0 + 1.15;
+    const ro1 = rOut - 1.2 + (wave - 0.5) * 1.6;
+    const ro0 = rOut + 0.9 + (wave - 0.5) * 1.6;
+    const prof = [
+      [ri0, -0.24],
+      [ri1, hy],
+      [ro1, hy * 0.88],
+      [ro0, -0.24],
+    ];
+    for (let r = 0; r < rings; r++) {
+      const idx = (i * rings + r) * 3;
+      positions[idx] = cos * prof[r][0];
+      positions[idx + 1] = prof[r][1];
+      positions[idx + 2] = sin * prof[r][0];
+    }
+    if (i < segs) {
+      for (let r = 0; r < rings - 1; r++) {
+        const a = i * rings + r;
+        const b = (i + 1) * rings + r;
+        const c = (i + 1) * rings + r + 1;
+        const d = i * rings + r + 1;
+        indices.push(a, b, d, b, c, d);
+      }
+    }
+  }
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  const mesh = new Mesh(geo, mat);
+  mesh.receiveShadow = true;
+  mesh.raycast = () => {};
+  return mesh;
+}
+
 function makePlanetaryTerrain(terrainTex, skyTex, haloTexture) {
   const grp = new Group();
-  // Grounded frontier planet surface: wide flat settlement basin (r <= 15.5) ringed by sculpted canyon walls
-  const groundGeo = new PlaneGeometry(128, 128, 64, 64);
+  // Grounded nocturnal obsidian-basalt planet surface: wide flat settlement basin (r <= 15.8)
+  // ringed by continuous terraced basalt canyon walls (160x160 grid for crisp subterranean pit carving).
+  const groundGeo = new PlaneGeometry(128, 128, 160, 160);
   const posAttr = groundGeo.attributes.position;
+  const baseHeights = new Float32Array(posAttr.count);
   for (let i = 0; i < posAttr.count; i++) {
     const x = posAttr.getX(i);
     const y = posAttr.getY(i);
     const dist = Math.hypot(x, y);
     let h = 0;
-    if (dist > 15.5) {
-      const t = Math.min(1, (dist - 15.5) / 8.5);
+    if (dist > 15.8) {
+      const t = Math.min(1, (dist - 15.8) / 10.5);
       const smooth = t * t * (3 - 2 * t);
-      const raw = (Math.sin(x * 0.14) * Math.cos(y * 0.13) + 0.5 * Math.sin(x * 0.25 - y * 0.21) + 0.65) * 1.9;
-      const amp = Math.min(4.6, (dist - 15.5) * 0.18);
-      const stepped = Math.round(raw * 2.5) / 2.5;
-      h = Math.max(0, smooth * (raw * 0.65 + stepped * 0.35) * (0.45 + amp * 0.32));
+      const ang = Math.atan2(y, x);
+      const wave = 1.05 + 0.42 * Math.sin(ang * 3 + 0.6) + 0.24 * Math.cos(ang * 5 - 1.1) + 0.14 * Math.sin(ang * 7 + 0.3);
+      const raw = wave * Math.min(3.6, (dist - 15.8) * 0.16);
+      const stepped = Math.round(raw * 2.2) / 2.2;
+      h = Math.max(0, smooth * (raw * 0.55 + stepped * 0.45));
     }
+    baseHeights[i] = h;
     posAttr.setZ(i, h);
   }
   groundGeo.computeVertexNormals();
   const groundMat = new MeshStandardMaterial({
-    color: terrainTex ? 0xf2e8dc : 0x2c2724,
+    color: terrainTex ? 0xdbe6f2 : 0x101620,
     map: terrainTex ? terrainTex.map : null,
     bumpMap: terrainTex ? terrainTex.bump : null,
-    bumpScale: 0.34,
-    roughness: 0.86,
-    metalness: 0.1,
+    bumpScale: 0.36,
+    roughness: 0.88,
+    metalness: 0.14,
   });
   const ground = new Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
@@ -383,65 +440,112 @@ function makePlanetaryTerrain(terrainTex, skyTex, haloTexture) {
   ground.raycast = () => {};
   grp.add(ground);
 
-  // Inlaid brass/ochre tabletop survey ring + subtle outer steel-cyan perimeter ring (flat inside r <= 15.5)
-  const surveyRing = new Mesh(
-    new RingGeometry(13.65, 13.92, 80),
-    new MeshStandardMaterial({
-      color: 0xd4a862,
-      emissive: 0x8a5e24,
-      emissiveIntensity: 0.52,
-      roughness: 0.38,
-      metalness: 0.72,
-      transparent: true,
-      opacity: 0.7,
-    }),
-  );
+  let lastPitSig = "";
+  function updatePits(sunkenCoords, surfaceCoords) {
+    const sig = sunkenCoords.map((p) => p.x.toFixed(2) + "," + p.z.toFixed(2)).join("|")
+      + ";" + surfaceCoords.map((p) => p.x.toFixed(2) + "," + p.z.toFixed(2)).join("|");
+    if (sig === lastPitSig) return;
+    lastPitSig = sig;
+    for (let i = 0; i < posAttr.count; i++) {
+      let h = baseHeights[i];
+      const wx = posAttr.getX(i);
+      const wz = -posAttr.getY(i);
+      if (sunkenCoords.length && Math.hypot(wx, wz) < 15.6) {
+        let onSurfaceSite = false;
+        for (let s = 0; s < surfaceCoords.length; s++) {
+          if (Math.abs(wx - surfaceCoords[s].x) < 1.38 && Math.abs(wz - surfaceCoords[s].z) < 1.38) {
+            onSurfaceSite = true;
+            break;
+          }
+        }
+        if (!onSurfaceSite) {
+          for (let p = 0; p < sunkenCoords.length; p++) {
+            const cheb = Math.max(Math.abs(wx - sunkenCoords[p].x), Math.abs(wz - sunkenCoords[p].z));
+            if (cheb < 1.54) {
+              h = Math.min(h, -0.94);
+            } else if (cheb < 2.16) {
+              const t = (cheb - 1.54) / (2.16 - 1.54);
+              const smooth = t * t * (3 - 2 * t);
+              h = Math.min(h, -0.94 * (1 - smooth));
+            }
+          }
+        }
+      }
+      posAttr.setZ(i, h);
+    }
+    posAttr.needsUpdate = true;
+    groundGeo.computeVertexNormals();
+  }
+
+  // Hairline architectural slate-steel survey rings accented only by restrained antique-brass cardinal ticks
+  const surveyMat = new MeshStandardMaterial({
+    color: 0x243344,
+    emissive: 0x162230,
+    emissiveIntensity: 0.26,
+    roughness: 0.48,
+    metalness: 0.68,
+    transparent: true,
+    opacity: 0.55,
+  });
+  const surveyRing = new Mesh(new RingGeometry(14.16, 14.28, 96), surveyMat);
   surveyRing.rotation.x = -Math.PI / 2;
-  surveyRing.position.y = -0.135;
+  surveyRing.position.y = -0.138;
   surveyRing.raycast = () => {};
   grp.add(surveyRing);
 
   const outerArc = new Mesh(
-    new RingGeometry(14.75, 14.9, 80),
+    new RingGeometry(15.22, 15.29, 96),
     new MeshBasicMaterial({
-      color: 0x4fc6f4,
+      color: 0x243344,
       transparent: true,
-      opacity: 0.24,
-      blending: AdditiveBlending,
+      opacity: 0.42,
       depthWrite: false,
     }),
   );
   outerArc.rotation.x = -Math.PI / 2;
-  outerArc.position.y = -0.132;
+  outerArc.position.y = -0.139;
   outerArc.raycast = () => {};
   grp.add(outerArc);
 
-  // Sleek distant slate-ochre tiered canyon mesas framing the horizon beyond the flat basin (dist 18.5-26)
-  const mesaMat = new MeshStandardMaterial({
-    color: 0x332d2b,
-    emissive: 0x101318,
+  const brassTickMat = new MeshStandardMaterial({
+    color: 0x8c7558,
+    emissive: 0x3b2f20,
     emissiveIntensity: 0.22,
-    roughness: 0.9,
-    metalness: 0.12,
+    roughness: 0.42,
+    metalness: 0.72,
   });
-  const mesaSpecs = [
-    [-19, -15, 2.2, 4.4, 2.3, 7], [-9, -20, 2.0, 3.8, 1.9, 6], [5, -21, 2.6, 5.0, 2.5, 7],
-    [17, -16, 2.4, 4.4, 2.2, 6], [22, -5, 2.6, 4.8, 2.0, 7], [20, 9.5, 2.3, 4.2, 1.9, 6],
-    [13, 19, 2.6, 4.8, 1.8, 7], [-5, 20.5, 2.4, 4.4, 1.7, 6], [-18, 15, 2.5, 4.8, 2.2, 7],
-    [-22, 2, 2.8, 5.2, 2.4, 7], [-15, -24, 3.6, 6.8, 3.4, 8], [18, -23.5, 3.8, 7.0, 3.3, 8],
-  ];
-  for (let i = 0; i < mesaSpecs.length; i++) {
-    const [mx, mz, rt, rb, mh, seg] = mesaSpecs[i];
-    const m = new Mesh(new CylinderGeometry(rt, rb, mh, seg), mesaMat);
-    m.position.set(mx, mh * 0.42 - 0.15, mz);
-    m.rotation.y = i * 0.85;
-    m.castShadow = true;
-    m.receiveShadow = true;
-    m.raycast = () => {};
-    grp.add(m);
+  const majorTickGeo = new BoxGeometry(0.08, 0.014, 0.68);
+  const minorTickGeo = new BoxGeometry(0.055, 0.012, 0.36);
+  for (let i = 0; i < 8; i++) {
+    const th = (i / 8) * Math.PI * 2;
+    const isCard = i % 2 === 0;
+    const tick = new Mesh(isCard ? majorTickGeo : minorTickGeo, brassTickMat);
+    const r = 14.22;
+    tick.position.set(Math.sin(th) * r, -0.134, -Math.cos(th) * r);
+    tick.rotation.y = -th;
+    tick.raycast = () => {};
+    grp.add(tick);
   }
 
-  // Atmospheric twilight horizon backdrop cylinder
+  // Sculpted continuous layered dark-basalt canyon rim terraces around r = 16.5..28
+  const rimInnerMat = new MeshStandardMaterial({
+    color: 0x1c2738,
+    emissive: 0x0d1520,
+    emissiveIntensity: 0.32,
+    roughness: 0.80,
+    metalness: 0.16,
+  });
+  const rimOuterMat = new MeshStandardMaterial({
+    color: 0x243347,
+    emissive: 0x0d1520,
+    emissiveIntensity: 0.32,
+    roughness: 0.80,
+    metalness: 0.14,
+  });
+  grp.add(makeBasaltTerraceRing(16.8, 22.0, 0.72, 0.95, 0.4, rimInnerMat));
+  grp.add(makeBasaltTerraceRing(21.4, 28.4, 1.45, 1.55, 2.1, rimOuterMat));
+
+  // Nocturnal midnight-slate horizon backdrop cylinder
   if (skyTex) {
     const sky = new Mesh(
       new CylinderGeometry(48, 48, 28, 48, 1, true),
@@ -457,14 +561,14 @@ function makePlanetaryTerrain(terrainTex, skyTex, haloTexture) {
     grp.add(sky);
   }
 
-  // Soft warm atmospheric dust motes drifting over the basin
-  const count = 140;
+  // Subtle nocturnal starlight motes drifting above the obsidian basin
+  const count = 120;
   const pos = new Float32Array(count * 3);
   const rand = mulberry32(1337);
   for (let i = 0; i < count; i++) {
     const theta = rand() * Math.PI * 2;
     const r = 3.2 + rand() * 20;
-    const h = 0.5 + rand() * 4.8;
+    const h = 0.6 + rand() * 4.6;
     pos[i * 3] = Math.cos(theta) * r;
     pos[i * 3 + 1] = h;
     pos[i * 3 + 2] = Math.sin(theta) * r;
@@ -474,18 +578,18 @@ function makePlanetaryTerrain(terrainTex, skyTex, haloTexture) {
   const dust = new Points(
     dustGeo,
     new PointsMaterial({
-      color: 0xf2cfa0,
+      color: 0x9ec4e0,
       map: haloTexture || null,
-      size: haloTexture ? 0.3 : 0.13,
+      size: haloTexture ? 0.24 : 0.11,
       transparent: true,
-      opacity: 0.48,
+      opacity: 0.28,
       blending: AdditiveBlending,
       depthWrite: false,
     }),
   );
   dust.raycast = () => {};
   grp.add(dust);
-  return grp;
+  return { grp, updatePits };
 }
 
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
@@ -517,41 +621,43 @@ function mount(frame, opts) {
 
   const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: "low-power" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setClearColor(0x131922, 1);
+  renderer.setClearColor(0x0b0f15, 1);
   renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.44;
+  renderer.toneMappingExposure = 1.32;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
   const labels = new CSS2DRenderer({ element: labelRoot });
 
   const scene = new Scene();
-  scene.fog = new FogExp2(0x161d27, 0.0082);
-  const environment = makePlanetaryTerrain(terrainTex, skyTexture, haloTexture);
+  scene.fog = new FogExp2(0x0b1017, 0.0068);
+  const env = makePlanetaryTerrain(terrainTex, skyTexture, haloTexture);
+  const environment = env.grp;
   scene.add(environment);
 
-  // Warm frontier lantern sun + cool steel-cyan rim + rich obsidian-ochre hemisphere bounce
-  scene.add(new HemisphereLight(0xfbe2bc, 0x263142, 1.35));
-  const sun = new DirectionalLight(0xffcf8e, 2.55);
-  sun.position.set(-14, 15, 11);
+  // Chiaroscuro lighting: cool starlight-silver key + midnight hemisphere + steel-cyan rim + localized lantern hearth
+  const hemi = new HemisphereLight(0x9bb6d4, 0x101824, 1.38);
+  scene.add(hemi);
+  const sun = new DirectionalLight(0xc8def4, 2.45);
+  sun.position.set(-14, 17, 11);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.radius = 2.5;
-  sun.shadow.camera.left = -16;
-  sun.shadow.camera.right = 16;
-  sun.shadow.camera.top = 16;
-  sun.shadow.camera.bottom = -16;
+  sun.shadow.camera.left = -18;
+  sun.shadow.camera.right = 18;
+  sun.shadow.camera.top = 18;
+  sun.shadow.camera.bottom = -18;
   sun.shadow.camera.near = 2;
-  sun.shadow.camera.far = 48;
+  sun.shadow.camera.far = 52;
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.025;
   scene.add(sun);
 
-  const rim = new DirectionalLight(0x5ad2ff, 1.35);
-  rim.position.set(14, 9, -12);
+  const rim = new DirectionalLight(0x4bc8f0, 1.25);
+  rim.position.set(15, 10, -13);
   scene.add(rim);
 
-  const hearth = new PointLight(0xffba66, 2.3, 28, 1.25);
-  hearth.position.set(0, 3.6, 1.0);
+  const hearth = new PointLight(0xffb454, 2.6, 26, 1.28);
+  hearth.position.set(-1.0, 2.8, -1.2);
   scene.add(hearth);
 
   const camera = new PerspectiveCamera(38, 1, 0.1, 2000);
@@ -563,15 +669,17 @@ function mount(frame, opts) {
 
   // Shared primitive geometry pool (reused across all plinths, landmarks, conduits, and drones)
   const shared = {
-    subBase: new BoxGeometry(PLATE + 0.34, 0.14, PLATE + 0.34),
-    collar: new BoxGeometry(PLATE + 0.14, 0.07, PLATE + 0.14),
+    subBase: new BoxGeometry(PLATE + 0.30, 0.14, PLATE + 0.30),
+    collar: new BoxGeometry(PLATE + 0.12, 0.07, PLATE + 0.12),
     plate: new BoxGeometry(PLATE, 0.22, PLATE),
-    trimX: new BoxGeometry(PLATE + 0.04, 0.045, 0.05),
-    trimZ: new BoxGeometry(0.05, 0.045, PLATE + 0.04),
-    cornerPost: new BoxGeometry(0.12, 0.12, 0.12),
+    curbX: new BoxGeometry(PLATE + 0.04, 0.042, 0.045),
+    curbZ: new BoxGeometry(0.045, 0.042, PLATE + 0.04),
+    trimX: new BoxGeometry(PLATE - 0.14, 0.026, 0.026),
+    trimZ: new BoxGeometry(0.026, 0.026, PLATE - 0.14),
+    cornerPost: new BoxGeometry(0.11, 0.11, 0.11),
     ring: new BoxGeometry(PLATE + 0.56, 0.04, PLATE + 0.56),
     scar: new BoxGeometry(PLATE - 0.56, 0.02, PLATE - 0.56),
-    beacon: new CylinderGeometry(PLATE * 0.48, PLATE * 0.62, 1.45, 24, 1, true),
+    beacon: new CylinderGeometry(PLATE * 0.46, PLATE * 0.60, 1.35, 24, 1, true),
     pipBase: new CylinderGeometry(0.18, 0.21, 0.055, 10),
     pipRing: new RingGeometry(0.18, 0.25, 16),
     pip: new CylinderGeometry(0.11, 0.19, 0.36, 8),
@@ -593,8 +701,9 @@ function mount(frame, opts) {
     pipe: new CylinderGeometry(0.065, 0.065, 0.85, 8),
     unitBox: new BoxGeometry(1, 1, 1),
     trace: new OctahedronGeometry(0.13, 0),
-    arrow: new ConeGeometry(0.19, 0.5, 6),
-    pulse: new RingGeometry(1.7, 1.98, 48),
+    arrow: new ConeGeometry(0.18, 0.46, 6),
+    pulse: new RingGeometry(1.66, 1.88, 48),
+    pulseInner: new RingGeometry(1.26, 1.38, 48),
     halo: new PlaneGeometry(1, 1),
   };
   const sharedGeos = new Set(Object.values(shared));
@@ -617,6 +726,8 @@ function mount(frame, opts) {
   let frameId = 0;
   let dirty = false;
   let disposed = false;
+  let hoveredSiteId = "";
+  let hoveredHandle = "";
   const groups = new Map();
   let routeEntries = [];
   let captions = [];
@@ -729,7 +840,7 @@ function mount(frame, opts) {
     root.add(head);
     root.scale.setScalar(1.14);
 
-    return { root, head, bodyMat, mats };
+    return { root, head, bodyMat, ringMat, glowMats: [bodyMat, collarMat, crownMat, visorMat], mats };
   }
 
   /** Build bespoke miniature architectural landmarks for each of the 10 Chamber rooms. */
@@ -737,15 +848,15 @@ function mount(frame, opts) {
     const sid = String(site.id || "");
     const g = new Group();
     g.position.set(0, baseY, 0);
-    g.scale.setScalar(1.22);
+    g.scale.setScalar(1.20);
     parent.add(g);
     const py = 0;
-    const darkMetal = new MeshStandardMaterial({ color: 0x364352, roughness: 0.42, metalness: 0.68 });
-    const steel = new MeshStandardMaterial({ color: 0x73879a, roughness: 0.34, metalness: 0.64 });
-    const brass = new MeshStandardMaterial({ color: 0xbe965c, roughness: 0.34, metalness: 0.74 });
-    const cyanGlow = new MeshStandardMaterial({ color: 0x9cf0ff, emissive: 0x3ddcff, emissiveIntensity: 1.68, roughness: 0.18 });
-    const amberGlow = new MeshStandardMaterial({ color: 0xffdc8c, emissive: 0xff9a1a, emissiveIntensity: 1.78, roughness: 0.18 });
-    const violetGlow = new MeshStandardMaterial({ color: 0xd9c2ff, emissive: 0xa474ff, emissiveIntensity: 1.6, roughness: 0.2 });
+    const darkMetal = new MeshStandardMaterial({ color: 0x263342, roughness: 0.46, metalness: 0.62 });
+    const steel = new MeshStandardMaterial({ color: 0x5d7288, roughness: 0.36, metalness: 0.62 });
+    const brass = new MeshStandardMaterial({ color: 0xb08c5c, roughness: 0.35, metalness: 0.72 });
+    const cyanGlow = new MeshStandardMaterial({ color: 0x9cf0ff, emissive: 0x3ddcff, emissiveIntensity: 1.55, roughness: 0.18 });
+    const amberGlow = new MeshStandardMaterial({ color: 0xffdc8c, emissive: 0xff9a1a, emissiveIntensity: 1.65, roughness: 0.18 });
+    const violetGlow = new MeshStandardMaterial({ color: 0xd9c2ff, emissive: 0x9b6dff, emissiveIntensity: 1.48, roughness: 0.2 });
 
     if (sid.includes("generator")) {
       // Generator Hall: reactor dais, twin armored radiator fins, amber plasma core & dual counter-rotating magnetic rings
@@ -1144,6 +1255,18 @@ function mount(frame, opts) {
     frameId = requestAnimationFrame(draw);
   }
 
+  function disposeRing(ring) {
+    if (!ring) return;
+    world.remove(ring);
+    if (ring.userData && ring.userData.rings) {
+      for (const r of ring.userData.rings) {
+        if (r.material) r.material.dispose();
+      }
+    } else if (ring.material) {
+      ring.material.dispose();
+    }
+  }
+
   function draw(now) {
     frameId = 0;
     if (disposed) return;
@@ -1157,19 +1280,28 @@ function mount(frame, opts) {
       if (t >= 1) tween = null;
       else busy = true;
     }
-    for (const g of groups.values()) g.position.y = 0;
+    for (const g of groups.values()) g.position.y = g.userData.baseY || 0;
     pulses = pulses.filter((p) => {
       const g = groups.get(p.roomId);
       if (p.start === undefined) p.start = now;
       const t = (now - p.start) / p.ttl;
       if (!g || t >= 1) {
-        if (p.ring) { world.remove(p.ring); p.ring.material.dispose(); }
+        disposeRing(p.ring);
         return false;
       }
-      g.position.y = Math.max(g.position.y, Math.sin(t * Math.PI) * LIFT[p.tier]);
+      g.position.y = Math.max(g.position.y, (g.userData.baseY || 0) + Math.sin(t * Math.PI) * LIFT[p.tier]);
       if (p.ring) {
-        p.ring.scale.setScalar(1 + t * 0.9);
-        p.ring.material.opacity = 0.92 * (1 - t);
+        const rings = p.ring.userData && p.ring.userData.rings;
+        if (rings) {
+          rings[0].scale.setScalar(1 + t * 0.95);
+          rings[0].material.opacity = 0.92 * (1 - t);
+          const t2 = Math.max(0, (t - 0.14) / 0.86);
+          rings[1].scale.setScalar(1 + t2 * 1.18);
+          rings[1].material.opacity = t > 0.14 ? 0.66 * (1 - t2) : 0;
+        } else {
+          p.ring.scale.setScalar(1 + t * 0.9);
+          p.ring.material.opacity = 0.92 * (1 - t);
+        }
       }
       busy = true;
       return true;
@@ -1181,8 +1313,16 @@ function mount(frame, opts) {
       if (reduce || !m.ring) continue;
       const t = m.ms > 0 ? (now - m.start) / m.ms : 1;
       if (t >= 1) { endMoment(m.roomId); continue; }
-      m.ring.scale.setScalar(1.15 + 0.25 * Math.sin(t * Math.PI * 6));
-      m.ring.material.opacity = 0.58 * (1 - t * t);
+      const rings = m.ring.userData && m.ring.userData.rings;
+      if (rings) {
+        rings[0].scale.setScalar(1.12 + 0.24 * Math.sin(t * Math.PI * 6));
+        rings[0].material.opacity = 0.56 * (1 - t * t);
+        rings[1].scale.setScalar(1.02 + 0.16 * Math.sin(t * Math.PI * 6 + 1.2));
+        rings[1].material.opacity = 0.42 * (1 - t * t);
+      } else {
+        m.ring.scale.setScalar(1.15 + 0.25 * Math.sin(t * Math.PI * 6));
+        m.ring.material.opacity = 0.58 * (1 - t * t);
+      }
       busy = true;
     }
     // D6 route travel: a sculpted drone glides along a parabolic arc with a fading wake.
@@ -1193,7 +1333,7 @@ function mount(frame, opts) {
       const t = Math.min(1, (now - tr.start) / STAGE_TRAVEL_MS);
       const k = easeOut(t);
       const px = tr.from.x + (tr.to.x - tr.from.x) * k;
-      const py = tr.from.y + (tr.to.y - tr.from.y) * k + Math.sin(t * Math.PI) * 0.78;
+      const py = tr.from.y + (tr.to.y - tr.from.y) * k + Math.sin(t * Math.PI) * 0.85;
       const pz = tr.from.z + (tr.to.z - tr.from.z) * k;
       tr.mesh.position.set(px, py, pz);
       // Lean smoothly into the direction of motion
@@ -1209,7 +1349,7 @@ function mount(frame, opts) {
           const tk = easeOut(tt);
           tr.trail[j].mesh.position.set(
             tr.from.x + dx * tk,
-            tr.from.y + (tr.to.y - tr.from.y) * tk + Math.sin(tt * Math.PI) * 0.78 + 0.14,
+            tr.from.y + (tr.to.y - tr.from.y) * tk + Math.sin(tt * Math.PI) * 0.85 + 0.14,
             tr.from.z + dz * tk,
           );
           tr.trail[j].mat.opacity = tt > 0 ? 0.62 * (1 - j / tr.trail.length) * (1 - t * 0.35) : 0;
@@ -1227,16 +1367,22 @@ function mount(frame, opts) {
         busy = true;
       }
     }
-    // §18.6 exit lighting: while an agent-move pulse lives, routes that touch
-    // its site illuminate vivid electric cyan along their conduit core.
+    // §18.6 exit lighting: idle conduits stay muted slate-steel; while an agent-move
+    // pulse or active travel flight lives, touching/traversed routes surge to electric cyan.
     const lit = stageLitRoutes(pulses.filter((p) => p.projectionId === "agent_move"), model.routes);
+    for (const tr of travels) {
+      if (tr.fromId && tr.toId) {
+        lit.add(tr.fromId + "|" + tr.toId);
+        lit.add(tr.toId + "|" + tr.fromId);
+      }
+    }
     for (const entry of routeEntries) {
       const on = lit.has(entry.from + "|" + entry.to);
       for (const m of entry.mats) {
         m.color.copy(on ? C.active : C.route);
         if (m.emissive) {
-          m.emissive.setHex(on ? C.active.getHex() : 0x34667d);
-          m.emissiveIntensity = on ? 2.1 : 0.72;
+          m.emissive.setHex(on ? C.active.getHex() : 0x26384a);
+          m.emissiveIntensity = on ? 2.2 : 0.14;
         }
       }
     }
@@ -1247,7 +1393,7 @@ function mount(frame, opts) {
         prop.rotation.y = sec * (prop.userData.spin || 0.7);
       }
       for (const pawn of animatedPawns) {
-        pawn.position.y = pawn.userData.baseY + Math.sin(sec * 2.2 + (pawn.userData.phase || 0)) * 0.055;
+        pawn.position.y = pawn.userData.baseY + Math.sin(sec * 2.2 + (pawn.userData.phase || 0)) * 0.05;
         if (pawn.userData.head) pawn.userData.head.rotation.y = sec * 1.25;
       }
       if (!document.hidden && (animatedProps.length > 0 || animatedPawns.length > 0)) busy = true;
@@ -1260,31 +1406,82 @@ function mount(frame, opts) {
   }
 
   // Labels stay readable (Lightweight §18): nudge colliding labels smoothly in
-  // screen space before falling back to tucking, so names stay legible.
+  // screen space so all co-located agent nameplates and site labels stay clear.
   function declutter() {
     const els = Array.from(labelRoot.querySelectorAll(".stage3d-label, .stage3d-nameplate"));
     els.sort((a, b) => Number(b.dataset.priority || 0) - Number(a.dataset.priority || 0));
     const fr = frame.getBoundingClientRect();
     const placed = [];
-    const padX = 8;
-    const padY = 6;
-    const maxShift = 58;
+    const siteNameplates = new Map();
+    const padX = 7;
+    const padY = 5;
     const overlaps = (a, b) =>
       a.left < b.right + padX && a.right > b.left - padX && a.top < b.bottom + padY && a.bottom > b.top - padY;
+    const overlapArea = (a, b) => {
+      const ox = Math.min(a.right + padX, b.right + padX) - Math.max(a.left - padX, b.left - padX);
+      const oy = Math.min(a.bottom + padY, b.bottom + padY) - Math.max(a.top - padY, b.top - padY);
+      return ox > 0 && oy > 0 ? ox * oy : 0;
+    };
+    const clampOffset = (base, ox, oy, maxShift) => {
+      const mag = Math.hypot(ox, oy);
+      if (mag > maxShift) {
+        ox = (ox / mag) * maxShift;
+        oy = (oy / mag) * maxShift;
+      }
+      if (fr.width > 40 && fr.height > 40) {
+        const minOx = (fr.left + 8) - base.left;
+        const maxOx = (fr.right - 8) - base.right;
+        const minOy = (fr.top + 8) - base.top;
+        const maxOy = (fr.bottom - 8) - base.bottom;
+        if (minOx <= maxOx) ox = Math.max(minOx, Math.min(maxOx, ox));
+        if (minOy <= maxOy) oy = Math.max(minOy, Math.min(maxOy, oy));
+      }
+      return [ox, oy];
+    };
+    const candidates = [
+      [0, 0], [0, -20], [18, -22], [-18, -22], [0, -38], [-50, -18], [50, -18], [0, 24],
+      [-66, 0], [66, 0], [-56, -40], [56, -40], [0, -64], [-84, -24], [84, -24], [-62, 24], [62, 24], [0, 46],
+    ];
 
     for (const el of els) {
       el.classList.remove("is-tucked");
       el.style.marginLeft = "";
       el.style.marginTop = "";
-      if (el.style.display === "none") continue;
+      if (el.style.display === "none" || el.style.visibility === "hidden") continue;
       const base = el.getBoundingClientRect();
       if (base.width <= 0 || base.height <= 0) continue;
+      const isName = el.classList.contains("stage3d-nameplate");
+      const maxShift = isName ? 112 : 76;
       let ox = 0;
       let oy = 0;
       let box = { left: base.left, right: base.right, top: base.top, bottom: base.bottom };
-      const isName = el.classList.contains("stage3d-nameplate");
       let clear = !placed.some((p) => overlaps(box, p));
+      let bestOx = 0;
+      let bestOy = 0;
+      let bestBox = box;
+      let bestScore = Infinity;
+
       if (!clear) {
+        // First try structured clean offsets around anchor
+        for (const [cx0, cy0] of candidates) {
+          const [tx, ty] = clampOffset(base, cx0, cy0, maxShift);
+          const tb = { left: base.left + tx, right: base.right + tx, top: base.top + ty, bottom: base.bottom + ty };
+          let area = 0;
+          for (const p of placed) area += overlapArea(tb, p);
+          const score = area * 100 + Math.hypot(tx, ty);
+          if (area === 0) {
+            ox = tx; oy = ty; box = tb; clear = true; break;
+          }
+          if (score < bestScore) {
+            bestScore = score; bestOx = tx; bestOy = ty; bestBox = tb;
+          }
+        }
+      }
+      if (!clear) {
+        // Iterative repulsion fallback
+        ox = bestOx;
+        oy = bestOy;
+        box = bestBox;
         for (let iter = 0; iter < 8; iter++) {
           let dx = 0;
           let dy = 0;
@@ -1303,39 +1500,38 @@ function mount(frame, opts) {
             }
           }
           if (!hits) { clear = true; break; }
-          ox += dx;
-          oy += dy;
-          const mag = Math.hypot(ox, oy);
-          if (mag > maxShift) {
-            ox = (ox / mag) * maxShift;
-            oy = (oy / mag) * maxShift;
-          }
-          // Keep inside frame viewport bounds when dimensions are measurable
-          if (fr.width > 40 && fr.height > 40) {
-            const minOx = (fr.left + 8) - base.left;
-            const maxOx = (fr.right - 8) - base.right;
-            const minOy = (fr.top + 8) - base.top;
-            const maxOy = (fr.bottom - 8) - base.bottom;
-            if (minOx <= maxOx) ox = Math.max(minOx, Math.min(maxOx, ox));
-            if (minOy <= maxOy) oy = Math.max(minOy, Math.min(maxOy, oy));
-          }
+          [ox, oy] = clampOffset(base, ox + dx, oy + dy, maxShift);
           box = { left: base.left + ox, right: base.right + ox, top: base.top + oy, bottom: base.bottom + oy };
-          if (!placed.some((p) => overlaps(box, p))) { clear = true; break; }
+          let area = 0;
+          for (const p of placed) area += overlapArea(box, p);
+          const score = area * 100 + Math.hypot(ox, oy);
+          if (area === 0) { clear = true; break; }
+          if (score < bestScore) {
+            bestScore = score; bestOx = ox; bestOy = oy; bestBox = box;
+          }
         }
       }
-      if (clear) {
-        if (Math.abs(ox) >= 1) el.style.marginLeft = Math.round(ox) + "px";
-        if (Math.abs(oy) >= 1) el.style.marginTop = Math.round(oy) + "px";
-        placed.push(box);
+      const siteId = el.dataset.siteId || "";
+      const seenAtSite = isName ? (siteNameplates.get(siteId) || 0) : 0;
+      // Never hide co-located agent nameplates unless >4 stack densely at one site
+      if (clear || (isName && seenAtSite < 4)) {
+        const fx = clear ? ox : bestOx;
+        const fy = clear ? oy : bestOy;
+        const fbox = clear ? box : bestBox;
+        if (Math.abs(fx) >= 1) el.style.marginLeft = Math.round(fx) + "px";
+        if (Math.abs(fy) >= 1) el.style.marginTop = Math.round(fy) + "px";
+        placed.push(fbox);
+        if (isName) siteNameplates.set(siteId, seenAtSite + 1);
       } else {
         el.classList.add("is-tucked");
       }
     }
   }
 
-  function label(site) {
+  function label(site, allSites) {
     const el = document.createElement("div");
     el.className = "stage3d-label";
+    el.dataset.siteId = site.id;
     const states = [];
     if (site.active) states.push("active");
     if (site.selected) states.push("selected");
@@ -1344,7 +1540,7 @@ function mount(frame, opts) {
     if (site.certainty === "partial" || site.certainty === "unknown") states.push("partial");
     el.setAttribute("data-state", states.join(" "));
     el.dataset.priority = String(
-      (site.selected ? 32 : 0) + (site.followed ? 16 : 0) + (site.major ? 8 : 0) + (site.active ? 4 : 0) + (site.players > 0 ? 2 : 0),
+      (site.selected ? 40 : 0) + (site.followed ? 32 : 0) + (site.major ? 16 : 0) + (site.active ? 8 : 0) + (site.players > 0 ? 4 : 0),
     );
     el.title = site.name;
     const name = document.createElement("span");
@@ -1383,28 +1579,115 @@ function mount(frame, opts) {
     }
     el.addEventListener("click", (ev) => { ev.stopPropagation(); onSelect(site.id); });
     const obj = new CSS2DObject(el);
-    obj.position.set(0, 0.12, PLATE / 2 + 0.24);
-    return obj;
+    // Anchor along front-lower bevel; if a tight neighbor sits directly to our south-east
+    // (e.g. Foundry Corridor above Generator Hall), anchor cleanly along the uncluttered north-west rim.
+    let lx = 0;
+    let ly = 0.08;
+    let lz = PLATE / 2 + 0.24;
+    for (const other of allSites || []) {
+      if (other.id === site.id) continue;
+      const dx = other.x - site.x;
+      const dz = other.z - site.z;
+      const dist = Math.hypot(dx, dz);
+      if (dz > 0.5 && dist < 3.4) {
+        lx = -0.35;
+        ly = 0.14;
+        lz = -PLATE / 2 - 0.24;
+        break;
+      }
+      if (dz > 0.5 && dx > 0.5 && dist < 4.2) {
+        lx = -0.45;
+      }
+    }
+    obj.position.set(lx, ly, lz);
+    return { obj, el };
   }
 
-  function siteGroup(site) {
+  /** Carved obsidian subterranean pit collar flush with the basin floor around sunken bays. */
+  function addSubterraneanPit(parent) {
+    const rimY = -0.15 - SUNKEN_Y; // Basin floor in local coordinates (+0.67)
+    const wallH = rimY + 0.14; // Spans from pit floor (-0.14) to basin floor (+0.67)
+    const wallMidY = -0.14 + wallH * 0.5;
+    const innerHalf = 1.44;
+    const wallT = 0.22;
+    const span = (innerHalf + wallT) * 2;
+    const wallMat = new MeshStandardMaterial({ color: 0x0e1520, roughness: 0.84, metalness: 0.28 });
+    const rimMat = new MeshStandardMaterial({ color: 0x263445, roughness: 0.46, metalness: 0.64 });
+    const glowMat = new MeshStandardMaterial({
+      color: 0x52c8e8, emissive: 0x2898be, emissiveIntensity: 0.65, roughness: 0.28,
+    });
+
+    // Dark obsidian pit floor slab
+    const floorMat = new MeshStandardMaterial({ color: 0x070b10, roughness: 0.9, metalness: 0.18 });
+    const floor = makeBox(innerHalf * 2 + 0.1, 0.06, innerHalf * 2 + 0.1, floorMat, false);
+    floor.position.set(0, -0.14, 0);
+    floor.receiveShadow = true;
+    floor.raycast = () => {};
+    parent.add(floor);
+
+    // 4 recessed shaft retaining walls + beveled basin-level collar flange + subtle inner shaft glow
+    for (const s of [-1, 1]) {
+      const wx = makeBox(span, wallH, wallT, wallMat, false);
+      wx.position.set(0, wallMidY, s * (innerHalf + wallT * 0.5));
+      wx.receiveShadow = true;
+      wx.raycast = () => {};
+      parent.add(wx);
+
+      const wz = makeBox(wallT, wallH, innerHalf * 2, wallMat, false);
+      wz.position.set(s * (innerHalf + wallT * 0.5), wallMidY, 0);
+      wz.receiveShadow = true;
+      wz.raycast = () => {};
+      parent.add(wz);
+
+      // Flush top collar flange (hides terrain transition cleanly)
+      const fx = makeBox(span + 0.46, 0.055, 0.44, rimMat, false);
+      fx.position.set(0, rimY + 0.015, s * (innerHalf + 0.22));
+      fx.receiveShadow = true;
+      fx.raycast = () => {};
+      parent.add(fx);
+
+      const fz = makeBox(0.44, 0.055, innerHalf * 2, rimMat, false);
+      fz.position.set(s * (innerHalf + 0.22), rimY + 0.015, 0);
+      fz.receiveShadow = true;
+      fz.raycast = () => {};
+      parent.add(fz);
+
+      // Subtle cool recessed interior shaft glow strip
+      const gx = makeBox(innerHalf * 2 - 0.08, 0.025, 0.028, glowMat, false);
+      gx.position.set(0, rimY - 0.09, s * (innerHalf - 0.01));
+      gx.raycast = () => {};
+      parent.add(gx);
+
+      const gz = makeBox(0.028, 0.025, innerHalf * 2 - 0.08, glowMat, false);
+      gz.position.set(s * (innerHalf - 0.01), rimY - 0.09, 0);
+      gz.raycast = () => {};
+      parent.add(gz);
+    }
+  }
+
+  function siteGroup(site, isSunken, allSites) {
     const g = new Group();
     g.userData.siteId = site.id;
+    const baseElev = isSunken ? SUNKEN_Y : 0;
+    g.userData.baseY = baseElev;
+    g.userData.isSunken = !!isSunken;
     const partial = site.certainty === "partial" || site.certainty === "unknown";
     const liftY = site.selected ? 0.14 : 0;
+
+    if (isSunken) addSubterraneanPit(g);
 
     // Grounded dark contact shadow directly under the architectural plinth
     if (haloTexture) {
       const contact = new Mesh(shared.halo, new MeshBasicMaterial({
         map: haloTexture,
-        color: 0x05070a,
+        color: 0x030508,
         transparent: true,
-        opacity: partial ? 0.35 : 0.62,
+        opacity: partial ? 0.34 : 0.68,
         depthWrite: false,
       }));
       contact.rotation.x = -Math.PI / 2;
       contact.position.y = -0.105;
-      contact.scale.set(PLATE + 1.4, PLATE + 1.4, 1);
+      contact.scale.set(PLATE + 1.15, PLATE + 1.15, 1);
       contact.renderOrder = -2;
       contact.raycast = () => {};
       g.add(contact);
@@ -1412,9 +1695,9 @@ function mount(frame, opts) {
 
     // Tier 1: recessed dark obsidian sub-base skirt
     const subBase = new Mesh(shared.subBase, new MeshStandardMaterial({
-      color: 0x181e26,
-      roughness: 0.72,
-      metalness: 0.48,
+      color: 0x131b24,
+      roughness: 0.76,
+      metalness: 0.44,
       transparent: partial,
       opacity: partial ? 0.5 : 1,
     }));
@@ -1424,11 +1707,11 @@ function mount(frame, opts) {
     setSitePick(subBase, site.id);
     g.add(subBase);
 
-    // Tier 2: metallic beveled collar
+    // Tier 2: machined dark-steel beveled collar
     const collar = new Mesh(shared.collar, new MeshStandardMaterial({
-      color: 0x3b4754,
-      roughness: 0.38,
-      metalness: 0.68,
+      color: 0x263342,
+      roughness: 0.48,
+      metalness: 0.62,
       transparent: partial,
       opacity: partial ? 0.52 : 1,
     }));
@@ -1438,16 +1721,18 @@ function mount(frame, opts) {
     setSitePick(collar, site.id);
     g.add(collar);
 
-    // Tier 3: brushed textured industrial deck slab
-    const plateColor = (site.selected || site.active ? C.raised : C.plate).clone();
+    // Tier 3: weathered obsidian-titanium deck slab (#212C39 quiet, #273444 active, #304052 selected)
+    const plateColor = (site.selected ? C.selected : site.active ? C.raised : C.plate).clone();
     if (site.bands.pressure) plateColor.lerp(C.warning, PRESSURE_MIX[site.bands.pressure]);
     const plateMat = new MeshStandardMaterial({
       color: plateColor,
       map: deckTex ? deckTex.map : null,
       bumpMap: deckTex ? deckTex.bump : null,
-      bumpScale: 0.055,
-      roughness: 0.56,
-      metalness: 0.32,
+      bumpScale: 0.065,
+      roughness: 0.68,
+      metalness: 0.36,
+      emissive: new Color(0x000000),
+      emissiveIntensity: 0,
       transparent: partial,
       opacity: partial ? 0.58 : 1,
     });
@@ -1458,36 +1743,74 @@ function mount(frame, opts) {
     setSitePick(plate, site.id);
     g.add(plate);
 
-    // Illuminated 3D perimeter trim strips + corner anchor cleats
+    // Forged-steel outer curb + thin recessed surgical inner telemetry channel
+    const halfP = PLATE / 2;
+    const curbMat = new MeshStandardMaterial({
+      color: 0x324356,
+      roughness: 0.44,
+      metalness: 0.64,
+      transparent: partial,
+      opacity: partial ? 0.52 : 1,
+    });
+    const curbY = plate.position.y + 0.092;
+    for (const dz of [-halfP, halfP]) {
+      const bar = new Mesh(shared.curbX, curbMat);
+      bar.position.set(0, curbY, dz);
+      g.add(bar);
+    }
+    for (const dx of [-halfP, halfP]) {
+      const bar = new Mesh(shared.curbZ, curbMat);
+      bar.position.set(dx, curbY, 0);
+      g.add(bar);
+    }
+
     const edgeColor = site.major ? C.warning : site.selected ? C.ink : site.active || site.followed ? C.active : C.edge;
-    const isLit = site.major || site.selected || site.active || site.followed;
+    const baseTrimEmissive = site.major ? 1.25 : site.active || site.followed ? 0.92 : site.selected ? 0.82 : 0.05;
     const trimMat = new MeshStandardMaterial({
       color: edgeColor,
-      emissive: edgeColor,
-      emissiveIntensity: site.major ? 1.15 : site.active || site.followed ? 0.92 : site.selected ? 0.78 : 0.12,
-      roughness: 0.28,
-      metalness: 0.45,
+      emissive: edgeColor.clone(),
+      emissiveIntensity: baseTrimEmissive,
+      roughness: 0.26,
+      metalness: 0.42,
       transparent: partial,
       opacity: partial ? 0.55 : 1,
     });
-    const trimY = plate.position.y + 0.095;
-    const halfP = PLATE / 2;
-    for (const dz of [-halfP, halfP]) {
+    const trimY = plate.position.y + 0.105;
+    const inset = halfP - 0.075;
+    for (const dz of [-inset, inset]) {
       const bar = new Mesh(shared.trimX, trimMat);
       bar.position.set(0, trimY, dz);
       g.add(bar);
     }
-    for (const dx of [-halfP, halfP]) {
+    for (const dx of [-inset, inset]) {
       const bar = new Mesh(shared.trimZ, trimMat);
       bar.position.set(dx, trimY, 0);
       g.add(bar);
     }
-    const cleatMat = new MeshStandardMaterial({ color: 0x2c3642, roughness: 0.4, metalness: 0.72 });
+    const cleatMat = new MeshStandardMaterial({ color: 0x1c2530, roughness: 0.44, metalness: 0.72 });
     for (const [cx, cz] of [[-halfP, -halfP], [halfP, -halfP], [-halfP, halfP], [halfP, halfP]]) {
       const cleat = new Mesh(shared.cornerPost, cleatMat);
       cleat.position.set(cx, plate.position.y + 0.075, cz);
       cleat.castShadow = true;
       g.add(cleat);
+    }
+
+    // Pressure band craft: glowing amber heat-vent slits along plinth front & side walls
+    if (site.bands.pressure) {
+      const ventCount = site.bands.pressure === "high" ? 4 : site.bands.pressure === "moderate" ? 3 : 2;
+      const ventIntensity = site.bands.pressure === "high" ? 1.85 : site.bands.pressure === "moderate" ? 1.35 : 0.95;
+      const ventMat = new MeshStandardMaterial({
+        color: 0xffd080, emissive: 0xff9a20, emissiveIntensity: ventIntensity, roughness: 0.22,
+      });
+      for (let v = 0; v < ventCount; v++) {
+        const off = (v - (ventCount - 1) * 0.5) * 0.42;
+        const frontVent = makeBox(0.24, 0.042, 0.024, ventMat, false);
+        frontVent.position.set(off, plate.position.y - 0.01, halfP + 0.008);
+        g.add(frontVent);
+        const sideVent = makeBox(0.024, 0.042, 0.24, ventMat, false);
+        sideVent.position.set(halfP + 0.008, plate.position.y - 0.01, off);
+        g.add(sideVent);
+      }
     }
 
     // Partial/unknown sites also carry the dashed wireframe form (WS3-04: never color alone)
@@ -1510,7 +1833,7 @@ function mount(frame, opts) {
       g.add(ring);
     }
 
-    // D6 static glow: soft velvety additive halo + subtle volumetric beacon curtain on active/followed/MAJOR sites
+    // D6 static glow: soft velvety additive halo + restrained volumetric beacon on active/followed/MAJOR sites
     const glow = stageGlowLevel(site);
     if (glow > 0 && haloTexture) {
       const glowColor = site.major ? C.warning : (site.followed || site.active ? C.active : C.social);
@@ -1518,13 +1841,13 @@ function mount(frame, opts) {
         map: haloTexture,
         color: glowColor,
         transparent: true,
-        opacity: Math.min(0.86, glow * 1.48),
+        opacity: Math.min(0.62, glow * 1.08),
         blending: AdditiveBlending,
         depthWrite: false,
       }));
       halo.rotation.x = -Math.PI / 2;
       halo.position.y = -0.07;
-      halo.scale.set(STAGE_GLOW.SIZE * 1.28, STAGE_GLOW.SIZE * 1.28, 1);
+      halo.scale.set(STAGE_GLOW.SIZE * 1.18, STAGE_GLOW.SIZE * 1.18, 1);
       halo.userData.glow = true;
       halo.renderOrder = -1;
       halo.raycast = () => {};
@@ -1535,35 +1858,57 @@ function mount(frame, opts) {
           map: beaconTexture,
           color: glowColor,
           transparent: true,
-          opacity: site.major ? 0.38 : site.followed ? 0.3 : 0.2,
+          opacity: site.major ? 0.30 : site.followed ? 0.22 : 0.12,
           blending: AdditiveBlending,
           depthWrite: false,
           side: DoubleSide,
         }));
-        beacon.position.y = plate.position.y + 0.78;
+        beacon.position.y = plate.position.y + 0.72;
         beacon.raycast = () => {};
         g.add(beacon);
       }
     }
 
+    // Scar residue craft: dashed violet outline + subtle violet crystalline fracture shards on plinth corner
     if (site.bands.scar) {
+      const scarOp = SCAR_OPACITY[site.bands.scar];
       const scar = new LineSegments(
         new EdgesGeometry(shared.scar),
         new LineDashedMaterial({
           color: C.unknown, dashSize: 0.2, gapSize: 0.12,
-          transparent: true, opacity: SCAR_OPACITY[site.bands.scar],
+          transparent: true, opacity: scarOp,
         }),
       );
       scar.position.y = plate.position.y + 0.13;
       scar.computeLineDistances();
       g.add(scar);
+
+      const shardMat = new MeshStandardMaterial({
+        color: 0xc9aeff,
+        emissive: 0x9b6dff,
+        emissiveIntensity: 0.85 + scarOp * 0.65,
+        roughness: 0.2,
+        metalness: 0.35,
+      });
+      const shardSpecs = [
+        [-halfP + 0.2, 0.22, -halfP + 0.2, 0.45, 1.55, 0.45, 0.2, 0.3, -0.25],
+        [-halfP + 0.34, 0.17, -halfP + 0.14, 0.34, 1.15, 0.34, -0.15, 0.9, -0.4],
+        [-halfP + 0.16, 0.16, -halfP + 0.35, 0.32, 1.0, 0.32, 0.35, 0.4, 0.2],
+      ];
+      for (const [sx, sy, sz, scx, scy, scz, rx, ry, rz] of shardSpecs) {
+        const shard = new Mesh(shared.trace, shardMat);
+        shard.position.set(sx, plate.position.y + sy, sz);
+        shard.scale.set(scx, scy * (0.75 + scarOp * 0.35), scz);
+        shard.rotation.set(rx, ry, rz);
+        g.add(shard);
+      }
     }
 
     // Room-specific miniature architectural landmark
     const py = plate.position.y + 0.11;
     addRoomLandmark(g, site, py);
 
-    // Sculpted miniature tabletop automaton drones in the front plaza of the plinth
+    // Sculpted miniature tabletop automaton drones fanned cleanly across the front plaza
     const named = site.tokens.slice(0, 6);
     const tokenCount = named.length + site.unnamed;
     const tokenMap = new Map();
@@ -1573,11 +1918,25 @@ function mount(frame, opts) {
       const drone = buildAutomaton(accent, !!tok);
       const pip = drone.root;
       const baseY = py + 0.01;
-      const col = i % 3;
-      const row = Math.floor(i / 3);
-      const rowCount = Math.min(3, tokenCount - row * 3);
-      const xOffset = (col - (rowCount - 1) * 0.5) * 0.68;
-      const zOffset = row === 0 ? 0.24 : 0.74;
+      let xOffset = 0;
+      let zOffset = 0.34;
+      let row = 0;
+      if (tokenCount === 1) {
+        xOffset = 0;
+        zOffset = 0.34;
+      } else if (tokenCount === 2) {
+        xOffset = i === 0 ? -0.68 : 0.68;
+        zOffset = i === 0 ? 0.28 : 0.48;
+      } else if (tokenCount === 3) {
+        xOffset = (i - 1) * 0.72;
+        zOffset = i === 1 ? 0.56 : 0.24;
+      } else {
+        const col = i % 3;
+        row = Math.floor(i / 3);
+        const rowCount = Math.min(3, tokenCount - row * 3);
+        xOffset = (col - (rowCount - 1) * 0.5) * 0.72;
+        zOffset = row === 0 ? 0.22 : 0.72;
+      }
       pip.position.set(xOffset, baseY, zOffset);
       pip.userData.baseY = baseY;
       pip.userData.phase = i * 1.15;
@@ -1588,14 +1947,38 @@ function mount(frame, opts) {
         pip.userData.handle = tok.handle;
         const npel = document.createElement("div");
         npel.className = "stage3d-nameplate";
-        npel.textContent = tok.handle;
-        npel.dataset.priority = "-1";
+        npel.dataset.priority = String(i < 4 ? 26 - i : 2);
+        npel.dataset.siteId = site.id;
+        npel.dataset.handle = tok.handle;
+        const dot = document.createElement("span");
+        dot.className = "stage3d-dot";
+        dot.style.background = "#" + accent.toString(16).padStart(6, "0");
+        const handleSpan = document.createElement("span");
+        handleSpan.textContent = tok.handle;
+        npel.append(dot, handleSpan);
         const nameplate = new CSS2DObject(npel);
-        // Float nameplate cleanly above the landmark/drone silhouette, gently fanned outward
-        const sideShift = rowCount === 1 ? (site.x >= 0 ? 0.72 : -0.72) : xOffset * 0.38;
-        nameplate.position.set(pip.position.x + sideShift, baseY + 1.38 + row * 0.22, pip.position.z - 0.1);
+        // Fan & tightly stagger co-located nameplates so every handle stays anchored to its site
+        let npX = pip.position.x;
+        let npY = baseY + 1.24;
+        if (tokenCount === 1) {
+          npX += site.x >= 0 ? 0.42 : -0.42;
+        } else if (tokenCount === 2) {
+          npX = i === 0 ? pip.position.x - 0.22 : pip.position.x + 0.22;
+          npY = baseY + (i === 0 ? 1.04 : 1.32);
+        } else {
+          npX = pip.position.x * 1.15;
+          npY = baseY + 1.04 + (i % 3) * 0.28 + row * 0.22;
+        }
+        nameplate.position.set(npX, npY, pip.position.z - 0.08);
         g.add(nameplate);
-        tokenMap.set(tok.handle, { mesh: pip, nameplate });
+        tokenMap.set(tok.handle, {
+          mesh: pip,
+          nameplate,
+          ringMat: drone.ringMat,
+          glowMats: drone.glowMats,
+          baseEmissives: drone.glowMats.map((m) => m.emissiveIntensity),
+          baseRingOpacity: drone.ringMat.opacity,
+        });
       }
     }
     g.userData.tokens = tokenMap;
@@ -1609,80 +1992,150 @@ function mount(frame, opts) {
     }
     if (site.traces > 0) {
       const mark = new Mesh(shared.trace, new MeshStandardMaterial({
-        color: C.machine, emissive: C.machine, emissiveIntensity: 0.75, roughness: 0.25,
+        color: C.machine, emissive: C.machine, emissiveIntensity: 0.72, roughness: 0.26,
       }));
       mark.position.set(PLATE / 2 - 0.3, py + 0.14, PLATE / 2 - 0.3);
       g.add(mark);
     }
-    g.add(label(site));
-    g.position.set(site.x, 0, site.z);
+    const lbl = label(site, allSites);
+    g.add(lbl.obj);
+    g.userData.highlightRefs = {
+      trimMat,
+      plateMat,
+      baseTrimEmissive,
+      baseEdgeHex: edgeColor.getHex(),
+      isMajor: !!site.major,
+      labelEl: lbl.el,
+    };
+    g.position.set(site.x, baseElev, site.z);
     return g;
   }
 
-  /** Elevated 3D illuminated transit conduits replacing bare 1px lines. */
+  /** Matte gunmetal 3D transit conduits with muted idle core, electric-cyan surge on agent_move,
+   *  and angled descent ramps + illuminated vertical lift pylons for subterranean bays. */
   function routeLine(route, from, to) {
     const out = new Group();
     const dx = to.x - from.x;
     const dz = to.z - from.z;
     const len = Math.hypot(dx, dz);
     if (len < 0.01) return out;
-    const midX = (from.x + to.x) * 0.5;
-    const midZ = (from.z + to.z) * 0.5;
     const yaw = Math.atan2(dx, dz);
 
-    // Dark metallic bridge rail bed (non-color-keyed so exit lighting lights the core strip cleanly)
     const bedMat = new MeshStandardMaterial({
-      color: 0x2c3846,
-      roughness: 0.44,
-      metalness: 0.65,
+      color: 0x1b2531,
+      roughness: 0.56,
+      metalness: 0.58,
       transparent: route.dashed,
       opacity: route.dashed ? 0.62 : 1,
     });
     bedMat.userData.isBed = true;
-    const bed = makeBox(0.38, 0.055, len, bedMat, false);
-    bed.receiveShadow = true;
-    bed.position.set(midX, -0.05, midZ);
-    bed.rotation.y = yaw;
-    out.add(bed);
 
     const coreMat = new MeshStandardMaterial({
       color: C.route.clone(),
-      emissive: new Color(0x34667d),
-      emissiveIntensity: 0.72,
-      roughness: 0.24,
-      metalness: 0.25,
+      emissive: new Color(0x26384a),
+      emissiveIntensity: 0.14,
+      roughness: 0.28,
+      metalness: 0.32,
     });
     coreMat.userData.routeGlow = true;
 
-    if (route.dashed) {
-      // Segmented illuminated bridge sleepers for uncertain routes
-      const count = Math.max(3, Math.floor(len / 0.55));
-      for (let i = 0; i < count; i++) {
-        const frac = (i + 0.5) / count;
-        const dash = makeBox(0.11, 0.034, 0.28, coreMat, false);
-        dash.position.set(from.x + dx * frac, -0.015, from.z + dz * frac);
-        dash.rotation.y = yaw;
-        out.add(dash);
+    const addSpan = (ax, ay, az, bx, by, bz, dashed) => {
+      const sdx = bx - ax;
+      const sdy = by - ay;
+      const sdz = bz - az;
+      const horiz = Math.hypot(sdx, sdz);
+      const slen = Math.hypot(horiz, sdy);
+      if (slen < 0.05) return;
+      const mx = (ax + bx) * 0.5;
+      const my = (ay + by) * 0.5;
+      const mz = (az + bz) * 0.5;
+      const syaw = Math.atan2(sdx, sdz);
+      const pitch = -Math.atan2(sdy, horiz);
+
+      const seg = new Group();
+      seg.position.set(mx, my, mz);
+      seg.rotation.order = "YXZ";
+      seg.rotation.y = syaw;
+      seg.rotation.x = pitch;
+
+      const bed = makeBox(0.36, 0.052, slen, bedMat, false);
+      bed.receiveShadow = true;
+      bed.position.y = -0.05;
+      seg.add(bed);
+
+      if (dashed) {
+        const count = Math.max(3, Math.floor(slen / 0.55));
+        for (let i = 0; i < count; i++) {
+          const frac = ((i + 0.5) / count) - 0.5;
+          const dash = makeBox(0.09, 0.028, 0.26, coreMat, false);
+          dash.position.set(0, -0.018, frac * slen);
+          seg.add(dash);
+        }
+      } else {
+        const core = makeBox(0.085, 0.028, slen, coreMat, false);
+        core.position.y = -0.018;
+        seg.add(core);
       }
+      out.add(seg);
+    };
+
+    const dy = to.y - from.y;
+    if (Math.abs(dy) > 0.12 && len > 2.2) {
+      // Surface-to-subterranean transition: level surface span + illuminated vertical lift pylon at pit rim + angled descent ramp
+      const hi = from.y >= to.y ? from : to;
+      const lo = from.y >= to.y ? to : from;
+      const vx = lo.x - hi.x;
+      const vz = lo.z - hi.z;
+      const vlen = Math.hypot(vx, vz);
+      const ux = vx / vlen;
+      const uz = vz / vlen;
+      const rimDist = Math.min(1.66, vlen * 0.42);
+      const rimX = lo.x - ux * rimDist;
+      const rimZ = lo.z - uz * rimDist;
+
+      addSpan(hi.x, hi.y, hi.z, rimX, hi.y, rimZ, route.dashed);
+      addSpan(rimX, hi.y, rimZ, lo.x, lo.y, lo.z, route.dashed);
+
+      // Illuminated vertical lift pylon at the pit rim
+      const pylonH = Math.abs(dy) + 0.58;
+      const pylonMidY = lo.y - 0.06 + pylonH * 0.5;
+      const pylonMat = new MeshStandardMaterial({ color: 0x222f3d, roughness: 0.44, metalness: 0.68 });
+      const pylon = makeBox(0.24, pylonH, 0.24, pylonMat, true);
+      pylon.position.set(rimX, pylonMidY, rimZ);
+      pylon.rotation.y = yaw;
+      out.add(pylon);
+
+      const strip = makeBox(0.055, pylonH - 0.14, 0.26, coreMat, false);
+      strip.position.set(rimX, pylonMidY, rimZ);
+      strip.rotation.y = yaw;
+      out.add(strip);
+
+      const capMat = new MeshStandardMaterial({
+        color: 0x9cf0ff, emissive: 0x3ddcff, emissiveIntensity: 1.25, roughness: 0.2,
+      });
+      const cap = makeBox(0.28, 0.05, 0.28, capMat, false);
+      cap.position.set(rimX, lo.y - 0.06 + pylonH + 0.025, rimZ);
+      cap.rotation.y = yaw;
+      out.add(cap);
     } else {
-      // Sleek continuous luminous center energy rail
-      const core = makeBox(0.095, 0.034, len, coreMat, false);
-      core.position.set(midX, -0.015, midZ);
-      core.rotation.y = yaw;
-      out.add(core);
+      addSpan(from.x, from.y, from.z, to.x, to.y, to.z, route.dashed);
     }
 
     if (route.oneWay) {
-      const dir = new Vector3(dx, 0, dz).normalize();
+      const dir = new Vector3(dx, dy, dz).normalize();
       const arrowMat = new MeshStandardMaterial({
         color: C.route.clone(),
-        emissive: new Color(0x34667d),
-        emissiveIntensity: 0.85,
-        roughness: 0.22,
+        emissive: new Color(0x26384a),
+        emissiveIntensity: 0.22,
+        roughness: 0.24,
       });
       arrowMat.userData.routeGlow = true;
       const cone = new Mesh(shared.arrow, arrowMat);
-      cone.position.set(from.x + dir.x * len * 0.58, 0.06, from.z + dir.z * len * 0.58);
+      cone.position.set(
+        from.x + dx * 0.58,
+        from.y + dy * 0.58 + 0.06,
+        from.z + dz * 0.58,
+      );
       cone.quaternion.setFromUnitVectors(UP, dir);
       out.add(cone);
     }
@@ -1726,20 +2179,21 @@ function mount(frame, opts) {
         travels.splice(i, 1);
         continue;
       }
-      const y = dest.mesh.position.y + 0.24;
+      const fromY = (a.userData.baseY || 0) + dest.mesh.position.y + 0.24;
+      const toY = (b.userData.baseY || 0) + dest.mesh.position.y + 0.24;
       const actor = buildTravelActor(tr.handle);
       // Keeps MeshStandardMaterial reference contract intact while preserving agent accent look
       const mat = actor.mat instanceof MeshStandardMaterial ? actor.mat : new MeshStandardMaterial({ color: agentAccent(tr.handle) });
       const mesh = actor.group;
-      mesh.position.set(a.position.x, y, a.position.z);
+      mesh.position.set(a.position.x, fromY, a.position.z);
       world.add(mesh);
       tr.start = start;
       tr.mesh = mesh;
       tr.mat = mat;
       tr.extraMats = actor.extraMats;
       tr.trail = actor.trail;
-      tr.from = new Vector3(a.position.x, y, a.position.z);
-      tr.to = new Vector3(b.position.x, y, b.position.z);
+      tr.from = new Vector3(a.position.x, fromY, a.position.z);
+      tr.to = new Vector3(b.position.x, toY, b.position.z);
       tr.destMesh = dest.mesh;
       tr.destPlate = dest.nameplate || null;
       dest.mesh.visible = false;
@@ -1757,10 +2211,7 @@ function mount(frame, opts) {
     for (const m of moments) {
       if (m.timer) clearTimeout(m.timer);
       m.timer = 0;
-      if (m.ring) {
-        world.remove(m.ring);
-        if (m.ring.material) m.ring.material.dispose();
-      }
+      disposeRing(m.ring);
       if (m.label) m.label.classList.remove("is-moment");
       m.ring = null;
       m.label = null;
@@ -1822,25 +2273,28 @@ function mount(frame, opts) {
   function focus(roomId) {
     const g = groups.get(roomId);
     if (!g) return;
-    const toTarget = new Vector3(g.position.x, 0, g.position.z);
+    const toTarget = new Vector3(g.position.x, g.userData.baseY || 0, g.position.z);
     const offset = camera.position.clone().sub(controls.target);
     easeTo(toTarget, toTarget.clone().add(offset));
   }
 
-  // Default framing that fits the whole layout crisply at any aspect ratio,
-  // pulled close enough that Perihelion Reach fills the diorama viewport cleanly.
+  // Default framing that fits the whole layout crisply with generous bottom margin
+  // for Archive / Frontier Gate and a clean corridor between Foundry Corridor and Generator Hall.
   function defaultView() {
     const v = stageDefaultView(model.radius);
-    const position = new Vector3(...v.position).multiplyScalar(0.81);
+    const target = new Vector3(v.target[0], v.target[1] - 0.14, v.target[2] + 0.58);
+    const offset = new Vector3(...v.position).multiplyScalar(0.87);
+    // Gently shift azimuth from -0.35 toward -0.24 (+0.11 rad around Y)
+    offset.applyAxisAngle(UP, 0.11);
     const halfH = Math.atan(Math.tan((camera.fov * Math.PI) / 360) * camera.aspect);
-    const need = (model.radius * 0.92) / Math.tan(halfH);
+    const need = (model.radius * 0.96) / Math.tan(halfH);
     const lim = stageCameraLimits(model.radius);
-    position.setLength(Math.min(lim.maxDistance, Math.max(position.length(), need)));
-    return { target: new Vector3(...v.target), position };
+    offset.setLength(Math.min(lim.maxDistance, Math.max(offset.length(), need)));
+    return { target, position: target.clone().add(offset) };
   }
 
   function atDefaultTarget() {
-    return controls.target.lengthSq() < 1e-6;
+    return controls.target.distanceToSquared(defaultView().target) < 1e-4;
   }
 
   function reset() {
@@ -1851,15 +2305,29 @@ function mount(frame, opts) {
     easeTo(v.target, v.position);
   }
 
-  function majorRing(roomId) {
-    const ring = new Mesh(shared.pulse, new MeshBasicMaterial({
-      color: C.warning, transparent: true, opacity: 0.92, blending: AdditiveBlending, depthWrite: false,
-    }));
-    ring.rotation.x = -Math.PI / 2;
+  function buildDualRing(roomId, outerOp, innerOp, scaleInit) {
     const g = groups.get(roomId);
-    ring.position.set(g.position.x, 0.03, g.position.z);
-    world.add(ring);
-    return ring;
+    if (!g) return null;
+    const holder = new Group();
+    const outer = new Mesh(shared.pulse, new MeshBasicMaterial({
+      color: C.warning, transparent: true, opacity: outerOp, blending: AdditiveBlending, depthWrite: false,
+    }));
+    outer.rotation.x = -Math.PI / 2;
+    outer.scale.setScalar(scaleInit);
+    const inner = new Mesh(shared.pulseInner, new MeshBasicMaterial({
+      color: C.warning, transparent: true, opacity: innerOp, blending: AdditiveBlending, depthWrite: false,
+    }));
+    inner.rotation.x = -Math.PI / 2;
+    inner.scale.setScalar(scaleInit);
+    holder.add(outer, inner);
+    holder.position.set(g.position.x, (g.userData.baseY || 0) + 0.04, g.position.z);
+    holder.userData.rings = [outer, inner];
+    world.add(holder);
+    return holder;
+  }
+
+  function majorRing(roomId) {
+    return buildDualRing(roomId, 0.92, 0.66, 1);
   }
 
   /** The DOM label of a drawn site, if it has one. */
@@ -1874,18 +2342,9 @@ function mount(frame, opts) {
     return null;
   }
 
-  /** A second, softer ring at a site: the MAJOR moment's ground mark. */
+  /** A dual-concentric amber beacon at a site: the MAJOR moment's ground mark. */
   function momentRing(roomId) {
-    const g = groups.get(roomId);
-    if (!g) return null;
-    const ring = new Mesh(shared.pulse, new MeshBasicMaterial({
-      color: C.warning, transparent: true, opacity: 0.58, blending: AdditiveBlending, depthWrite: false,
-    }));
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(g.position.x, 0.03, g.position.z);
-    ring.scale.setScalar(reduce ? 1.2 : 1.15);
-    world.add(ring);
-    return ring;
+    return buildDualRing(roomId, 0.56, 0.42, reduce ? 1.18 : 1.12);
   }
 
   /** End one site's moment (or all of them), dropping its ring and its label class. */
@@ -1895,10 +2354,7 @@ function mount(frame, opts) {
       if (roomId !== undefined && m.roomId !== roomId) continue;
       if (m.timer) clearTimeout(m.timer);
       m.timer = 0;
-      if (m.ring) {
-        world.remove(m.ring);
-        if (m.ring.material) m.ring.material.dispose();
-      }
+      disposeRing(m.ring);
       if (m.label) m.label.classList.remove("is-moment");
       moments.splice(i, 1);
     }
@@ -1918,7 +2374,13 @@ function mount(frame, opts) {
     if (labelEl) labelEl.classList.add("is-moment");
     const moment = { roomId, ring, label: labelEl, start: performance.now(), ms: STAGE_MAJOR_MOMENT_MS, timer: 0 };
     if (reduce) {
-      ring.material.opacity = 0.45;
+      const rings = ring.userData && ring.userData.rings;
+      if (rings) {
+        rings[0].material.opacity = 0.45;
+        rings[1].material.opacity = 0.34;
+      } else if (ring.material) {
+        ring.material.opacity = 0.45;
+      }
       moment.timer = setTimeout(() => { endMoment(roomId); request(); }, STAGE_MAJOR_MOMENT_MS);
     }
     moments.push(moment);
@@ -2026,10 +2488,11 @@ function mount(frame, opts) {
     if (!a || !b) return;
     const dest = b.userData.tokens && b.userData.tokens.get(t.handle);
     if (!dest || !dest.mesh) return;
-    const y = dest.mesh.position.y + 0.24;
+    const fromY = (a.userData.baseY || 0) + dest.mesh.position.y + 0.24;
+    const toY = (b.userData.baseY || 0) + dest.mesh.position.y + 0.24;
     const actor = buildTravelActor(t.handle);
     const mesh = actor.group;
-    mesh.position.set(a.position.x, y, a.position.z);
+    mesh.position.set(a.position.x, fromY, a.position.z);
     world.add(mesh);
     dest.mesh.visible = false;
     if (dest.nameplate) {
@@ -2044,8 +2507,8 @@ function mount(frame, opts) {
       mat: actor.mat,
       extraMats: actor.extraMats,
       trail: actor.trail,
-      from: new Vector3(a.position.x, y, a.position.z),
-      to: new Vector3(b.position.x, y, b.position.z),
+      from: new Vector3(a.position.x, fromY, a.position.z),
+      to: new Vector3(b.position.x, toY, b.position.z),
       start: -1,
       destMesh: dest.mesh,
       destPlate: dest.nameplate || null,
@@ -2121,6 +2584,54 @@ function mount(frame, opts) {
     }
   }
 
+  function applyHighlight() {
+    for (const [sid, g] of groups) {
+      const refs = g.userData.highlightRefs;
+      const siteHot = !!hoveredSiteId && sid === hoveredSiteId;
+      if (refs) {
+        if (siteHot) {
+          refs.trimMat.emissive.setHex(refs.isMajor ? C.warning.getHex() : C.active.getHex());
+          refs.trimMat.emissiveIntensity = Math.max(1.55, refs.baseTrimEmissive + 0.85);
+          refs.plateMat.emissive.setHex(refs.isMajor ? 0x261808 : 0x0e2230);
+          refs.plateMat.emissiveIntensity = 0.55;
+        } else {
+          refs.trimMat.emissive.setHex(refs.baseEdgeHex);
+          refs.trimMat.emissiveIntensity = refs.baseTrimEmissive;
+          refs.plateMat.emissive.setHex(0x000000);
+          refs.plateMat.emissiveIntensity = 0;
+        }
+        if (refs.labelEl) refs.labelEl.classList.toggle("is-hovered", siteHot);
+      }
+      const tokens = g.userData.tokens;
+      if (tokens) {
+        for (const [h, tok] of tokens) {
+          const hot = !!hoveredHandle && h === hoveredHandle;
+          if (tok.glowMats && tok.baseEmissives) {
+            for (let i = 0; i < tok.glowMats.length; i++) {
+              tok.glowMats[i].emissiveIntensity = hot ? tok.baseEmissives[i] + 0.9 : tok.baseEmissives[i];
+            }
+          }
+          if (tok.ringMat) tok.ringMat.opacity = hot ? 1 : tok.baseRingOpacity;
+          if (tok.mesh) tok.mesh.scale.setScalar(hot ? 1.26 : 1.14);
+          if (tok.nameplate && tok.nameplate.element) {
+            tok.nameplate.element.classList.toggle("is-hovered", hot);
+          }
+        }
+      }
+    }
+  }
+
+  function setHighlight(siteId, handle) {
+    if (disposed) return;
+    const nextSite = String(siteId || "");
+    const nextHandle = String(handle || "");
+    if (nextSite === hoveredSiteId && nextHandle === hoveredHandle) return;
+    hoveredSiteId = nextSite;
+    hoveredHandle = nextHandle;
+    applyHighlight();
+    request();
+  }
+
   function update(live, nextCtx) {
     if (disposed) return;
     const prevCtx = ctx;
@@ -2130,11 +2641,27 @@ function mount(frame, opts) {
     const prevHandleSites = handleSites;
     model = buildStageModel(live, ctx);
     clearWorld();
+    const sunkenSites = new Set();
+    for (const r of model.routes) {
+      const dir = String(r.direction || "").toLowerCase();
+      if (dir === "down") sunkenSites.add(r.to);
+      else if (dir === "up") sunkenSites.add(r.from);
+    }
+    for (const s of model.sites) {
+      const sid = String(s.id || "").toLowerCase();
+      if (sid.includes("archive") || sid.includes("vault")) sunkenSites.add(s.id);
+    }
+    const sunkenCoords = [];
+    const surfaceCoords = [];
     for (const site of model.sites) {
-      const g = siteGroup(site);
+      const isSunken = sunkenSites.has(site.id);
+      if (isSunken) sunkenCoords.push(site);
+      else surfaceCoords.push(site);
+      const g = siteGroup(site, isSunken, model.sites);
       groups.set(site.id, g);
       world.add(g);
     }
+    env.updatePits(sunkenCoords, surfaceCoords);
     routeEntries = [];
     for (const r of model.routes) {
       const a = groups.get(r.from);
@@ -2168,6 +2695,7 @@ function mount(frame, opts) {
     }
     // Travellers survive a rebuild too: re-home the ones still in flight.
     rehomeTravels(performance.now());
+    applyHighlight();
     // Captions read the same fresh window as pulses, before the sequence advances.
     const fresh = newStagePulses(live && live.recent_events, lastSeq, groups.keys(), {
       reduce,
@@ -2305,15 +2833,20 @@ function mount(frame, opts) {
     dropTravels();
     clearWorld();
     moments.length = 0;
+    const envGeos = new Set();
     const envMats = new Set();
     environment.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
+      if (o.geometry && !envGeos.has(o.geometry)) {
+        envGeos.add(o.geometry);
+        o.geometry.dispose();
+      }
       if (o.material && !envMats.has(o.material)) {
         envMats.add(o.material);
         o.material.dispose();
       }
     });
     if (sun.shadow && typeof sun.shadow.dispose === "function") sun.shadow.dispose();
+    if (typeof hemi.dispose === "function") hemi.dispose();
     if (typeof sun.dispose === "function") sun.dispose();
     if (typeof rim.dispose === "function") rim.dispose();
     if (typeof hearth.dispose === "function") hearth.dispose();
@@ -2344,7 +2877,7 @@ function mount(frame, opts) {
     renderer.dispose();
   }
 
-  return { update, focus, reset, dispose, pause: pausePlayback };
+  return { update, focus, reset, dispose, pause: pausePlayback, setHighlight };
 }
 
 window.NoemaWatchStage = { mount };

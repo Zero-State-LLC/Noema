@@ -10,8 +10,11 @@ const EXTRA = `
  * design-system: site/design.md · designed-as-app
  */
 pre.snip{
-  margin:var(--space-xs) 0 0;padding:var(--space-sm);border:1px solid var(--line);border-radius:var(--r-lg);
-  background:var(--void-ink);color:var(--faint);font:.75rem/1.5 var(--font-mono);
+  margin:var(--space-xs) 0 0;padding:var(--space-sm);
+  border:1px solid color-mix(in srgb,var(--line-hot) 48%,var(--line));border-radius:var(--r-lg);
+  background:color-mix(in srgb,var(--void-ink) 88%,var(--void));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 5%,transparent),inset 0 2px 10px rgb(0 0 0/.45);
+  color:var(--faint);font:.75rem/1.5 var(--font-mono);
   overflow:auto;white-space:pre-wrap;
 }
 .connect-head{max-width:40rem;margin:3rem 0 0}
@@ -23,13 +26,22 @@ pre.snip{
 .connect-work:has(> .connect-guide) > *{grid-column:1}
 .connect-work > .connect-guide{grid-column:2;grid-row:1 / span 6;position:sticky;top:6rem}
 .attach-approve,.attach-mint{min-width:0;margin:0}
-.attach-approve.panel,.connect-guide{padding:1.5rem}
+.attach-approve.panel,.connect-guide{
+  padding:1.5rem;
+  border-color:color-mix(in srgb,var(--line-hot) 54%,var(--line));
+  background:color-mix(in srgb,var(--panel) 86%,var(--void));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 7%,transparent),0 24px 52px -30px rgb(0 0 0/.84);
+}
 .attach-approve h2,.connect-guide h2{margin:0 0 .5rem;font-size:1.25rem;line-height:1.75rem}
 .attach-approve > .muted{margin:0}
 .attach-approve label{margin-top:1.25rem}
 .attach-approve .btn.block{margin-top:1rem}
 .attach-approve[hidden],.attach-mint[hidden]{display:none!important}
-.attach-mint{padding:0 1.5rem;border:1px solid var(--line);border-radius:var(--r-xl)}
+.attach-mint{
+  padding:0 1.5rem;border:1px solid color-mix(in srgb,var(--line-hot) 44%,var(--line));border-radius:var(--r-xl);
+  background:color-mix(in srgb,var(--panel) 62%,var(--void));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 5%,transparent),0 16px 36px -28px rgb(0 0 0/.78);
+}
 .attach-mint[open]{padding-bottom:1.5rem}
 .attach-mint h2{font-size:1.125rem;line-height:1.75rem}
 .connect-work .btn-row{margin-top:1rem}
@@ -38,22 +50,30 @@ pre.snip{
 .connect-flow{margin:1rem 0 0;padding:0;list-style:none;counter-reset:step}
 .connect-flow li{counter-increment:step;position:relative;margin:0;padding:0 0 1.25rem 2.5rem;color:var(--ink);line-height:1.5rem}
 .connect-flow li::before{
-  content:counter(step);position:absolute;left:0;top:0;display:grid;place-items:center;width:1.5rem;height:1.5rem;
-  border:1px solid var(--line-hot);border-radius:999px;background:var(--panel);color:var(--ink);font:600 .75rem/1 var(--font-mono);
+  content:counter(step);position:absolute;left:0;top:.05rem;display:grid;place-items:center;width:1.5rem;height:1.5rem;
+  border:1px solid color-mix(in srgb,var(--color-state-active) 48%,var(--line-hot));border-radius:999px;
+  background:color-mix(in srgb,var(--color-state-active) 10%,var(--void));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--color-state-active) 18%,transparent);
+  color:var(--color-state-active);font:600 .72rem/1 var(--font-mono);
 }
-.connect-flow li:not(:last-child)::after{content:"";position:absolute;left:.75rem;top:1.75rem;bottom:.25rem;width:1px;background:var(--line)}
+.connect-flow li:not(:last-child)::after{content:"";position:absolute;left:.75rem;top:1.75rem;bottom:.25rem;width:1px;background:color-mix(in srgb,var(--color-state-active) 24%,var(--line))}
 .connect-install{margin:.5rem 0 0;padding:1.25rem 0 0;border-top:1px solid var(--line)}
 .connect-install p{margin:.75rem 0 0;font-size:.875rem;line-height:1.25rem}
 .connect-install code,.connect-install pre{font:.875rem/1.25rem var(--font-mono);color:var(--color-text-machine);white-space:pre-wrap;user-select:all}
 .connect-lede{margin:0 0 .5rem}
 .connect-clip{position:relative;margin:.5rem 0 0}
-.connect-clip pre{margin:0;padding:.75rem 5rem .75rem 1rem;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--void-ink)}
+.connect-clip pre{
+  margin:0;padding:.75rem 5rem .75rem 1rem;
+  border:1px solid color-mix(in srgb,var(--line-hot) 48%,var(--line));border-radius:var(--r-lg);
+  background:color-mix(in srgb,var(--void-ink) 88%,var(--void));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 5%,transparent),inset 0 2px 10px rgb(0 0 0/.45);
+}
 .connect-clip .btn.quiet{
   position:absolute;top:.5rem;right:.5rem;min-height:1.75rem;padding:.25rem .625rem;
-  border:1px solid var(--line);border-radius:.25rem;background:var(--panel);
+  border:1px solid color-mix(in srgb,var(--line-hot) 50%,var(--line));border-radius:.25rem;background:color-mix(in srgb,var(--panel) 88%,var(--void));
   color:var(--muted);font-size:.75rem;line-height:1rem;text-decoration:none;
 }
-.connect-clip .btn.quiet:hover{color:var(--ink);border-color:var(--line-hot)}
+.connect-clip .btn.quiet:hover{color:var(--color-state-active);border-color:color-mix(in srgb,var(--color-state-active) 48%,var(--line-hot))}
 .connect-links{margin:1rem 0 0}
 #connect-onboard{margin:0}
 #connect-onboard .connect-guide{padding:0;border:0;background:none;box-shadow:none}

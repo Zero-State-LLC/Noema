@@ -107,15 +107,28 @@ body:has(.watch-stage) .wrap{width:min(88rem,calc(100% - 2*var(--pad)));padding-
 #watch-live-agents{display:flex;flex-direction:column;gap:.35rem;margin-top:.65rem;padding-top:.55rem;border-top:1px solid color-mix(in srgb,var(--line) 75%,transparent)}
 #watch-live-agents:empty{display:none}
 .watch-agent-row{
-  display:flex;flex-direction:column;gap:2px;padding:.42rem .6rem;
-  border:1px solid color-mix(in srgb,var(--line) 78%,transparent);border-radius:var(--r-md,8px);
-  background:color-mix(in srgb,var(--void) 74%,var(--panel));
+  display:flex;flex-direction:column;gap:2px;padding:.42rem .62rem;
+  border:1px solid color-mix(in srgb,var(--line) 80%,transparent);
+  border-left:2px solid color-mix(in srgb,var(--agent-accent,var(--line-hot)) 45%,var(--line));
+  border-radius:var(--r-md,8px);
+  background:color-mix(in srgb,var(--void) 76%,var(--panel));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 5%,transparent);
   font:.74rem/1.3 var(--font-interface);
-  transition:border-color .15s var(--ease),background .15s var(--ease);
+  transition:border-color .15s var(--ease),background .15s var(--ease),box-shadow .15s var(--ease);
 }
-.watch-agent-row:hover{border-color:color-mix(in srgb,var(--color-state-active) 40%,var(--line));background:color-mix(in srgb,var(--panel-2) 60%,var(--void))}
-.watch-agent-row strong{color:var(--ink);font-weight:600;letter-spacing:.01em}
-.watch-agent-row span{color:var(--muted);font:.68rem/1.28 var(--font-mono)}
+.watch-agent-row:hover{
+  border-color:color-mix(in srgb,var(--agent-accent,var(--color-state-active)) 48%,var(--line));
+  border-left-color:var(--agent-accent,var(--color-state-active));
+  background:color-mix(in srgb,var(--panel-2) 64%,var(--void));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 8%,transparent),0 6px 16px -10px rgb(0 0 0/.78);
+}
+.watch-agent-row strong{display:flex;align-items:center;gap:.42rem;color:var(--ink);font-weight:600;letter-spacing:.01em}
+.watch-agent-dot{
+  display:inline-block;width:7px;height:7px;border-radius:50%;flex:0 0 auto;
+  background:var(--agent-accent,var(--color-state-social));
+  box-shadow:0 0 0 1px rgba(7,10,16,.65);
+}
+.watch-agent-row > span{color:var(--muted);font:.68rem/1.28 var(--font-mono);padding-left:.86rem}
 .watch-map-col{min-width:0}
 .watch-stage-story{margin:0 0 .5rem}
 .watch-stage-line{
@@ -178,7 +191,8 @@ body:has(.watch-stage) .wrap{width:min(88rem,calc(100% - 2*var(--pad)));padding-
   margin:.5rem 0 0;padding:.5rem 0 0;border-top:1px solid var(--line);background:transparent;
 }
 .watch-graph{margin:0;padding:0;list-style:none;display:grid;gap:.35rem;min-height:11rem}
-.watch-site{padding:.45rem 0 .55rem;border-bottom:1px solid var(--line);font:500 .86rem/1.45 var(--font-mono)}
+.watch-site{padding:.45rem .35rem .55rem;border-bottom:1px solid var(--line);border-radius:var(--r);font:500 .86rem/1.45 var(--font-mono);transition:background .15s var(--ease),border-color .15s var(--ease)}
+.watch-site:hover{background:color-mix(in srgb,var(--panel-2) 52%,var(--void));border-bottom-color:color-mix(in srgb,var(--color-state-active) 38%,var(--line))}
 .watch-site.active{color:var(--ink)}
 .watch-site.picked{border-color:var(--color-state-active);color:var(--color-state-active)}
 .watch-site-row{display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center}
@@ -560,7 +574,25 @@ export function watchHtml(opts?: { mode?: string }): string {
     // 3D Chamber stage (Noema-Specs specify/watch-single-3d-stage.md). Its chunk
     // is fetched only after 3D is chosen. Any failure, or Low noise, shows the
     // text map: the Places list stays beside the stage in 3D (D2, WS3-07).
-    const stage3d = { api: null, loading: false, failed: false };
+    const stage3d = {
+      api: null,
+      loading: false,
+      failed: false,
+      setHighlight: function(roomId, handle) {
+        try {
+          if (stage3d.api && typeof stage3d.api.setHighlight === "function") {
+            stage3d.api.setHighlight(roomId || "", handle || "");
+          }
+        } catch (e) { /* stage highlight is display-only */ }
+      },
+    };
+    const AGENT_ACCENTS = ["#3ddcff", "#ffb020", "#52e5a8", "#b68cff", "#ff6b8b", "#70b8ff"];
+    function agentAccentHex(handle) {
+      if (!handle) return "#c9ac82";
+      let h = 0;
+      for (let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) >>> 0;
+      return AGENT_ACCENTS[h % AGENT_ACCENTS.length];
+    }
     state.stageReady = true;
     function paintStageFallback(msg) {
       const note = $("watch-stage3d-fallback");
@@ -1024,10 +1056,29 @@ export function watchHtml(opts?: { mode?: string }): string {
         agentsBox.textContent = "";
         const roster = Array.isArray(data.agents) ? data.agents : [];
         for (const ag of roster) {
+          const handle = String((ag && ag.label) || "").trim();
+          const roomId = String((ag && ag.room_id) || "");
+          const accent = agentAccentHex(handle);
           const row = el("div", "watch-agent-row");
-          const headLine = el("strong", "", ag.label + " · " + (ag.room_name || ag.room_id || "—"));
-          const subLine = el("span", "", ag.last_action || "Active on site");
+          if (row.style && typeof row.style.setProperty === "function") {
+            row.style.setProperty("--agent-accent", accent);
+          }
+          if (roomId && typeof row.setAttribute === "function") row.setAttribute("data-agent-room", roomId);
+          if (handle && typeof row.setAttribute === "function") row.setAttribute("data-agent-handle", handle);
+          const headLine = el("strong", "", "");
+          const dot = el("span", "watch-agent-dot");
+          if (dot.style) dot.style.background = accent;
+          headLine.append(dot, document.createTextNode(handle + " · " + ((ag && (ag.room_name || ag.room_id)) || "—")));
+          const subLine = el("span", "", (ag && ag.last_action) || "Active on site");
           row.append(headLine, subLine);
+          if (typeof row.addEventListener === "function") {
+            row.addEventListener("pointerenter", () => {
+              if (stage3d && typeof stage3d.setHighlight === "function") stage3d.setHighlight(roomId, handle);
+            });
+            row.addEventListener("pointerleave", () => {
+              if (stage3d && typeof stage3d.setHighlight === "function") stage3d.setHighlight("", "");
+            });
+          }
           agentsBox.append(row);
         }
       }
@@ -1119,6 +1170,15 @@ export function watchHtml(opts?: { mode?: string }): string {
           const followed = fRoom && r.room_id === fRoom;
           const li = el("li", "watch-site" + (r.active || r.players_present > 0 ? " active" : "") + (picked ? " picked" : "") + (followed ? " followed" : ""));
           li.setAttribute("data-room", r.room_id || "");
+          if (typeof li.addEventListener === "function") {
+            const siteId = r.room_id || "";
+            li.addEventListener("pointerenter", () => {
+              if (stage3d && typeof stage3d.setHighlight === "function") stage3d.setHighlight(siteId, "");
+            });
+            li.addEventListener("pointerleave", () => {
+              if (stage3d && typeof stage3d.setHighlight === "function") stage3d.setHighlight("", "");
+            });
+          }
           const row = el("div", "watch-site-row");
           row.append(glyphNode(r.glyph || "loc"));
           row.append(el("span", "watch-site-name", r.name || r.room_id || "site"));
