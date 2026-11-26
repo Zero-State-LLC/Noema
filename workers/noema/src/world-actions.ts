@@ -7378,15 +7378,20 @@ async function applyScheduledPressure(
   const pulseUntil = w.cycle <= LAST_WINDOW_CYCLE ? LAST_WINDOW_CYCLE : (wave?.waveEnd ?? w.cycle + 11);
 
   if (classDue(w.cycle, "infrastructure_failure", classes.infrastructure_failure || 0, lastBy.infrastructure_failure)) {
-    const target = selectScheduleRelay(collectLiveRelaysWithRoom(w.rooms));
+    const relayDelta = (roomId: string): number =>
+      w.cycle > LAST_WINDOW_CYCLE
+        ? effectiveInfraDelta(Boolean(w.rooms[roomId] && readyClassInRoom(roomEntities(w.rooms[roomId]), "defensive_work")))
+        : effectiveInfraDelta(false);
+    const target = selectScheduleRelay(
+      collectLiveRelaysWithRoom(w.rooms),
+      w.cycle > LAST_WINDOW_CYCLE ? (t) => relayDelta(t.room_id) : undefined,
+    );
     if (target) {
       const room = w.rooms[target.room_id];
       const entity = room ? findEntity(room, target.entity_id) : undefined;
       if (entity) {
         const before = entity.condition ?? 0;
-        const delta = w.cycle > LAST_WINDOW_CYCLE
-          ? effectiveInfraDelta(readyClassInRoom(roomEntities(room), "defensive_work"))
-          : undefined;
+        const delta = w.cycle > LAST_WINDOW_CYCLE ? relayDelta(target.room_id) : undefined;
         const after = previewAfter(before, delta);
         entity.condition = after;
         const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);

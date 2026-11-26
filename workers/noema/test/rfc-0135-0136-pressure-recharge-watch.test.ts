@@ -3,6 +3,7 @@ import {
   classDue,
   effectiveInfraDelta,
   orbitalWaveBounds,
+  selectScheduleRelay,
   CONDITION_DELTA,
   DEFENSIVE_WORK_DELTA,
 } from "../src/pressure";
@@ -88,6 +89,11 @@ describe("RFC-0135: Perihelion Orbital Pressure Waves", () => {
     expect(classDue(120, "infrastructure_failure", 2, 60)).toBe(true);
     expect(effectiveInfraDelta(false)).toBe(CONDITION_DELTA);
     expect(effectiveInfraDelta(true)).toBe(DEFENSIVE_WORK_DELTA);
+
+    // Relay at condition 35 is ineligible at default -15 delta (20 < 25), but eligible with defensive_work (-8 -> 27 >= 25)
+    const relay35 = [{ entity_id: "entity.relay-7", label: "relay-7", entity_type: "INFRASTRUCTURE", condition: 35, room_id: "room.hub" }];
+    expect(selectScheduleRelay(relay35)).toBeNull();
+    expect(selectScheduleRelay(relay35, () => DEFENSIVE_WORK_DELTA)?.entity_id).toBe("entity.relay-7");
   });
 });
 

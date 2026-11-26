@@ -169,9 +169,14 @@ export function collectLiveRelaysWithRoom(
   return out;
 }
 
-/** Prefer the Chamber seed relay when a −15 drop stays ≥ 25. */
-export function selectScheduleRelay(targets: PressureTarget[]): PressureTarget | null {
-  const mild = targets.filter((e) => isMild(previewAfter(e.condition ?? 0)));
+/** Prefer the Chamber seed relay when the effective drop stays >= 25. */
+export function selectScheduleRelay(
+  targets: PressureTarget[],
+  deltaFor?: (t: PressureTarget) => number,
+): PressureTarget | null {
+  const mild = targets.filter((e) =>
+    isMild(previewAfter(e.condition ?? 0, deltaFor ? deltaFor(e) : CONDITION_DELTA)),
+  );
   if (!mild.length) return null;
   const preferred = mild.find((e) => e.entity_id === PREFERRED_RELAY_ID);
   if (preferred) return preferred;
