@@ -278,11 +278,8 @@ export function creditsFromDangerEvent(
     const evidence = strField(payload, "detection_id") || ev.event_id;
     const victim = strField(payload, "victim_id");
     const subject = strField(payload, "subject_id");
-    const sevRaw = strField(payload, "severity");
-    const severity =
-      sevRaw === "MINOR" || sevRaw === "MODERATE" || sevRaw === "MAJOR" ? (sevRaw as DangerSeverity) : undefined;
     if (evidence && victim && subject && victim !== subject) {
-      out.push({ player_id: victim, other_id: subject, evidence_id: evidence, ...(severity ? { severity } : {}) });
+      out.push({ player_id: victim, other_id: subject, evidence_id: evidence });
     }
   }
   return out;

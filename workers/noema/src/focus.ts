@@ -65,6 +65,12 @@ export function declareFocusTrack(
   const existing = activeFocusEntries(current).filter((e) => e.track !== track);
   const next = [...existing, { track, declared_cycle: cycle }].slice(-ACTIVE_FOCUS_CAP);
   const newest = next[next.length - 1];
+  if (next.length <= 1) {
+    return {
+      track: newest.track,
+      declared_cycle: newest.declared_cycle,
+    };
+  }
   return {
     track: newest.track,
     declared_cycle: newest.declared_cycle,

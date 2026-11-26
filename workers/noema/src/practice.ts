@@ -410,19 +410,24 @@ export function hasRepairedEntity(state: PracticeState | undefined | null, entit
   return rec.includes(entityId);
 }
 
-export function canOverhaul(state: PracticeState | undefined | null, now = 0): boolean {
-  return isRecognizedEngineer(state) && !isTrackLatent(state, ENGINEER_TRACK, now);
+export function canOverhaul(
+  state: PracticeState | undefined | null,
+  now = 0,
+  focusedTrackIds?: PracticeTrackId[],
+): boolean {
+  return isRecognizedEngineer(state) && !isTrackLatent(state, ENGINEER_TRACK, now, focusedTrackIds);
 }
 
 export function repairConditionDelta(
   state: PracticeState | undefined | null,
   entityId: string,
   now = 0,
+  focusedTrackIds?: PracticeTrackId[],
 ): { delta: 15 | 20; bonus: 0 | 5 } {
   if (
     isRecognizedEngineer(state) &&
     hasRepairedEntity(state, entityId) &&
-    !isTrackLatent(state, ENGINEER_TRACK, now)
+    !isTrackLatent(state, ENGINEER_TRACK, now, focusedTrackIds)
   ) {
     return { delta: 20, bonus: 5 };
   }
@@ -496,8 +501,9 @@ export function trackMaintained(
   state: PracticeState | undefined | null,
   trackId: PracticeTrackId,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): boolean {
-  return isTrackRecognized(state, trackId) && !isTrackLatent(state, trackId, now);
+  return isTrackRecognized(state, trackId) && !isTrackLatent(state, trackId, now, focusedTrackIds);
 }
 
 export function hasVisitedRoom(state: PracticeState | undefined | null, roomId: string): boolean {
@@ -519,8 +525,9 @@ export function lookAttentionCost(
   state: PracticeState | undefined | null,
   roomId: string,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): Partial<{ attention: number }> {
-  if (trackMaintained(state, EXPLORER_TRACK, now) && hasVisitedRoom(state, roomId)) return {};
+  if (trackMaintained(state, EXPLORER_TRACK, now, focusedTrackIds) && hasVisitedRoom(state, roomId)) return {};
   return { attention: 1 };
 }
 
@@ -528,8 +535,9 @@ export function inspectAttentionCost(
   state: PracticeState | undefined | null,
   entityId: string,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): Partial<{ attention: number }> {
-  if (trackMaintained(state, SURVEYOR_TRACK, now) && hasSurveyedEntity(state, entityId)) return {};
+  if (trackMaintained(state, SURVEYOR_TRACK, now, focusedTrackIds) && hasSurveyedEntity(state, entityId)) return {};
   return { attention: 2 };
 }
 
@@ -537,24 +545,27 @@ export function brokerWaivesCaution(
   state: PracticeState | undefined | null,
   otherId: string,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): boolean {
-  return trackMaintained(state, BROKER_TRACK, now) && hasBrokeredWith(state, otherId);
+  return trackMaintained(state, BROKER_TRACK, now, focusedTrackIds) && hasBrokeredWith(state, otherId);
 }
 
 /** RFC-0138: maintained archivist mastery discounts RECONSTRUCT/ATTEST attention by 1 (min 1). */
 export function archivistAttentionDiscount(
   state: PracticeState | undefined | null,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): number {
-  return trackMaintained(state, ARCHIVIST_TRACK, now) ? 1 : 0;
+  return trackMaintained(state, ARCHIVIST_TRACK, now, focusedTrackIds) ? 1 : 0;
 }
 
 /** RFC-0138: maintained herald mastery discounts MESSAGE/ORG_OFFICE_ACT compute by 1 (min 0). */
 export function heraldComputeDiscount(
   state: PracticeState | undefined | null,
   now: number,
+  focusedTrackIds?: PracticeTrackId[],
 ): number {
-  return trackMaintained(state, HERALD_TRACK, now) ? 1 : 0;
+  return trackMaintained(state, HERALD_TRACK, now, focusedTrackIds) ? 1 : 0;
 }
 
 /** RFC-0144: maintained artificer mastery grants +10 crafted item condition and -1 REFINE compute. */

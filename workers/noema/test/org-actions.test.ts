@@ -121,9 +121,13 @@ describe("ORG human parse", () => {
     expect(rem.ok).toBe(true);
   });
 
-  it("rejects self-join style invent and agreement form", () => {
+  it("parses charter/invite-gated join and rejects malformed agreement form", () => {
     const j = parseHumanCommand("join org.x");
-    expect(j.ok).toBe(false);
+    expect(j.ok).toBe(true);
+    if (j.ok && j.action.verb === "COMMIT") {
+      expect(j.action.arguments.operation).toBe("ORG_JOIN");
+      expect(j.action.arguments.org_id).toBe("org.x");
+    }
     const a = parseHumanCommand("form agreement type=pact parties=a,b");
     expect(a.ok).toBe(false);
   });

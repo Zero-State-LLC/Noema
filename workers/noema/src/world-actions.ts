@@ -1835,6 +1835,11 @@ export function recordTradeMemory(
         );
       }
     }
+    const evSeverity =
+      et === "CRIME_DETECTED" &&
+      (ev.payload?.severity === "MINOR" || ev.payload?.severity === "MODERATE" || ev.payload?.severity === "MAJOR")
+        ? (ev.payload.severity as "MINOR" | "MODERATE" | "MAJOR")
+        : undefined;
     for (const credit of creditsFromDangerEvent(ev)) {
       const player = w.players[credit.player_id];
       if (player) {
@@ -1843,6 +1848,7 @@ export function recordTradeMemory(
           credit.other_id,
           credit.evidence_id,
           w.cycle,
+          evSeverity,
         );
       }
       if (credit.player_id.startsWith("org.") && w.organizations[credit.player_id]) {
@@ -2807,7 +2813,7 @@ export async function applyWorldCommand(
       return failPlay(w, principal, request_id, "NOT_IN_WORLD", "Enter the world first.");
     }
     if (action.verb === "LOOK") {
-      const lookCost = lookAttentionCost(pl.practice, pl.room_id, w.cycle);
+      const lookCost = lookAttentionCost(pl.practice, pl.room_id, w.cycle, activeFocusTrackIds(pl.focus));
       if (!canPay(pl.budgets, lookCost)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
       }
@@ -2993,7 +2999,7 @@ export async function applyWorldCommand(
     }
     const chronoLens = equippedOperationalItem(w.items, principal.player_id, "chrono_lens");
     const baseInspectCost = withAnnexAttention(
-      inspectAttentionCost(pl.practice, entity.entity_id, w.cycle),
+      inspectAttentionCost(pl.practice, entity.entity_id, w.cycle, activeFocusTrackIds(pl.focus)),
       readyClassInRoom(roomEntities(room), "archive_annex"),
     );
     const inspectCost =
@@ -3067,7 +3073,7 @@ export async function applyWorldCommand(
 
   // ——— MESSAGE ———
   if (action.verb === "MESSAGE") {
-    const msgCompute = Math.max(0, (COSTS.MESSAGE.compute ?? 1) - heraldComputeDiscount(pl.practice, w.cycle));
+    const msgCompute = Math.max(0, (COSTS.MESSAGE.compute ?? 1) - heraldComputeDiscount(pl.practice, w.cycle, activeFocusTrackIds(pl.focus)));
     const msgCost = msgCompute > 0 ? { ...COSTS.MESSAGE, compute: msgCompute } : {};
     if (!canPay(pl.budgets, msgCost)) {
       return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
@@ -3868,7 +3874,7 @@ export async function applyWorldCommand(
       const sellerId = listing.owner_id;
       const liveHostile = liveHostileToward(pl.danger_memory, pl.deceptive_memory, pl.trade_memory, sellerId, w.cycle);
       const liveReliable = liveReliableToward(pl.trade_memory, sellerId, w.cycle);
-      const brokerKnown = brokerWaivesCaution(pl.practice, sellerId, w.cycle);
+      const brokerKnown = brokerWaivesCaution(pl.practice, sellerId, w.cycle, activeFocusTrackIds(pl.focus));
       const computeFee = Math.max(0, 1 + (liveHostile && !liveReliable && !brokerKnown ? 1 : 0) - (liveReliable || brokerKnown ? 1 : 0));
       if (!canPay(pl.budgets, { compute: computeFee })) {
         return fail(request_id, "BUDGET_EXCEEDED", `You need compute ${computeFee} to fulfill that listing.`);
@@ -4205,7 +4211,7 @@ export async function applyWorldCommand(
       const liveReliable = actingPreview && w.organizations[actingPreview]
         ? liveInstitutionReliableToward(w.organizations[actingPreview].institution_memory, counterparty_id, w.cycle)
         : liveReliableToward(pl.trade_memory, counterparty_id, w.cycle);
-      const brokerKnown = brokerWaivesCaution(pl.practice, counterparty_id, w.cycle);
+      const brokerKnown = brokerWaivesCaution(pl.practice, counterparty_id, w.cycle, activeFocusTrackIds(pl.focus));
       const caution = tradeCautionCost(liveHostile, liveReliable || brokerKnown);
       const tradeCost = { compute: caution.total_compute };
       if (!canPay(pl.budgets, tradeCost)) {
@@ -5623,28 +5629,62 @@ export async function applyWorldCommand(
         reason: "ASSIGN_STEWARD",
       });
       if (roomEnt) {
-        if (stewardId) roomEnt.steward_id = stewardId;
-        if (stewardOfficeId) roomEnt.steward_office_id = stewardOfficeId;
+        const setFields: Record<string, unknown> = {};
+        const unsetFields: string[] = [];
+        if (stewardId && !stewardOfficeId) {
+          roomEnt.steward_id = stewardId;
+          delete roomEnt.steward_office_id;
+          setFields.steward_id = stewardId;
+          unsetFields.push("steward_office_id");
+        } else if (stewardOfficeId && !stewardId) {
+          roomEnt.steward_office_id = stewardOfficeId;
+          delete roomEnt.steward_id;
+          setFields.steward_office_id = stewardOfficeId;
+          unsetFields.push("steward_id");
+        } else {
+          if (stewardId) {
+            roomEnt.steward_id = stewardId;
+            setFields.steward_id = stewardId;
+          }
+          if (stewardOfficeId) {
+            roomEnt.steward_office_id = stewardOfficeId;
+            setFields.steward_office_id = stewardOfficeId;
+          }
+        }
         const idx = room!.entities.findIndex((e) => e.entity_id === roomEnt.entity_id);
         if (idx >= 0) room!.entities[idx] = roomEnt;
         const ev = pushEvent("ENTITY_UPDATE", {
           entity_id: roomEnt.entity_id,
-          set: {
-            ...(stewardId ? { steward_id: stewardId } : {}),
-            ...(stewardOfficeId ? { steward_office_id: stewardOfficeId } : {}),
-          },
-          unset: [],
+          set: setFields,
+          unset: unsetFields,
         });
         await settleEv(ev);
       } else if (itemEnt) {
-        if (stewardId) itemEnt.steward_id = stewardId;
-        if (stewardOfficeId) itemEnt.steward_office_id = stewardOfficeId;
+        const setFields: Record<string, unknown> = {};
+        const unsetFields: string[] = [];
+        if (stewardId && !stewardOfficeId) {
+          itemEnt.steward_id = stewardId;
+          delete itemEnt.steward_office_id;
+          setFields.steward_id = stewardId;
+          unsetFields.push("steward_office_id");
+        } else if (stewardOfficeId && !stewardId) {
+          itemEnt.steward_office_id = stewardOfficeId;
+          itemEnt.steward_id = null;
+          setFields.steward_office_id = stewardOfficeId;
+          unsetFields.push("steward_id");
+        } else {
+          if (stewardId) {
+            itemEnt.steward_id = stewardId;
+            setFields.steward_id = stewardId;
+          }
+          if (stewardOfficeId) {
+            itemEnt.steward_office_id = stewardOfficeId;
+            setFields.steward_office_id = stewardOfficeId;
+          }
+        }
         const ev = pushEvent(
           "ENTITY_UPDATE",
-          itemEntityUpdatePayload(itemEnt.item_id, {
-            ...(stewardId ? { steward_id: stewardId } : {}),
-            ...(stewardOfficeId ? { steward_office_id: stewardOfficeId } : {}),
-          }),
+          itemEntityUpdatePayload(itemEnt.item_id, setFields, unsetFields),
         );
         await settleEv(ev);
       }
@@ -6299,7 +6339,7 @@ export async function applyWorldCommand(
         }
       }
       const overhaul = action.arguments.extent === "overhaul";
-      if (overhaul && !canOverhaul(pl.practice, w.cycle)) {
+      if (overhaul && !canOverhaul(pl.practice, w.cycle, activeFocusTrackIds(pl.focus))) {
         return failedAction(w, principal, request_id, "FORBIDDEN",
           "You lack the practiced hands for an overhaul.",
           "You lack the practiced hands for an overhaul.", "overhaul");
@@ -6338,7 +6378,7 @@ export async function applyWorldCommand(
           "The institution treasury cannot pay this repair.", overhaul ? "overhaul" : "repair");
       }
       const before = entity.condition ?? 0;
-      const quality = repairConditionDelta(pl.practice, entity.entity_id, w.cycle);
+      const quality = repairConditionDelta(pl.practice, entity.entity_id, w.cycle, activeFocusTrackIds(pl.focus));
       debit(payFrom, fuel);
       if (payFrom === pl.budgets) {
         if (cargoNeed > 0) {
@@ -7115,6 +7155,8 @@ export async function applyWorldCommand(
       }
       debit(pl.budgets, VEST_COST);
       here.owner_id = org.org_id;
+      here.steward_id = org.org_id;
+      delete here.steward_office_id;
       here.last_steward_cycle = w.cycle;
       const idx = room.entities.findIndex((e) => e.entity_id === here.entity_id);
       if (idx >= 0) room.entities[idx] = here;
@@ -8651,7 +8693,7 @@ async function applyReconstructCommand(
       }
       rec.org_id = org?.org_id;
     }
-    const pubAttn = Math.max(1, (COSTS.RECONSTRUCT.attention ?? 2) - archivistAttentionDiscount(pl.practice, w.cycle));
+    const pubAttn = Math.max(1, (COSTS.RECONSTRUCT.attention ?? 2) - archivistAttentionDiscount(pl.practice, w.cycle, activeFocusTrackIds(pl.focus)));
     const pubCost = { ...COSTS.RECONSTRUCT, attention: pubAttn };
     if (!canPay(pl.budgets, pubCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
@@ -8721,7 +8763,7 @@ async function applyReconstructCommand(
   const hasMonRec = Boolean(recRoom && roomEntities(recRoom).some((e) => e.entity_type === "MONUMENT"));
   const recAttn = Math.max(
     hasMonRec ? 0 : 1,
-    (COSTS.RECONSTRUCT.attention ?? 2) - archivistAttentionDiscount(pl.practice, w.cycle) - (hasMonRec ? 1 : 0),
+    (COSTS.RECONSTRUCT.attention ?? 2) - archivistAttentionDiscount(pl.practice, w.cycle, activeFocusTrackIds(pl.focus)) - (hasMonRec ? 1 : 0),
   );
   const recCost = { ...COSTS.RECONSTRUCT, attention: recAttn };
   if (!canPay(pl.budgets, recCost)) {
@@ -9380,7 +9422,7 @@ async function applyOfficeCommand(
       return fail(request_id, "FORBIDDEN", "That office profile cannot act in this stage.");
     }
     if (!notice) return fail(request_id, "INVALID_REQUEST", "Notice text required.");
-    const officeActCompute = Math.max(0, (COSTS.ORG_OFFICE_ACT.compute ?? 1) - heraldComputeDiscount(pl.practice, w.cycle));
+    const officeActCompute = Math.max(0, (COSTS.ORG_OFFICE_ACT.compute ?? 1) - heraldComputeDiscount(pl.practice, w.cycle, activeFocusTrackIds(pl.focus)));
     const officeActCost = officeActCompute > 0 ? { ...COSTS.ORG_OFFICE_ACT, compute: officeActCompute } : {};
     if (!canPay(pl.budgets, officeActCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
@@ -9474,7 +9516,7 @@ async function applyAttest(
     readyClassInRoom(roomEntities(room), "archive_annex"),
   );
   const hasMonAtt = roomEntities(room).some((e) => e.entity_type === "MONUMENT");
-  const archDisc = archivistAttentionDiscount(pl.practice, w.cycle);
+  const archDisc = archivistAttentionDiscount(pl.practice, w.cycle, activeFocusTrackIds(pl.focus));
   const chronoLens = equippedOperationalItem(w.items, principal.player_id, "chrono_lens");
   const attAttn = Math.max(
     hasMonAtt || chronoLens ? 0 : 1,
@@ -9887,7 +9929,7 @@ async function resolveDueContests(
     }
 
     if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") continue;
-    await applyContestSuccessFollowOns(w, contest, outcome, pushEvent, settleEv, equipFx, score);
+    const followOn = await applyContestSuccessFollowOns(w, contest, outcome, pushEvent, settleEv, equipFx, score);
 
     // RFC-0143: Deterministic seeded CRIME_DETECTED / CrimeResidue producer on public-room contest resolution.
     const cRoom = w.rooms[contest.room_id];
@@ -9921,11 +9963,12 @@ async function resolveDueContests(
         violatedNonAggression: Boolean(
           victimId && forbiddenByNonAggression(w.agreements, contest.declarer_id, victimId),
         ),
+        seizedItemId: followOn?.seizedItemId,
         targetIsBarterStall: Boolean(targetEnt && infraClassOf(targetEnt) === "barter_stall"),
         usedBreachCharge: false,
         weaponAssisted: Boolean(equipFx?.attackerWeapon),
         weaponSignatureMp: equipFx?.crimeDetectionSignatureMp ?? 0,
-        conditionAfter: targetEnt?.condition,
+        conditionAfter: followOn?.disruptionConditionAfter ?? targetEnt?.condition,
       });
       w.crime_residues = pruneExpiredResidues(w.crime_residues, w.cycle);
       w.crime_detections = w.crime_detections || [];

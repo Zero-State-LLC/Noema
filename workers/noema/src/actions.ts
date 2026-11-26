@@ -15,7 +15,7 @@ import {
   parseAccessPolicyLine,
   parseAccessScope,
 } from "./access-policy";
-import { FOCUS_TRACKS, parseFocusTrack, type FocusId, type FocusState } from "./focus";
+import { FOCUS_TRACKS, activeFocusTrackIds, parseFocusTrack, type FocusId, type FocusState } from "./focus";
 import { signalFromArgs, type ActionSignal } from "./signal";
 import {
   CONSTRUCTIBLE_CLASSES,
@@ -3957,7 +3957,7 @@ export function deriveAffordances(input: {
         reason: ok ? undefined : !hasCargo ? "You do not have materials in hold." : "You do not have enough energy or compute.",
         kind: "primary",
       });
-      if (canOverhaul(input.practice, input.cycle || 0)) {
+      if (canOverhaul(input.practice, input.cycle || 0, activeFocusTrackIds(input.focus))) {
         const overhaulCost = {
           ...repairCost,
           energy: (repairCost.energy || 0) + OVERHAUL_ENERGY_EXTRA,
