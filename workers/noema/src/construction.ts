@@ -15,6 +15,7 @@ export const CONSTRUCTIBLE_CLASSES = [
   "workshop",
   "defensive_work",
   "archive_annex",
+  "barter_stall",
 ] as const;
 
 export type ConstructibleClass = (typeof CONSTRUCTIBLE_CLASSES)[number];
@@ -40,6 +41,7 @@ export const CONSTRUCT_COSTS: Record<ConstructibleClass, ConstructionCost> = {
   workshop: { energy: 6, compute: 3, storage: 5, influence: 0 },
   defensive_work: { energy: 7, compute: 3, storage: 4, influence: 3 },
   archive_annex: { energy: 6, compute: 4, storage: 4, influence: 2 },
+  barter_stall: { energy: 6, compute: 3, storage: 4, influence: 2 },
 };
 
 export const SALVAGE_STORAGE: Record<ConstructibleClass, number> = {
@@ -51,6 +53,7 @@ export const SALVAGE_STORAGE: Record<ConstructibleClass, number> = {
   workshop: 2,
   defensive_work: 2,
   archive_annex: 2,
+  barter_stall: 2,
 };
 
 const CLASS_SET = new Set<string>(CONSTRUCTIBLE_CLASSES);
@@ -74,6 +77,7 @@ export function parseConstructibleClass(raw: string): ConstructibleClass | null 
   if (t === "workshop") return "workshop";
   if (t === "defensive work" || t === "defensive") return "defensive_work";
   if (t === "archive annex" || t === "annex") return "archive_annex";
+  if (t === "barter stall" || t === "barter" || t === "stall" || t === "shop") return "barter_stall";
   return null;
 }
 
@@ -103,6 +107,7 @@ export function infraClassOf(e: InfraLike): ConstructibleClass | null {
   if (blob.includes("workshop")) return "workshop";
   if (blob.includes("defensive work") || blob.includes("defensivework")) return "defensive_work";
   if (blob.includes("archive annex") || blob.includes("archiveannex")) return "archive_annex";
+  if (blob.includes("barter stall") || blob.includes("barterstall")) return "barter_stall";
   return null;
 }
 
@@ -135,6 +140,7 @@ export const MULTI_CYCLE_CLASSES: readonly ConstructibleClass[] = [
   "defensive_work",
   "archive_annex",
   "route_link",
+  "barter_stall",
 ];
 
 export function isMultiCycleClass(classId: ConstructibleClass | null | undefined): boolean {

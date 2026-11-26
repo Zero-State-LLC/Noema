@@ -168,6 +168,10 @@ export type EntityRuntime = {
   archive_claim?: "DESTROYED" | "OPERATING";
   /** GC2-S0 constructing Player. Genesis assets have none. */
   owner_id?: string;
+  /** RFC-0144: immutable creator attribution & mutable active steward/office split. */
+  creator_id?: string;
+  steward_id?: string;
+  steward_office_id?: string;
   /** GC2-S11. First additional Player steward. Absent = sole owner. */
   co_owner_id?: string;
   /** GC2-S20. Second additional Player steward. */
@@ -398,8 +402,12 @@ export type Organization = {
 /** RFC-0133: per-act SUPPLY cap and treasury vault storage cap. */
 export const SUPPLY_MAX = 5;
 export const TREASURY_STORAGE_CAP = 64;
-/** RFC-0133 amendment 1: classes the resource office may build with treasury cargo. */
-export const TREASURY_CONSTRUCT_CLASSES: ReadonlySet<string> = new Set(["generator", "storage_bay"]);
+/** RFC-0133 amendment 1 + RFC-0140: classes the resource office may build with treasury cargo. */
+export const TREASURY_CONSTRUCT_CLASSES: ReadonlySet<string> = new Set([
+  "generator",
+  "storage_bay",
+  "barter_stall",
+]);
 
 /** RFC-0136: generator-powered RECHARGE constants. */
 export const RECHARGE_ENERGY_GRANT = 4;
@@ -465,7 +473,16 @@ export type CanonicalAction =
   | {
       verb: "TRADE";
       arguments: {
-        phase: "propose" | "accept" | "reject" | "cancel";
+        phase:
+          | "propose"
+          | "accept"
+          | "reject"
+          | "cancel"
+          | "stock"
+          | "withdraw"
+          | "list"
+          | "unlist"
+          | "fulfill";
         counterparty_id?: string;
         offered?: Record<string, number>;
         requested?: Record<string, number>;
@@ -475,6 +492,15 @@ export type CanonicalAction =
         acting_for?: string;
         office_id?: string;
         emergency_scope_id?: string;
+        /** RFC-0140 storefront barter & WS02 emergency swap fields. */
+        stall_id?: string;
+        listing_id?: string;
+        listing_kind?: "SELL_OFFER" | "BUY_ORDER" | "CORE_SWAP";
+        asset?: unknown;
+        offer_asset?: unknown;
+        ask_asset?: unknown;
+        max_fills?: number;
+        swap_id?: string;
         signal?: ActionSignal;
       };
     }
@@ -672,6 +698,12 @@ export type Affordance = {
   slot?: EquipSlot;
   material?: MaterialArchetype;
   grade?: LotGrade;
+  /** RFC-0140: storefront barter phases & WS02 swap fields. */
+  phase?: string;
+  stall_id?: string;
+  listing_id?: string;
+  listing_kind?: string;
+  swap_id?: string;
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -783,6 +815,9 @@ export function enrichEntity(e: {
   archive_subject_entity_id?: string;
   archive_claim?: "DESTROYED" | "OPERATING";
   owner_id?: string;
+  creator_id?: string;
+  steward_id?: string;
+  steward_office_id?: string;
   co_owner_id?: string;
   co_owner_2_id?: string;
   co_owner_3_id?: string;
@@ -818,6 +853,9 @@ export function enrichEntity(e: {
     archive_subject_entity_id: e.archive_subject_entity_id,
     archive_claim: e.archive_claim,
     owner_id: e.owner_id,
+    ...(e.creator_id ? { creator_id: e.creator_id } : {}),
+    ...(e.steward_id ? { steward_id: e.steward_id } : {}),
+    ...(e.steward_office_id ? { steward_office_id: e.steward_office_id } : {}),
     co_owner_id: e.co_owner_id,
     co_owner_2_id: e.co_owner_2_id,
     co_owner_3_id: e.co_owner_3_id,
@@ -2629,7 +2667,31 @@ export function normalizeStructuredCommand(
     };
   }
   if (cmd === "TRADE") {
-    const phase = String(args.phase || "propose").toLowerCase() as "propose" | "accept" | "reject" | "cancel";
+    const phaseRaw = String(args.phase || "propose").toLowerCase();
+    const validPhases = new Set([
+      "propose",
+      "accept",
+      "reject",
+      "cancel",
+      "stock",
+      "withdraw",
+      "list",
+      "unlist",
+      "fulfill",
+    ]);
+    if (!validPhases.has(phaseRaw)) {
+      return { ok: false, error: `unsupported trade phase ${phaseRaw}`, code: "INVALID_REQUEST" };
+    }
+    const phase = phaseRaw as
+      | "propose"
+      | "accept"
+      | "reject"
+      | "cancel"
+      | "stock"
+      | "withdraw"
+      | "list"
+      | "unlist"
+      | "fulfill";
     const counterparty_id = String(
       args.counterparty_id || args.counterparty || args.target || "",
     ).trim();
@@ -2642,6 +2704,11 @@ export function normalizeStructuredCommand(
       (args.wants as Record<string, number> | undefined);
     const sig = signalFromArgs(args);
     if (!sig.ok) return sig;
+    const lkRaw = args.listing_kind ? String(args.listing_kind).trim().toUpperCase() : "";
+    const listing_kind =
+      lkRaw === "SELL_OFFER" || lkRaw === "BUY_ORDER" || lkRaw === "CORE_SWAP"
+        ? (lkRaw as "SELL_OFFER" | "BUY_ORDER" | "CORE_SWAP")
+        : undefined;
     return {
       ok: true,
       action: {
@@ -2657,6 +2724,14 @@ export function normalizeStructuredCommand(
           acting_for: args.acting_for ? String(args.acting_for) : undefined,
           office_id: args.office_id ? String(args.office_id) : undefined,
           emergency_scope_id: args.emergency_scope_id ? String(args.emergency_scope_id) : undefined,
+          stall_id: args.stall_id ? String(args.stall_id).trim() : undefined,
+          listing_id: args.listing_id ? String(args.listing_id).trim() : undefined,
+          listing_kind,
+          asset: args.asset,
+          offer_asset: args.offer_asset,
+          ask_asset: args.ask_asset,
+          max_fills: args.max_fills != null ? Number(args.max_fills) : undefined,
+          swap_id: args.swap_id ? String(args.swap_id).trim() : undefined,
           ...(sig.signal ? { signal: sig.signal } : {}),
         },
       },
@@ -3622,6 +3697,8 @@ export function deriveAffordances(input: {
   /** RFC-0139: portable items & material lots for contextual tool/craft affordances. */
   items?: Record<string, PortableItem>;
   materialLots?: MaterialLot[];
+  /** RFC-0140: room barter stalls for contextual TRADE fulfill affordances. */
+  stalls?: Record<string, import("./shops").BarterStallState>;
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -5041,6 +5118,34 @@ export function deriveAffordances(input: {
         available: canPay(budgets, ITEM_SCRAP.budget_cost),
         kind: "utility",
       });
+    }
+    // RFC-0140: contextual TRADE fulfill affordances for open room barter_stall listings.
+    if (input.stalls) {
+      for (const ent of entities) {
+        if (infraClassOf(ent) !== "barter_stall" || ent.in_progress || ent.scar || (ent.condition ?? 0) < 25) continue;
+        const stall = input.stalls[ent.entity_id];
+        if (!stall) continue;
+        for (const listing of stall.listings) {
+          if (listing.status !== "OPEN" || listing.fills_remaining <= 0) continue;
+          if (listing.owner_id === selfId) continue;
+          const ok = (budgets.compute ?? 0) >= 1;
+          out.push({
+            action: "TRADE",
+            verb: "TRADE",
+            phase: "fulfill",
+            stall_id: stall.stall_id,
+            listing_id: listing.listing_id,
+            listing_kind: listing.listing_kind,
+            label: `Fulfill ${listing.listing_kind} at ${titleCaseLabel(ent.label)}`,
+            cmd: `fulfill ${listing.listing_id}`,
+            target_id: listing.listing_id,
+            requires: { compute: 1 },
+            available: ok,
+            reason: ok ? undefined : "You need compute 1 to fulfill a stall listing.",
+            kind: "social",
+          });
+        }
+      }
     }
   }
 

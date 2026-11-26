@@ -304,6 +304,31 @@ import {
   longRangeBand,
   type PendingMessage,
 } from "./communication";
+import {
+  STALL_DISCRETE_ITEMS_CAP,
+  STALL_MAX_FILLS_PER_LISTING,
+  STALL_MAX_OPEN_LISTINGS,
+  STALL_MIN_OPERATIONAL_CONDITION,
+  STALL_PER_RESOURCE_CAP,
+  STALL_TOTAL_LOTS_CAP,
+  WS02_EMERGENCY_SWAPS,
+  allocateListingId,
+  depositLotIntoStall,
+  emptyStallState,
+  recentLocalClearingTape,
+  roomHasSupersedingStall,
+  sanitizeBarterAsset,
+  selectMatchingItem,
+  selectPlayerItemForAsset,
+  stallEscrowedItems,
+  stallHasFullReserve,
+  summarizeAsset,
+  withdrawLotFromStall,
+  type BarterAssetSpec,
+  type BarterStallState,
+  type ClearingTapeEntry,
+  type ShopListing,
+} from "./shops";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
 import { publicReportLines, shouldWriteWorldReport } from "./world-reports";
 import {
@@ -323,6 +348,7 @@ import {
   spoilPersonalMaterialLots,
   spoilWornLots,
   stabilizeWornLots,
+  totalMaterialLots,
 } from "./lots";
 import {
   CARGO_RIG_CAPACITY_BONUS,
@@ -666,6 +692,9 @@ export type WorldRuntime = {
   contracts?: Record<string, CivicContract>;
   /** RFC-0139: portable items (OBJECT entities in player/stall/room containers). */
   items?: Record<string, PortableItem>;
+  /** RFC-0140: full-reserve barter_stall storefronts & local WS01 clearing tape. */
+  stalls?: Record<string, BarterStallState>;
+  clearing_tape?: ClearingTapeEntry[];
   contests?: Record<string, OpenContest>;
   access_restrictions?: Array<{
     restriction_id: string;
@@ -1063,6 +1092,7 @@ export function buildObservation(
     hearsayBlockedThisCycle: (w.co_evolution?.last_quarantine_cycle || -1) === w.cycle,
     items: w.items,
     materialLots: pl.material_lots,
+    stalls: w.stalls,
   });
   const available_actions = [
     ...new Set(
@@ -1231,11 +1261,18 @@ export function buildObservation(
       entities: entities.map((e) => ({
         label: e.label,
         entity_type: e.entity_type,
+        infra_type: infraClassOf(e) || undefined,
         condition: e.condition,
         harvestable: isHarvestable(e),
         stock_amount: e.stock_amount,
         repairable: isRepairable(e),
       })),
+      has_stocked_barter_stall: roomHasSupersedingStall(w.stalls, entities),
+      local_clearing_tape: recentLocalClearingTape(w.clearing_tape, room.room_id, w.cycle),
+      active_org_count: orgs.length,
+      open_contract_count: Object.values(w.contracts || {}).filter(
+        (c) => c.status === "OPEN" && c.room_id === room.room_id,
+      ).length,
     }).map((s) => ({
       service_id: s.service_id,
       display_name: s.display_name,
@@ -1245,6 +1282,7 @@ export function buildObservation(
       cannot: s.cannot,
       suggested_cmds: s.suggested_cmds,
       line: s.line,
+      ...(s.local_clearing_tape?.length ? { local_clearing_tape: s.local_clearing_tape } : {}),
     })),
     available_actions,
     affordances: affordances.map((a) => ({
@@ -1294,6 +1332,11 @@ export function buildObservation(
       slot: a.slot,
       material: a.material,
       grade: a.grade,
+      phase: a.phase,
+      stall_id: a.stall_id,
+      listing_id: a.listing_id,
+      listing_kind: a.listing_kind,
+      swap_id: a.swap_id,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1320,6 +1363,19 @@ export function buildObservation(
     inventory: projectInventory(w.items, principal.player_id),
     equipment: projectEquipment(w.items, principal.player_id),
     material_lots: (pl.material_lots || []).map((l) => ({ ...l })),
+    shop_listings: entities
+      .filter((e) => infraClassOf(e) === "barter_stall" && !e.in_progress && !e.scar && (e.condition ?? 0) >= STALL_MIN_OPERATIONAL_CONDITION)
+      .flatMap((e) => (w.stalls?.[e.entity_id]?.listings || []).filter((l) => l.status === "OPEN" && l.fills_remaining > 0))
+      .map((l) => ({
+        listing_id: l.listing_id,
+        stall_id: l.stall_id,
+        owner_id: l.owner_id,
+        listing_kind: l.listing_kind,
+        offer_asset: l.offer_asset,
+        ask_asset: l.ask_asset,
+        fills_remaining: l.fills_remaining,
+        max_fills: l.max_fills,
+      })),
     social_memory_lines: socialMemoryLines(
       pl.trade_memory,
       Object.fromEntries(
@@ -3253,6 +3309,705 @@ export async function applyWorldCommand(
   // ——— TRADE ———
   if (action.verb === "TRADE") {
     const phase = action.arguments.phase;
+
+    // RFC-0140: Barter stall management & atomic 1-turn fulfillment + WS02 emergency swaps.
+    if (
+      phase === "stock" ||
+      phase === "withdraw" ||
+      phase === "list" ||
+      phase === "unlist" ||
+      phase === "fulfill"
+    ) {
+      const room = w.rooms[pl.room_id];
+      if (!room || isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "Storefront barter is available in public rooms only.");
+      }
+      w.stalls = w.stalls || {};
+      w.items = w.items || {};
+      w.clearing_tape = w.clearing_tape || [];
+
+      const canManageStall = (stallEnt: EntityRuntime): boolean => {
+        if (stallEnt.owner_id === principal.player_id || stallEnt.steward_id === principal.player_id) return true;
+        if (isConstructSteward(w, stallEnt, principal.player_id)) return true;
+        if (stallEnt.owner_id && stallEnt.owner_id.startsWith("org.")) {
+          const org = w.organizations[stallEnt.owner_id];
+          if (org) {
+            if (occupiedOfficesFor(org, principal.player_id, TRADE_PROFILE).length > 0) return true;
+            if (occupiedOfficesFor(org, principal.player_id, REPAIR_PROFILE).length > 0) return true;
+          }
+        }
+        return false;
+      };
+
+      const ensureStallRecord = (stallEnt: EntityRuntime): BarterStallState => {
+        if (!w.stalls![stallEnt.entity_id]) {
+          w.stalls![stallEnt.entity_id] = emptyStallState(stallEnt.entity_id, room.room_id);
+        }
+        return w.stalls![stallEnt.entity_id];
+      };
+
+      // Case A: WS02 cold-start emergency salvage swap (TRADE phase="fulfill" with swap_id)
+      if (phase === "fulfill" && action.arguments.swap_id) {
+        const swapId = String(action.arguments.swap_id).trim();
+        const swap = WS02_EMERGENCY_SWAPS.find((s) => s.swap_id === swapId);
+        if (!swap) return fail(request_id, "INVALID_REQUEST", `Unknown WS02 emergency swap ${swapId}.`);
+        if (roomHasSupersedingStall(w.stalls, roomEntities(room))) {
+          return fail(
+            request_id,
+            "FORBIDDEN",
+            "WS02 Quartermaster emergency swaps are SUPERSEDED while an operational barter stall serves this room.",
+          );
+        }
+        const node = roomEntities(room).find(
+          (e) => e.stock_resource && (e.stock_amount ?? 0) >= swap.requires_room_node_stock_min,
+        );
+        if (!node) {
+          return fail(
+            request_id,
+            "FORBIDDEN",
+            `WS02 swap requires a room resource node with stock >= ${swap.requires_room_node_stock_min}.`,
+          );
+        }
+        const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+        const occCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
+        if (occCargo - reservedCargoFor(w, principal.player_id) < swap.want_cargo) {
+          return fail(request_id, "BUDGET_EXCEEDED", `You need ${swap.want_cargo} cargo in hold for ${swap.swap_id}.`);
+        }
+        const reconciled = reconcileMaterialLots(pl.material_lots, occCargo, pl.lot_grades?.storage || "SOUND");
+        const spentLots = consumeGenericCargoLots(reconciled, swap.want_cargo);
+        pl.material_lots = spentLots.lots;
+        pl.budgets.storage = Math.min(storageCap, Math.floor(pl.budgets.storage ?? 0) + swap.want_cargo);
+        node.stock_amount = Math.max(0, (node.stock_amount ?? 0) - swap.node_stock_debit);
+        const nIdx = room.entities.findIndex((e) => e.entity_id === node.entity_id);
+        if (nIdx >= 0) room.entities[nIdx] = node;
+        const nodeEv = pushEvent("ENTITY_UPDATE", {
+          entity_id: node.entity_id,
+          set: { stock_amount: node.stock_amount },
+          unset: [],
+        });
+        await settleEv(nodeEv);
+        const legIn = pushEvent("RESOURCE_TRANSFER", {
+          transfer_id: `tx.ws02.${w.sequence + 1}.in`,
+          from_id: principal.player_id,
+          to_id: node.entity_id,
+          resource: "storage",
+          amount: swap.want_cargo,
+        });
+        await settleEv(legIn);
+
+        if ("give_item" in swap && swap.give_item) {
+          const item = createCraftedItem({
+            archetype: swap.give_item.archetype as "arc_welder",
+            owner_id: principal.player_id,
+            creator_id: "service.quartermaster.01",
+            origin_room_id: room.room_id,
+            forged_cycle: w.cycle,
+            sequence: w.sequence + 1,
+            lowestLotGrade: "WORN",
+            allRefined: false,
+            makeshift: true,
+          });
+          item.condition = swap.give_item.condition;
+          item.max_condition = swap.give_item.max_condition;
+          pl.budgets.storage = Math.max(0, Math.floor(pl.budgets.storage ?? 0) - item.bulk);
+          w.items[item.item_id] = item;
+          autoEquipIfSlotEmpty(w.items, principal.player_id, item, pl.budgets);
+          const itemEv = pushEvent("ENTITY_CREATE", itemEntityCreatePayload(item));
+          await settleEv(itemEv);
+          const line = `WS02 emergency swap complete: traded ${swap.want_cargo} cargo for ${item.label} (${item.condition}/${item.max_condition}).`;
+          const result = success(w, principal, request_id, events, line, settled, "barter", line);
+          w.seen_idempotency[idem] = result;
+          return result;
+        }
+        if ("give_energy" in swap && typeof swap.give_energy === "number") {
+          const before = Math.floor(pl.budgets.energy ?? 0);
+          const after = Math.min(swap.energy_clamp ?? ENERGY_GRANT, before + swap.give_energy);
+          const gain = after - before;
+          pl.budgets.energy = after;
+          if (gain > 0) {
+            const legOut = pushEvent("RESOURCE_TRANSFER", {
+              transfer_id: `tx.ws02.${w.sequence + 1}.out`,
+              from_id: node.entity_id,
+              to_id: principal.player_id,
+              resource: "energy",
+              amount: gain,
+            });
+            await settleEv(legOut);
+          }
+          const line = `WS02 emergency swap complete: traded ${swap.want_cargo} cargo for +${gain} energy.`;
+          const result = success(w, principal, request_id, events, line, settled, "barter", line);
+          w.seen_idempotency[idem] = result;
+          return result;
+        }
+        return fail(request_id, "INVALID_REQUEST", "Malformed WS02 swap definition.");
+      }
+
+      if (phase === "stock" || phase === "withdraw") {
+        const stallId = String(action.arguments.stall_id || "").trim();
+        const stallEnt = findEntity(room, stallId);
+        if (!stallEnt || infraClassOf(stallEnt) !== "barter_stall") {
+          return fail(request_id, "NOT_FOUND", "That barter stall is not in this room.");
+        }
+        if (stallEnt.in_progress || stallEnt.scar) {
+          return fail(request_id, "FORBIDDEN", "That barter stall is not operational.");
+        }
+        if (phase === "stock" && (stallEnt.condition ?? 0) < STALL_MIN_OPERATIONAL_CONDITION) {
+          return fail(request_id, "FORBIDDEN", "Repair the barter stall to at least condition 25 before stocking.");
+        }
+        if (!canManageStall(stallEnt)) {
+          return fail(request_id, "FORBIDDEN", "You do not manage that barter stall.");
+        }
+        const asset = sanitizeBarterAsset(action.arguments.asset);
+        if (!asset) {
+          return fail(request_id, "INVALID_REQUEST", "Valid asset (RESOURCE, LOT, or ITEM) required.");
+        }
+        const stall = ensureStallRecord(stallEnt);
+        const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+
+        if (phase === "stock") {
+          if (asset.kind === "RESOURCE") {
+            if ((pl.budgets[asset.resource] ?? 0) < asset.amount) {
+              return fail(request_id, "BUDGET_EXCEEDED", `Not enough ${asset.resource} to stock.`);
+            }
+            if ((stall.resources[asset.resource] ?? 0) + asset.amount > STALL_PER_RESOURCE_CAP) {
+              return fail(request_id, "BUDGET_EXCEEDED", `Stall ${asset.resource} cap (${STALL_PER_RESOURCE_CAP}) exceeded.`);
+            }
+            pl.budgets[asset.resource] = (pl.budgets[asset.resource] ?? 0) - asset.amount;
+            stall.resources[asset.resource] = (stall.resources[asset.resource] ?? 0) + asset.amount;
+            const ev = pushEvent("RESOURCE_TRANSFER", {
+              transfer_id: `tx.stock.${w.sequence + 1}`,
+              from_id: principal.player_id,
+              to_id: stall.stall_id,
+              resource: asset.resource,
+              amount: asset.amount,
+            });
+            await settleEv(ev);
+          } else if (asset.kind === "LOT") {
+            const occCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
+            const reconciled = reconcileMaterialLots(pl.material_lots, occCargo, pl.lot_grades?.storage || "SOUND");
+            const deb = consumeMaterialLots(reconciled, { [asset.material]: asset.amount }, { minGrade: asset.grade || "WORN" });
+            if (!deb.ok) {
+              return fail(request_id, "BUDGET_EXCEEDED", `Not enough ${asset.material} in hold to stock.`);
+            }
+            let fits = true;
+            for (const c of deb.consumed) {
+              if (!depositLotIntoStall(stall, c.material, c.grade, c.amount)) fits = false;
+            }
+            if (!fits) {
+              return fail(request_id, "BUDGET_EXCEEDED", `Stall material lot cap (${STALL_TOTAL_LOTS_CAP}) exceeded.`);
+            }
+            pl.material_lots = deb.lots;
+            pl.budgets.storage = Math.min(storageCap, Math.floor(pl.budgets.storage ?? 0) + deb.totalUnits);
+            const ev = pushEvent("RESOURCE_TRANSFER", {
+              transfer_id: `tx.stock.${w.sequence + 1}`,
+              from_id: principal.player_id,
+              to_id: stall.stall_id,
+              resource: "storage",
+              amount: deb.totalUnits,
+            });
+            await settleEv(ev);
+          } else if (asset.kind === "ITEM") {
+            if (stall.item_ids.length >= STALL_DISCRETE_ITEMS_CAP) {
+              return fail(request_id, "BUDGET_EXCEEDED", `Stall item cap (${STALL_DISCRETE_ITEMS_CAP}) reached.`);
+            }
+            const item = selectPlayerItemForAsset(w.items, principal.player_id, asset);
+            if (!item) return fail(request_id, "NOT_FOUND", "You are not carrying a matching item to stock.");
+            if (item.equipped_slot) {
+              return fail(request_id, "FORBIDDEN", "Unequip that item before stocking it in a barter stall.");
+            }
+            const freed = itemBulk(item);
+            item.location = { kind: "CONTAINER", container_entity_id: stall.stall_id };
+            stall.item_ids.push(item.item_id);
+            pl.budgets.storage = Math.min(storageCap, Math.floor(pl.budgets.storage ?? 0) + freed);
+            const ev = pushEvent(
+              "ENTITY_UPDATE",
+              itemEntityUpdatePayload(item.item_id, { location: item.location }),
+            );
+            await settleEv(ev);
+          } else {
+            return fail(request_id, "INVALID_REQUEST", "Stock requires RESOURCE, LOT, or ITEM.");
+          }
+          const line = `Stocked ${summarizeAsset(asset)} into ${titleCaseLabel(stallEnt.label)}.`;
+          const result = success(w, principal, request_id, events, line, settled, "barter", line);
+          w.seen_idempotency[idem] = result;
+          return result;
+        }
+
+        // phase === "withdraw" (allowed even when stall is degraded per shop-catalog/0.1)
+        const checkReservesAfter = (): boolean =>
+          stall.listings
+            .filter((l) => l.status === "OPEN" && l.fills_remaining > 0)
+            .every((l) => stallHasFullReserve(stall, w.items, l.offer_asset, l.fills_remaining, l.listing_id));
+
+        if (asset.kind === "RESOURCE") {
+          if ((stall.resources[asset.resource] ?? 0) < asset.amount) {
+            return fail(request_id, "BUDGET_EXCEEDED", `Stall does not hold ${asset.amount} ${asset.resource}.`);
+          }
+          stall.resources[asset.resource] -= asset.amount;
+          if (!checkReservesAfter()) {
+            stall.resources[asset.resource] += asset.amount;
+            return fail(request_id, "FORBIDDEN", "Withdrawal would break 100% full reserve for open listings. Unlist first.");
+          }
+          pl.budgets[asset.resource] = (pl.budgets[asset.resource] ?? 0) + asset.amount;
+          const ev = pushEvent("RESOURCE_TRANSFER", {
+            transfer_id: `tx.withdraw.${w.sequence + 1}`,
+            from_id: stall.stall_id,
+            to_id: principal.player_id,
+            resource: asset.resource,
+            amount: asset.amount,
+          });
+          await settleEv(ev);
+        } else if (asset.kind === "LOT") {
+          if ((pl.budgets.storage ?? 0) < asset.amount) {
+            return fail(request_id, "BUDGET_EXCEEDED", "Not enough free storage to withdraw those lots.");
+          }
+          const snap = stall.material_lots.map((l) => ({ ...l }));
+          const wres = withdrawLotFromStall(stall, asset.material, asset.amount, asset.grade || "WORN");
+          if (!wres.ok) return fail(request_id, "BUDGET_EXCEEDED", `Stall does not hold ${asset.amount} ${asset.material}.`);
+          if (!checkReservesAfter()) {
+            stall.material_lots = snap;
+            return fail(request_id, "FORBIDDEN", "Withdrawal would break 100% full reserve for open listings. Unlist first.");
+          }
+          for (const c of wres.consumed) {
+            pl.material_lots = creditMaterialLot(pl.material_lots, c.material, c.grade, c.amount);
+          }
+          pl.budgets.storage = Math.max(0, Math.floor(pl.budgets.storage ?? 0) - asset.amount);
+          const ev = pushEvent("RESOURCE_TRANSFER", {
+            transfer_id: `tx.withdraw.${w.sequence + 1}`,
+            from_id: stall.stall_id,
+            to_id: principal.player_id,
+            resource: "storage",
+            amount: asset.amount,
+          });
+          await settleEv(ev);
+        } else if (asset.kind === "ITEM") {
+          const item = selectMatchingItem(stallEscrowedItems(stall, w.items), asset.predicate, asset.item_id);
+          if (!item) return fail(request_id, "NOT_FOUND", "Stall does not hold a matching item.");
+          if ((pl.budgets.storage ?? 0) < item.bulk) {
+            return fail(request_id, "BUDGET_EXCEEDED", "Not enough free storage to withdraw that item.");
+          }
+          const prevIds = [...stall.item_ids];
+          stall.item_ids = stall.item_ids.filter((id) => id !== item.item_id);
+          item.location = { kind: "CONTAINER", container_entity_id: principal.player_id };
+          if (!checkReservesAfter()) {
+            stall.item_ids = prevIds;
+            item.location = { kind: "CONTAINER", container_entity_id: stall.stall_id };
+            return fail(request_id, "FORBIDDEN", "Withdrawal would break 100% full reserve for open listings. Unlist first.");
+          }
+          item.owner_id = principal.player_id;
+          pl.budgets.storage = Math.max(0, Math.floor(pl.budgets.storage ?? 0) - item.bulk);
+          const ev = pushEvent(
+            "ENTITY_UPDATE",
+            itemEntityUpdatePayload(item.item_id, { location: item.location, owner_id: item.owner_id }),
+          );
+          await settleEv(ev);
+        } else {
+          return fail(request_id, "INVALID_REQUEST", "Withdraw requires RESOURCE, LOT, or ITEM.");
+        }
+        const line = `Withdrew ${summarizeAsset(asset)} from ${titleCaseLabel(stallEnt.label)}.`;
+        const result = success(w, principal, request_id, events, line, settled, "barter", line);
+        w.seen_idempotency[idem] = result;
+        return result;
+      }
+
+      if (phase === "list") {
+        const stallId = String(action.arguments.stall_id || "").trim();
+        const stallEnt = findEntity(room, stallId);
+        if (!stallEnt || infraClassOf(stallEnt) !== "barter_stall") {
+          return fail(request_id, "NOT_FOUND", "That barter stall is not in this room.");
+        }
+        if (stallEnt.in_progress || stallEnt.scar || (stallEnt.condition ?? 0) < STALL_MIN_OPERATIONAL_CONDITION) {
+          return fail(request_id, "FORBIDDEN", "That barter stall is not operational.");
+        }
+        if (!canManageStall(stallEnt)) {
+          return fail(request_id, "FORBIDDEN", "You do not manage that barter stall.");
+        }
+        const stall = ensureStallRecord(stallEnt);
+        if (stall.listings.filter((l) => l.status === "OPEN").length >= STALL_MAX_OPEN_LISTINGS) {
+          return fail(request_id, "FORBIDDEN", `A barter stall may have at most ${STALL_MAX_OPEN_LISTINGS} open listings.`);
+        }
+        const offerAsset = sanitizeBarterAsset(action.arguments.offer_asset);
+        const askAsset = sanitizeBarterAsset(action.arguments.ask_asset);
+        const listingKind = action.arguments.listing_kind || "SELL_OFFER";
+        const maxFills = Math.floor(Number(action.arguments.max_fills ?? 1));
+        if (!offerAsset || !askAsset || maxFills < 1 || maxFills > STALL_MAX_FILLS_PER_LISTING) {
+          return fail(request_id, "INVALID_REQUEST", `Valid offer_asset, ask_asset, and max_fills (1..${STALL_MAX_FILLS_PER_LISTING}) required.`);
+        }
+        if (!canPay(pl.budgets, { compute: 1 })) {
+          return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1 to post a shop listing.");
+        }
+        if (!stallHasFullReserve(stall, w.items, offerAsset, maxFills)) {
+          return fail(request_id, "BUDGET_EXCEEDED", "Stall escrow lacks 100% full reserve to back this listing.");
+        }
+        debit(pl.budgets, { compute: 1 });
+        const listingId = allocateListingId(stall.stall_id, w.cycle, w.sequence + 1);
+        const listing: ShopListing = {
+          listing_id: listingId,
+          stall_id: stall.stall_id,
+          room_id: room.room_id,
+          owner_id: stallEnt.owner_id || principal.player_id,
+          listing_kind: listingKind,
+          offer_asset: offerAsset,
+          ask_asset: askAsset,
+          max_fills: maxFills,
+          fills_remaining: maxFills,
+          created_cycle: w.cycle,
+          status: "OPEN",
+        };
+        stall.listings.push(listing);
+        pushEvent("BUDGET_CONSUMED", {
+          player_id: principal.player_id,
+          cost_paid: { compute: 1 },
+          reason: "SHOP_LIST",
+        });
+        const ev = pushEvent("ENTITY_UPDATE", {
+          entity_id: stall.stall_id,
+          set: { last_listing_id: listingId, open_listings: stall.listings.filter((l) => l.status === "OPEN").length },
+          unset: [],
+        });
+        await settleEv(ev);
+        const line = `Listed ${listingKind} ${listingId}: offering ${summarizeAsset(offerAsset)} for ${summarizeAsset(askAsset)} (${maxFills} fills).`;
+        const result = success(w, principal, request_id, events, line, settled, "barter", line);
+        w.seen_idempotency[idem] = result;
+        return result;
+      }
+
+      if (phase === "unlist") {
+        const listingId = String(action.arguments.listing_id || "").trim();
+        let targetStall: BarterStallState | undefined;
+        let targetListing: ShopListing | undefined;
+        let stallEnt: EntityRuntime | undefined;
+        for (const ent of roomEntities(room)) {
+          if (infraClassOf(ent) !== "barter_stall") continue;
+          const st = w.stalls[ent.entity_id];
+          const hit = st?.listings.find((l) => l.listing_id === listingId && l.status === "OPEN");
+          if (st && hit) {
+            targetStall = st;
+            targetListing = hit;
+            stallEnt = ent;
+            break;
+          }
+        }
+        if (!targetStall || !targetListing || !stallEnt) {
+          return fail(request_id, "NOT_FOUND", "No open listing with that ID in this room.");
+        }
+        if (!canManageStall(stallEnt)) {
+          return fail(request_id, "FORBIDDEN", "You do not manage that barter stall.");
+        }
+        targetListing.status = "CLOSED";
+        targetListing.fills_remaining = 0;
+        const ev = pushEvent("ENTITY_UPDATE", {
+          entity_id: targetStall.stall_id,
+          set: { open_listings: targetStall.listings.filter((l) => l.status === "OPEN").length },
+          unset: [],
+        });
+        await settleEv(ev);
+        const line = `Unlisted ${listingId}.`;
+        const result = success(w, principal, request_id, events, line, settled, "barter", line);
+        w.seen_idempotency[idem] = result;
+        return result;
+      }
+
+      // phase === "fulfill" on a barter_stall listing (atomic 1-turn settlement)
+      const listingId = String(action.arguments.listing_id || "").trim();
+      let stall: BarterStallState | undefined;
+      let listing: ShopListing | undefined;
+      let stallEnt: EntityRuntime | undefined;
+      for (const ent of roomEntities(room)) {
+        if (infraClassOf(ent) !== "barter_stall") continue;
+        const st = w.stalls[ent.entity_id];
+        const hit = st?.listings.find((l) => l.listing_id === listingId && l.status === "OPEN" && l.fills_remaining > 0);
+        if (st && hit) {
+          stall = st;
+          listing = hit;
+          stallEnt = ent;
+          break;
+        }
+      }
+      if (!stall || !listing || !stallEnt) {
+        return fail(request_id, "NOT_FOUND", "That shop listing is not open in this room.");
+      }
+      if (stallEnt.in_progress || stallEnt.scar || (stallEnt.condition ?? 0) < STALL_MIN_OPERATIONAL_CONDITION) {
+        return fail(request_id, "FORBIDDEN", "That barter stall is degraded or not operational.");
+      }
+      if (listing.owner_id === principal.player_id) {
+        return fail(request_id, "FORBIDDEN", "You cannot fulfill your own shop listing.");
+      }
+      const sellerId = listing.owner_id;
+      const liveHostile = liveHostileToward(pl.danger_memory, pl.deceptive_memory, pl.trade_memory, sellerId, w.cycle);
+      const liveReliable = liveReliableToward(pl.trade_memory, sellerId, w.cycle);
+      const brokerKnown = brokerWaivesCaution(pl.practice, sellerId, w.cycle);
+      const computeFee = Math.max(0, 1 + (liveHostile && !liveReliable && !brokerKnown ? 1 : 0) - (liveReliable || brokerKnown ? 1 : 0));
+      if (!canPay(pl.budgets, { compute: computeFee })) {
+        return fail(request_id, "BUDGET_EXCEEDED", `You need compute ${computeFee} to fulfill that listing.`);
+      }
+
+      const storageCap = effectiveStorageCapacity(w.items, principal.player_id);
+      const occCargo = occupiedCargoExcludingItems(pl.budgets.storage ?? 0, w.items, principal.player_id);
+      const buyerLotsReconciled = reconcileMaterialLots(pl.material_lots, occCargo, pl.lot_grades?.storage || "SOUND");
+
+      // Validate buyer can pay ask_asset & stall can hold incoming ask_asset
+      let buyerAskItem: PortableItem | undefined;
+      let buyerConsumedLots: ReturnType<typeof consumeMaterialLots> | undefined;
+      let buyerGenericConsumed: ReturnType<typeof consumeGenericCargoLots> | undefined;
+      let buyerStorageFreed = 0;
+
+      if (listing.ask_asset.kind === "RESOURCE") {
+        const extra = listing.ask_asset.resource === "compute" ? computeFee : 0;
+        if ((pl.budgets[listing.ask_asset.resource] ?? 0) < listing.ask_asset.amount + extra) {
+          return fail(request_id, "BUDGET_EXCEEDED", `You lack ${listing.ask_asset.amount} ${listing.ask_asset.resource} to fulfill.`);
+        }
+        if ((stall.resources[listing.ask_asset.resource] ?? 0) + listing.ask_asset.amount > STALL_PER_RESOURCE_CAP) {
+          return fail(request_id, "BUDGET_EXCEEDED", "Stall escrow cannot accept more of that resource.");
+        }
+      } else if (listing.ask_asset.kind === "LOT") {
+        buyerConsumedLots = consumeMaterialLots(
+          buyerLotsReconciled,
+          { [listing.ask_asset.material]: listing.ask_asset.amount },
+          { minGrade: listing.ask_asset.grade || "WORN" },
+        );
+        if (!buyerConsumedLots.ok) {
+          return fail(request_id, "BUDGET_EXCEEDED", `You lack ${listing.ask_asset.amount} ${listing.ask_asset.material} to fulfill.`);
+        }
+        if (totalMaterialLots(stall.material_lots) + buyerConsumedLots.totalUnits > STALL_TOTAL_LOTS_CAP) {
+          return fail(request_id, "BUDGET_EXCEEDED", "Stall lot escrow is full.");
+        }
+        buyerStorageFreed = buyerConsumedLots.totalUnits;
+      } else if (listing.ask_asset.kind === "CARGO") {
+        if (occCargo - reservedCargoFor(w, principal.player_id) < listing.ask_asset.amount) {
+          return fail(request_id, "BUDGET_EXCEEDED", `You need ${listing.ask_asset.amount} cargo in hold to fulfill.`);
+        }
+        if (totalMaterialLots(stall.material_lots) + listing.ask_asset.amount > STALL_TOTAL_LOTS_CAP) {
+          return fail(request_id, "BUDGET_EXCEEDED", "Stall lot escrow is full.");
+        }
+        buyerGenericConsumed = consumeGenericCargoLots(buyerLotsReconciled, listing.ask_asset.amount);
+        buyerStorageFreed = listing.ask_asset.amount;
+      } else if (listing.ask_asset.kind === "ITEM") {
+        if (stall.item_ids.length >= STALL_DISCRETE_ITEMS_CAP) {
+          return fail(request_id, "BUDGET_EXCEEDED", "Stall item escrow is full.");
+        }
+        buyerAskItem = selectPlayerItemForAsset(w.items, principal.player_id, listing.ask_asset);
+        if (!buyerAskItem) {
+          return fail(request_id, "BUDGET_EXCEEDED", "You are not carrying a matching item for this listing.");
+        }
+        buyerStorageFreed = itemBulk(buyerAskItem);
+      }
+
+      // Validate stall can supply offer_asset & buyer has storage capacity for incoming offer_asset
+      let stallOfferItem: PortableItem | undefined;
+      let buyerStorageNeeded = 0;
+      if (listing.offer_asset.kind === "RESOURCE") {
+        if ((stall.resources[listing.offer_asset.resource] ?? 0) < listing.offer_asset.amount) {
+          return fail(request_id, "TRADE_FAILED", "Stall escrow is depleted.");
+        }
+      } else if (listing.offer_asset.kind === "LOT") {
+        const check = consumeMaterialLots(
+          stall.material_lots,
+          { [listing.offer_asset.material]: listing.offer_asset.amount },
+          { minGrade: listing.offer_asset.grade || "WORN" },
+        );
+        if (!check.ok) return fail(request_id, "TRADE_FAILED", "Stall lot escrow is depleted.");
+        buyerStorageNeeded = listing.offer_asset.amount;
+      } else if (listing.offer_asset.kind === "CARGO") {
+        if (totalMaterialLots(stall.material_lots) < listing.offer_asset.amount) {
+          return fail(request_id, "TRADE_FAILED", "Stall cargo escrow is depleted.");
+        }
+        buyerStorageNeeded = listing.offer_asset.amount;
+      } else if (listing.offer_asset.kind === "ITEM") {
+        stallOfferItem = selectMatchingItem(
+          stallEscrowedItems(stall, w.items),
+          listing.offer_asset.predicate,
+          listing.offer_asset.item_id,
+        );
+        if (!stallOfferItem) return fail(request_id, "TRADE_FAILED", "Stall item escrow is depleted.");
+        const canAutoEquip = Boolean(
+          stallOfferItem.equip_slot &&
+            stallOfferItem.condition > 0 &&
+            !equippedItemsMap(w.items, principal.player_id)[stallOfferItem.equip_slot],
+        );
+        buyerStorageNeeded = canAutoEquip ? stallOfferItem.equipped_bulk : stallOfferItem.bulk;
+      }
+
+      const buyerFreeAfterAsk = Math.min(storageCap, Math.floor(pl.budgets.storage ?? 0) + buyerStorageFreed);
+      if (buyerFreeAfterAsk < buyerStorageNeeded) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough free storage to receive the offered goods.");
+      }
+
+      // Execute atomic swap
+      if (computeFee > 0) {
+        debit(pl.budgets, { compute: computeFee });
+        pushEvent("BUDGET_CONSUMED", {
+          player_id: principal.player_id,
+          cost_paid: { compute: computeFee },
+          reason: "SHOP_FULFILL",
+        });
+      }
+
+      const tradeId = `fill.${listing.listing_id}.${w.sequence + 1}`;
+      // 1. Buyer -> Stall (ask_asset)
+      if (listing.ask_asset.kind === "RESOURCE") {
+        pl.budgets[listing.ask_asset.resource] = (pl.budgets[listing.ask_asset.resource] ?? 0) - listing.ask_asset.amount;
+        stall.resources[listing.ask_asset.resource] = (stall.resources[listing.ask_asset.resource] ?? 0) + listing.ask_asset.amount;
+        const leg = pushEvent("RESOURCE_TRANSFER", {
+          transfer_id: `tx.${tradeId}.ask`,
+          from_id: principal.player_id,
+          to_id: stall.stall_id,
+          resource: listing.ask_asset.resource,
+          amount: listing.ask_asset.amount,
+          trade_id: tradeId,
+        });
+        await settleEv(leg);
+      } else if (listing.ask_asset.kind === "LOT" && buyerConsumedLots?.ok) {
+        pl.material_lots = buyerConsumedLots.lots;
+        pl.budgets.storage = buyerFreeAfterAsk;
+        for (const c of buyerConsumedLots.consumed) {
+          depositLotIntoStall(stall, c.material, c.grade, c.amount);
+        }
+        const leg = pushEvent("RESOURCE_TRANSFER", {
+          transfer_id: `tx.${tradeId}.ask`,
+          from_id: principal.player_id,
+          to_id: stall.stall_id,
+          resource: "storage",
+          amount: buyerConsumedLots.totalUnits,
+          trade_id: tradeId,
+        });
+        await settleEv(leg);
+      } else if (listing.ask_asset.kind === "CARGO" && buyerGenericConsumed) {
+        pl.material_lots = buyerGenericConsumed.lots;
+        pl.budgets.storage = buyerFreeAfterAsk;
+        for (const c of buyerGenericConsumed.consumed) {
+          depositLotIntoStall(stall, c.material, c.grade, c.amount);
+        }
+        const leg = pushEvent("RESOURCE_TRANSFER", {
+          transfer_id: `tx.${tradeId}.ask`,
+          from_id: principal.player_id,
+          to_id: stall.stall_id,
+          resource: "storage",
+          amount: listing.ask_asset.amount,
+          trade_id: tradeId,
+        });
+        await settleEv(leg);
+      } else if (listing.ask_asset.kind === "ITEM" && buyerAskItem) {
+        if (buyerAskItem.equipped_slot) buyerAskItem.equipped_slot = undefined;
+        buyerAskItem.location = { kind: "CONTAINER", container_entity_id: stall.stall_id };
+        buyerAskItem.owner_id = sellerId;
+        stall.item_ids.push(buyerAskItem.item_id);
+        pl.budgets.storage = buyerFreeAfterAsk;
+        const leg = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(buyerAskItem.item_id, {
+            location: buyerAskItem.location,
+            owner_id: buyerAskItem.owner_id,
+            equipped_slot: null,
+          }),
+        );
+        await settleEv(leg);
+      }
+
+      // 2. Stall -> Buyer (offer_asset)
+      if (listing.offer_asset.kind === "RESOURCE") {
+        stall.resources[listing.offer_asset.resource] -= listing.offer_asset.amount;
+        pl.budgets[listing.offer_asset.resource] = (pl.budgets[listing.offer_asset.resource] ?? 0) + listing.offer_asset.amount;
+        const leg = pushEvent("RESOURCE_TRANSFER", {
+          transfer_id: `tx.${tradeId}.offer`,
+          from_id: stall.stall_id,
+          to_id: principal.player_id,
+          resource: listing.offer_asset.resource,
+          amount: listing.offer_asset.amount,
+          trade_id: tradeId,
+        });
+        await settleEv(leg);
+      } else if (listing.offer_asset.kind === "LOT") {
+        const wres = withdrawLotFromStall(stall, listing.offer_asset.material, listing.offer_asset.amount, listing.offer_asset.grade || "WORN");
+        if (wres.ok) {
+          for (const c of wres.consumed) {
+            pl.material_lots = creditMaterialLot(pl.material_lots, c.material, c.grade, c.amount);
+          }
+        }
+        pl.budgets.storage = Math.max(0, Math.floor(pl.budgets.storage ?? 0) - listing.offer_asset.amount);
+        const leg = pushEvent("RESOURCE_TRANSFER", {
+          transfer_id: `tx.${tradeId}.offer`,
+          from_id: stall.stall_id,
+          to_id: principal.player_id,
+          resource: "storage",
+          amount: listing.offer_asset.amount,
+          trade_id: tradeId,
+        });
+        await settleEv(leg);
+      } else if (listing.offer_asset.kind === "CARGO") {
+        const taken = consumeGenericCargoLots(stall.material_lots, listing.offer_asset.amount);
+        stall.material_lots = taken.lots;
+        for (const c of taken.consumed) {
+          pl.material_lots = creditMaterialLot(pl.material_lots, c.material, c.grade, c.amount);
+        }
+        pl.budgets.storage = Math.max(0, Math.floor(pl.budgets.storage ?? 0) - listing.offer_asset.amount);
+        const leg = pushEvent("RESOURCE_TRANSFER", {
+          transfer_id: `tx.${tradeId}.offer`,
+          from_id: stall.stall_id,
+          to_id: principal.player_id,
+          resource: "storage",
+          amount: listing.offer_asset.amount,
+          trade_id: tradeId,
+        });
+        await settleEv(leg);
+      } else if (listing.offer_asset.kind === "ITEM" && stallOfferItem) {
+        stall.item_ids = stall.item_ids.filter((id) => id !== stallOfferItem!.item_id);
+        stallOfferItem.owner_id = principal.player_id;
+        stallOfferItem.steward_id = principal.player_id;
+        stallOfferItem.location = { kind: "CONTAINER", container_entity_id: principal.player_id };
+        pl.budgets.storage = Math.max(0, Math.floor(pl.budgets.storage ?? 0) - stallOfferItem.bulk);
+        autoEquipIfSlotEmpty(w.items, principal.player_id, stallOfferItem, pl.budgets);
+        const leg = pushEvent(
+          "ENTITY_UPDATE",
+          itemEntityUpdatePayload(stallOfferItem.item_id, {
+            location: stallOfferItem.location,
+            owner_id: stallOfferItem.owner_id,
+            equipped_slot: stallOfferItem.equipped_slot ?? null,
+          }),
+        );
+        await settleEv(leg);
+      }
+
+      listing.fills_remaining -= 1;
+      if (listing.fills_remaining <= 0) {
+        listing.status = "CLOSED";
+      }
+
+      // Append to room-local WS01 clearing tape (bounded per room on projection).
+      w.clearing_tape.push({
+        cycle: w.cycle,
+        room_id: room.room_id,
+        stall_id: stall.stall_id,
+        listing_kind: listing.listing_kind,
+        offer_summary: summarizeAsset(listing.offer_asset),
+        ask_summary: summarizeAsset(listing.ask_asset),
+      });
+      if (w.clearing_tape.length > 100) w.clearing_tape = w.clearing_tape.slice(-100);
+
+      const accEv = pushEvent("TRADE_ACCEPTED", {
+        trade_id: tradeId,
+        accepted_by: principal.player_id,
+      });
+      await settleEv(accEv);
+
+      // Credit social memory & broker mastery for buyer and personal seller.
+      if (w.players[sellerId]) {
+        pl.trade_memory = creditAcceptedTrade(pl.trade_memory, sellerId, tradeId, w.cycle);
+        w.players[sellerId].trade_memory = creditAcceptedTrade(
+          w.players[sellerId].trade_memory,
+          principal.player_id,
+          tradeId,
+          w.cycle,
+        );
+      }
+      recordPractice(w, principal.player_id, events);
+      if (w.players[sellerId]) recordPractice(w, sellerId, events);
+
+      const line = `Fulfilled ${listing.listing_kind} at ${titleCaseLabel(stallEnt.label)}: gave ${summarizeAsset(listing.ask_asset)}, received ${summarizeAsset(listing.offer_asset)}.`;
+      const result = success(w, principal, request_id, events, line, settled, "barter", line);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
 
     if (phase === "propose") {
       const args = action.arguments as {
@@ -5293,6 +6048,10 @@ export async function applyWorldCommand(
         ...(isMultiCycleClass(classId) ? { in_progress: true } : {}),
       };
       target.entities = [...roomEntities(target), created];
+      if (classId === "barter_stall") {
+        w.stalls = w.stalls || {};
+        w.stalls[entity_id] = emptyStallState(entity_id, target.room_id);
+      }
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
         cost_paid: treasuryVault ? fuel : cost,
@@ -5862,6 +6621,8 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.reconstructions = w.reconstructions || {};
   w.contracts = w.contracts || {};
   w.items = w.items || {};
+  w.stalls = w.stalls || {};
+  w.clearing_tape = w.clearing_tape || [];
   for (const org of Object.values(w.organizations)) {
     if (!org.offices) org.offices = {};
     if (!Array.isArray(org.members)) org.members = [];
