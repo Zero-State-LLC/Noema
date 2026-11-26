@@ -44,6 +44,24 @@ export const PRACTICE_TRACKS = [
     latent_play_line: "You were known for keeping infrastructure alive.",
     public_title_line: "{handle} is known for keeping infrastructure alive.",
   },
+  {
+    track_id: "track.archivist.01",
+    display_order: 5,
+    recognition_threshold: 3,
+    play_line: "You have been keeping the Reach's record.",
+    recognized_play_line: "You keep the Reach's record.",
+    latent_play_line: "You kept the Reach's record.",
+    public_title_line: "{handle} keeps the Reach's record.",
+  },
+  {
+    track_id: "track.herald.01",
+    display_order: 6,
+    recognition_threshold: 3,
+    play_line: "You have been carrying the Reach's word.",
+    recognized_play_line: "You carry the Reach's word.",
+    latent_play_line: "You carried the Reach's word.",
+    public_title_line: "{handle} carries the Reach's word.",
+  },
 ] as const;
 
 export type PracticeTrackId = (typeof PRACTICE_TRACKS)[number]["track_id"];
@@ -181,6 +199,46 @@ export function creditsFromEvent(
         recognition_unit: entityId,
       });
     }
+    const setObj = payload.set && typeof payload.set === "object" ? (payload.set as Record<string, unknown>) : null;
+    if (setObj && typeof setObj.public_notice === "string" && actor) {
+      const targetId = typeof payload.entity_id === "string" ? payload.entity_id : ev.event_id;
+      out.push({
+        player_id: actor,
+        track_id: "track.herald.01",
+        unit: ev.event_id,
+        recognition_unit: `${targetId}:${setObj.public_notice.slice(0, 32)}`,
+      });
+    }
+  } else if (ev.event_type === "ATTEST" || ev.event_type === "RECONSTRUCT" || ev.event_type === "RECONSTRUCT_PUBLISH") {
+    const actor = payloadPlayer(payload) || opts.actingPlayerId || "";
+    const subject =
+      (typeof payload.subject_ref === "string" && payload.subject_ref) ||
+      (typeof payload.subject_id === "string" && payload.subject_id) ||
+      (typeof payload.entity_id === "string" && payload.entity_id) ||
+      ev.event_id;
+    if (actor) {
+      out.push({
+        player_id: actor,
+        track_id: "track.archivist.01",
+        unit: ev.event_id,
+        recognition_unit: subject,
+      });
+    }
+  } else if (ev.event_type === "MESSAGE") {
+    const surf = String(payload.surface || "").toUpperCase();
+    const actor =
+      (typeof payload.sender_id === "string" && payload.sender_id) ||
+      payloadPlayer(payload) ||
+      opts.actingPlayerId ||
+      "";
+    if ((surf === "BOARD" || surf === "SHOUT" || surf === "NOTICE") && actor) {
+      out.push({
+        player_id: actor,
+        track_id: "track.herald.01",
+        unit: ev.event_id,
+        recognition_unit: `${surf}:${String(payload.room_id || ev.event_id)}`,
+      });
+    }
   }
   return out;
 }
@@ -231,6 +289,8 @@ export const EXPLORER_TRACK: PracticeTrackId = "track.explorer.01";
 export const SURVEYOR_TRACK: PracticeTrackId = "track.surveyor.01";
 export const BROKER_TRACK: PracticeTrackId = "track.broker.01";
 export const ENGINEER_TRACK: PracticeTrackId = "track.engineer.01";
+export const ARCHIVIST_TRACK: PracticeTrackId = "track.archivist.01";
+export const HERALD_TRACK: PracticeTrackId = "track.herald.01";
 export const REPAIR_BASE = 15;
 export const REPAIR_REPEAT_BONUS = 5;
 export const CONDITION_CAP = 100;
@@ -395,4 +455,20 @@ export function brokerWaivesCaution(
   now: number,
 ): boolean {
   return trackMaintained(state, BROKER_TRACK, now) && hasBrokeredWith(state, otherId);
+}
+
+/** RFC-0138: maintained archivist mastery discounts RECONSTRUCT/ATTEST attention by 1 (min 1). */
+export function archivistAttentionDiscount(
+  state: PracticeState | undefined | null,
+  now: number,
+): number {
+  return trackMaintained(state, ARCHIVIST_TRACK, now) ? 1 : 0;
+}
+
+/** RFC-0138: maintained herald mastery discounts MESSAGE/ORG_OFFICE_ACT compute by 1 (min 0). */
+export function heraldComputeDiscount(
+  state: PracticeState | undefined | null,
+  now: number,
+): number {
+  return trackMaintained(state, HERALD_TRACK, now) ? 1 : 0;
 }

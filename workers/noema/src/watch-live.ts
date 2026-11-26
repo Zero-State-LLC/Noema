@@ -1444,6 +1444,47 @@ function buildRoomActivityMap(
         if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
         continue;
       }
+      if (op === "REMEDIATE") {
+        const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
+        if (!roomId || !publicRooms[roomId]) continue;
+        const actorLabel = senderResident
+          ? (publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined)
+          : undefined;
+        const site = publicRooms[roomId].name;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NOTABLE",
+          verb: "remediate",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          line: actorLabel ? `${actorLabel} remediated a scar at ${site}` : `Ecological remediation occurred at ${site}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+        continue;
+      }
+      if (op === "BUILD_CONTRIBUTE") {
+        const home = entityHome(scopeId, publicRooms);
+        if (!home) continue;
+        const targetLabel = sanitizePublicLabel(home.label);
+        const actorLabel = publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NORMAL",
+          verb: "build",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          ...(targetLabel ? { target_label: targetLabel } : {}),
+          line: actorLabel && targetLabel
+            ? `${actorLabel} contributed to ${targetLabel} at ${home.room.name}`
+            : `Collaborative build progressed at ${home.room.name}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
+        continue;
+      }
       if (op === "REPURPOSE") {
         const home = entityHome(scopeId, publicRooms);
         if (!home) continue;
@@ -1482,6 +1523,50 @@ function buildRoomActivityMap(
         if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
         continue;
       }
+    }
+
+    // RFC-0137 COMMEMORATE monument creation.
+    if (eventType === "ENTITY_CREATE" && op === "COMMEMORATE") {
+      const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
+      if (!roomId || !publicRooms[roomId]) continue;
+      const targetLabel = sanitizePublicLabel(typeof payload.label === "string" ? payload.label : undefined);
+      const actorLabel = publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined;
+      const site = publicRooms[roomId].name;
+      const item: WatchRoomActivity = {
+        sequence: ev.sequence,
+        cycle,
+        ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+        tier: "NOTABLE",
+        verb: "commemorate",
+        ...(actorLabel ? { actor_label: actorLabel } : {}),
+        ...(targetLabel ? { target_label: targetLabel } : {}),
+        line: actorLabel && targetLabel
+          ? `${actorLabel} raised ${targetLabel} at ${site}`
+          : `A memorial was raised at ${site}`,
+        kind: "deed",
+      };
+      if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+      continue;
+    }
+
+    // RFC-0138 WS06 civic contract fulfillment.
+    if (eventType === "RESOURCE_TRANSFER" && payload.kind === "contract") {
+      const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
+      if (!roomId || !publicRooms[roomId]) continue;
+      const actorLabel = publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined;
+      const site = publicRooms[roomId].name;
+      const item: WatchRoomActivity = {
+        sequence: ev.sequence,
+        cycle,
+        ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+        tier: "NOTABLE",
+        verb: "contract",
+        ...(actorLabel ? { actor_label: actorLabel } : {}),
+        line: actorLabel ? `${actorLabel} fulfilled a civic contract at ${site}` : `A civic contract was fulfilled at ${site}`,
+        kind: "deed",
+      };
+      if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+      continue;
     }
 
     // Resident COMMIT_SUPPLY / supply.* transfer.

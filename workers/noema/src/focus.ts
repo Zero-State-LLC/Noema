@@ -10,6 +10,8 @@ export const FOCUS_TRACKS = [
   { id: "surveyor" as const, track_id: "track.surveyor.01" as PracticeTrackId, self: "You are focusing on survey work.", pub: "{handle} is focusing on survey work." },
   { id: "broker" as const, track_id: "track.broker.01" as PracticeTrackId, self: "You are focusing on exchanges.", pub: "{handle} is focusing on exchanges." },
   { id: "engineer" as const, track_id: "track.engineer.01" as PracticeTrackId, self: "You are focusing on infrastructure.", pub: "{handle} is focusing on infrastructure." },
+  { id: "archivist" as const, track_id: "track.archivist.01" as PracticeTrackId, self: "You are focusing on the archive.", pub: "{handle} is focusing on the archive." },
+  { id: "herald" as const, track_id: "track.herald.01" as PracticeTrackId, self: "You are focusing on public news.", pub: "{handle} is focusing on public news." },
 ];
 
 export type FocusId = (typeof FOCUS_TRACKS)[number]["id"];
