@@ -90,8 +90,8 @@ body:has(.watch-stage) .wrap{width:min(88rem,calc(100% - 2*var(--pad)));padding-
   animation:banner-in 240ms var(--ease) 1 both;
 }
 @keyframes banner-in{from{opacity:0}to{opacity:1}}
-.watch-stage{display:grid;grid-template-columns:minmax(0,2.15fr) minmax(18.5rem,22.5rem);gap:.85rem 1.25rem;margin-top:.55rem;align-items:start}
-.watch-stage[data-mode="map"]{grid-template-columns:minmax(0,2.15fr) minmax(18.5rem,22.5rem);align-items:start}
+.watch-stage{display:grid;grid-template-columns:minmax(0,2.15fr) minmax(19rem,24rem);gap:.85rem 1.25rem;margin-top:.55rem;align-items:start}
+.watch-stage[data-mode="map"]{grid-template-columns:minmax(0,2.15fr) minmax(19rem,24rem);align-items:start}
 .watch-col{
   padding:.7rem .85rem .8rem;border:1px solid color-mix(in srgb,var(--line-hot) 45%,var(--line));
   border-radius:var(--r-xl,16px);background:color-mix(in srgb,var(--panel) 80%,var(--void));
