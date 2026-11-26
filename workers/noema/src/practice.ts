@@ -209,6 +209,48 @@ export function creditsFromEvent(
         recognition_unit: `${targetId}:${setObj.public_notice.slice(0, 32)}`,
       });
     }
+    const opUpper = String(payload.operation || "").toUpperCase();
+    const isHostedAttest = opUpper === "ATTEST" || Boolean(payload.attested_by);
+    const isHostedReconPublish =
+      opUpper === "RECONSTRUCT_PUBLISH" ||
+      (setObj &&
+        (String(setObj.reconstruction_kind || "").toUpperCase() === "PLAYER_RECONSTRUCTION" ||
+          (String(setObj.visibility || "").toUpperCase() === "PUBLIC" &&
+            String(payload.entity_id || "").startsWith("recon."))));
+    if ((isHostedAttest || isHostedReconPublish) && actor) {
+      const subject =
+        (typeof payload.subject_ref === "string" && payload.subject_ref) ||
+        (typeof payload.subject_entity_id === "string" && payload.subject_entity_id) ||
+        (typeof payload.entity_id === "string" && payload.entity_id) ||
+        ev.event_id;
+      out.push({
+        player_id: actor,
+        track_id: "track.archivist.01",
+        unit: ev.event_id,
+        recognition_unit: subject,
+      });
+    }
+  } else if (ev.event_type === "ENTITY_CREATE") {
+    const etype = String(payload.entity_type || "").toUpperCase();
+    const eid = String(payload.entity_id || "");
+    const actor =
+      (typeof payload.actor_id === "string" && payload.actor_id) ||
+      (typeof payload.author_player_id === "string" && payload.author_player_id) ||
+      payloadPlayer(payload) ||
+      opts.actingPlayerId ||
+      "";
+    if ((etype === "RECONSTRUCTION" || eid.startsWith("recon.") || typeof payload.reconstruction_id === "string") && actor) {
+      const subject =
+        (typeof payload.subject_ref === "string" && payload.subject_ref) ||
+        (typeof payload.entity_id === "string" && payload.entity_id) ||
+        ev.event_id;
+      out.push({
+        player_id: actor,
+        track_id: "track.archivist.01",
+        unit: ev.event_id,
+        recognition_unit: subject,
+      });
+    }
   } else if (ev.event_type === "ATTEST" || ev.event_type === "RECONSTRUCT" || ev.event_type === "RECONSTRUCT_PUBLISH") {
     const actor = payloadPlayer(payload) || opts.actingPlayerId || "";
     const subject =

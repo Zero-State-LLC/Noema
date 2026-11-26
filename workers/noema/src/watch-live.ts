@@ -1357,6 +1357,28 @@ function buildRoomActivityMap(
 
     // 3. Public-room work lifecycle acts (ENTITY_CREATE, in_progress construction/repair, REPURPOSE, ABANDON).
     if (eventType === "ENTITY_CREATE") {
+      if (op === "COMMEMORATE") {
+        const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
+        if (!roomId || !publicRooms[roomId]) continue;
+        const targetLabel = sanitizePublicLabel(typeof payload.label === "string" ? payload.label : undefined);
+        const actorLabel = publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined;
+        const site = publicRooms[roomId].name;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NOTABLE",
+          verb: "commemorate",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          ...(targetLabel ? { target_label: targetLabel } : {}),
+          line: actorLabel && targetLabel
+            ? `${actorLabel} raised ${targetLabel} at ${site}`
+            : `A memorial was raised at ${site}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+        continue;
+      }
       const home = entityHome(scopeId, publicRooms);
       if (!home) continue;
       const targetLabel = sanitizePublicLabel(home.label);
@@ -1523,30 +1545,6 @@ function buildRoomActivityMap(
         if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
         continue;
       }
-    }
-
-    // RFC-0137 COMMEMORATE monument creation.
-    if (eventType === "ENTITY_CREATE" && op === "COMMEMORATE") {
-      const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
-      if (!roomId || !publicRooms[roomId]) continue;
-      const targetLabel = sanitizePublicLabel(typeof payload.label === "string" ? payload.label : undefined);
-      const actorLabel = publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined;
-      const site = publicRooms[roomId].name;
-      const item: WatchRoomActivity = {
-        sequence: ev.sequence,
-        cycle,
-        ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
-        tier: "NOTABLE",
-        verb: "commemorate",
-        ...(actorLabel ? { actor_label: actorLabel } : {}),
-        ...(targetLabel ? { target_label: targetLabel } : {}),
-        line: actorLabel && targetLabel
-          ? `${actorLabel} raised ${targetLabel} at ${site}`
-          : `A memorial was raised at ${site}`,
-        kind: "deed",
-      };
-      if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
-      continue;
     }
 
     // RFC-0138 WS06 civic contract fulfillment.

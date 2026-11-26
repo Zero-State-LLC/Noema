@@ -752,6 +752,9 @@ export function enrichEntity(e: {
   last_repair_cycle?: number;
   last_repair_handle?: string;
   in_progress?: boolean;
+  ready_cycle?: number;
+  contributors?: string[];
+  commemorated_ref?: string;
   regen_rate?: number;
   max_stock?: number;
 }): EntityRuntime {
@@ -784,6 +787,9 @@ export function enrichEntity(e: {
     last_repair_cycle: e.last_repair_cycle,
     last_repair_handle: e.last_repair_handle,
     in_progress: e.in_progress === true ? true : undefined,
+    ...(e.ready_cycle != null ? { ready_cycle: e.ready_cycle } : {}),
+    ...(Array.isArray(e.contributors) && e.contributors.length ? { contributors: [...e.contributors] } : {}),
+    ...(e.commemorated_ref ? { commemorated_ref: e.commemorated_ref } : {}),
   };
 }
 

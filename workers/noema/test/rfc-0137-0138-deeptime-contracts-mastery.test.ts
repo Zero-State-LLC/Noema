@@ -250,7 +250,19 @@ describe("RFC-0138: WS06 Civic Contracts and Archivist / Herald Mastery Tracks",
     );
     expect(selfFulfill.ok).toBe(false);
 
+    // Helper with insufficient free hold cannot fulfill storage contract (preserves escrow)
+    w.players[helper.player_id].budgets.storage = 1;
+    const noRoom = await applyWorldCommand(
+      w,
+      helper,
+      { request_id: "cf-noroom", command: "CONTRACT_FULFILL", arguments: { contract_id: cid } },
+      okSettle,
+    );
+    expect(noRoom.ok).toBe(false);
+    expect(w.contracts?.[cid].status).toBe("OPEN");
+
     // Helper fulfills contract (relay-7 is at 85 >= 80) and receives 3 cargo (free storage 16 -> 13)
+    w.players[helper.player_id].budgets.storage = 16;
     const fulfilled = await applyWorldCommand(
       w,
       helper,
@@ -290,13 +302,14 @@ describe("RFC-0138: WS06 Civic Contracts and Archivist / Herald Mastery Tracks",
     expect(parseFocusTrack("herald")).toBe("herald");
 
     let arch = emptyPractice();
-    for (let i = 1; i <= 3; i++) {
-      const credits = creditsFromEvent({
-        event_id: `ev.a${i}`,
-        event_type: "ATTEST",
-        payload: { player_id: "player.vellum", subject_ref: `entity.s${i}` },
-      });
-      arch = applyPracticeCredits(arch, credits, 10 + i);
+    const hostedEvents = [
+      { event_id: "ev.a1", event_type: "ENTITY_UPDATE", payload: { actor_id: "player.vellum", operation: "ATTEST", subject_ref: "entity.s1" } },
+      { event_id: "ev.a2", event_type: "ENTITY_CREATE", payload: { actor_id: "player.vellum", entity_id: "recon.2", subject_ref: "entity.s2" } },
+      { event_id: "ev.a3", event_type: "ENTITY_UPDATE", payload: { actor_id: "player.vellum", entity_id: "recon.3", set: { reconstruction_kind: "PLAYER_RECONSTRUCTION" } } },
+    ];
+    for (let i = 0; i < hostedEvents.length; i++) {
+      const credits = creditsFromEvent(hostedEvents[i]);
+      arch = applyPracticeCredits(arch, credits, 11 + i);
     }
     expect(isTrackRecognized(arch, ARCHIVIST_TRACK)).toBe(true);
     expect(archivistAttentionDiscount(arch, 15)).toBe(1);

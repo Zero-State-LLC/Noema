@@ -133,8 +133,10 @@ import {
 } from "./resource-production";
 import {
   applyPracticeCredits,
+  archivistAttentionDiscount,
   brokerWaivesCaution,
   creditsFromEvent,
+  heraldComputeDiscount,
   inspectAttentionCost,
   isTrackRecognized,
   lookAttentionCost,
@@ -2788,7 +2790,9 @@ export async function applyWorldCommand(
 
   // ——— MESSAGE ———
   if (action.verb === "MESSAGE") {
-    if (!canPay(pl.budgets, COSTS.MESSAGE)) {
+    const msgCompute = Math.max(0, (COSTS.MESSAGE.compute ?? 1) - heraldComputeDiscount(pl.practice, w.cycle));
+    const msgCost = msgCompute > 0 ? { ...COSTS.MESSAGE, compute: msgCompute } : {};
+    if (!canPay(pl.budgets, msgCost)) {
       return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
         "You do not have enough compute.", "You do not have enough compute.", "message");
     }
@@ -2800,7 +2804,7 @@ export async function applyWorldCommand(
       }
       const notice = action.arguments.text.slice(0, 500).trim();
       if (!notice) return fail(request_id, "INVALID_REQUEST", "Write a notice.");
-      debit(pl.budgets, COSTS.MESSAGE);
+      debit(pl.budgets, msgCost);
       here.board = [...(here.board || []), { text: notice, cycle: w.cycle }].slice(-5);
       const ev = pushEvent("MESSAGE", {
         message_id: `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`,
@@ -2808,7 +2812,7 @@ export async function applyWorldCommand(
         surface: "BOARD",
         room_id: here.room_id,
         text: notice,
-        cost_paid: COSTS.MESSAGE,
+        cost_paid: msgCost,
       });
       await settleEv(ev);
       const posted = success(
@@ -2830,7 +2834,7 @@ export async function applyWorldCommand(
       }
       const utterance = action.arguments.text.slice(0, 500).trim();
       if (!utterance) return fail(request_id, "INVALID_REQUEST", "Say something.");
-      debit(pl.budgets, COSTS.MESSAGE);
+      debit(pl.budgets, msgCost);
       here.shout = { text: utterance, cycle: w.cycle };
       const ev = pushEvent("MESSAGE", {
         message_id: `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`,
@@ -2838,7 +2842,7 @@ export async function applyWorldCommand(
         surface: "SHOUT",
         room_id: here.room_id,
         text: utterance,
-        cost_paid: COSTS.MESSAGE,
+        cost_paid: msgCost,
       });
       await settleEv(ev);
       const shouted = success(
@@ -4148,6 +4152,13 @@ export async function applyWorldCommand(
       const room = w.rooms[contract.room_id];
       if (!room || !contractPredicateHolds(contract, roomEntities(room), w.evidence_fragments)) {
         return fail(request_id, "FORBIDDEN", "The contract's completion condition has not been met yet.");
+      }
+      if (contract.reward_resource === "storage" && (pl.budgets.storage ?? 0) < contract.reward_amount) {
+        return fail(
+          request_id,
+          "BUDGET_EXCEEDED",
+          "You do not have enough free storage to receive the contract reward.",
+        );
       }
       const payout = applyContractPayout(contract, pl.budgets);
       contract.status = "FULFILLED";
@@ -6565,14 +6576,16 @@ async function applyReconstructCommand(
       }
       rec.org_id = org?.org_id;
     }
-    if (!canPay(pl.budgets, COSTS.RECONSTRUCT)) {
+    const pubAttn = Math.max(1, (COSTS.RECONSTRUCT.attention ?? 2) - archivistAttentionDiscount(pl.practice, w.cycle));
+    const pubCost = { ...COSTS.RECONSTRUCT, attention: pubAttn };
+    if (!canPay(pl.budgets, pubCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
     }
     rec.visibility = visibility;
-    debit(pl.budgets, COSTS.RECONSTRUCT);
+    debit(pl.budgets, pubCost);
     pushEvent("BUDGET_CONSUMED", {
       player_id: principal.player_id,
-      cost_paid: COSTS.RECONSTRUCT,
+      cost_paid: pubCost,
       reason: "RECONSTRUCT_PUBLISH",
     });
     const ev = pushEvent("ENTITY_UPDATE", {
@@ -6628,7 +6641,14 @@ async function applyReconstructCommand(
     entity?.entity_id || subject,
   );
   if (!collected.ok) return fail(request_id, collected.code, collected.message);
-  if (!canPay(pl.budgets, COSTS.RECONSTRUCT)) {
+  const recRoom = w.rooms[pl.room_id];
+  const hasMonRec = Boolean(recRoom && roomEntities(recRoom).some((e) => e.entity_type === "MONUMENT"));
+  const recAttn = Math.max(
+    hasMonRec ? 0 : 1,
+    (COSTS.RECONSTRUCT.attention ?? 2) - archivistAttentionDiscount(pl.practice, w.cycle) - (hasMonRec ? 1 : 0),
+  );
+  const recCost = { ...COSTS.RECONSTRUCT, attention: recAttn };
+  if (!canPay(pl.budgets, recCost)) {
     return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
   }
 
@@ -6662,10 +6682,10 @@ async function applyReconstructCommand(
   rec.fidelity = fidelity;
   rec.epistemic = fidelity < 0.35 ? "CONTESTED" : rec.epistemic;
   const weakened = weakenScarsForReconstruction(w, subject, fidelity, controllerCount);
-  debit(pl.budgets, COSTS.RECONSTRUCT);
+  debit(pl.budgets, recCost);
   pushEvent("BUDGET_CONSUMED", {
     player_id: principal.player_id,
-    cost_paid: COSTS.RECONSTRUCT,
+    cost_paid: recCost,
     reason: op,
   });
   const created = pushEvent("ENTITY_CREATE", {
@@ -7283,7 +7303,9 @@ async function applyOfficeCommand(
       return fail(request_id, "FORBIDDEN", "That office profile cannot act in this stage.");
     }
     if (!notice) return fail(request_id, "INVALID_REQUEST", "Notice text required.");
-    if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+    const officeActCompute = Math.max(0, (COSTS.ORG_OFFICE_ACT.compute ?? 1) - heraldComputeDiscount(pl.practice, w.cycle));
+    const officeActCost = officeActCompute > 0 ? { ...COSTS.ORG_OFFICE_ACT, compute: officeActCompute } : {};
+    if (!canPay(pl.budgets, officeActCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
     }
     org.public_notice = notice.slice(0, 280);
@@ -7303,10 +7325,10 @@ async function applyOfficeCommand(
       },
       principal.player_id,
     );
-    debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+    debit(pl.budgets, officeActCost);
     pushEvent("BUDGET_CONSUMED", {
       player_id: principal.player_id,
-      cost_paid: COSTS.ORG_OFFICE_ACT,
+      cost_paid: officeActCost,
       reason: "ORG_OFFICE_ACT",
     });
     const ev = pushEvent("ENTITY_UPDATE", {
@@ -7370,10 +7392,17 @@ async function applyAttest(
   if (entity.archive_subject_entity_id || entity.archive_claim) {
     return fail(request_id, "FORBIDDEN", "That claim is already set.");
   }
-  const attestCost = withAnnexAttention(
+  const baseAttest = withAnnexAttention(
     { ...COSTS.ATTEST },
     readyClassInRoom(roomEntities(room), "archive_annex"),
   );
+  const hasMonAtt = roomEntities(room).some((e) => e.entity_type === "MONUMENT");
+  const archDisc = archivistAttentionDiscount(pl.practice, w.cycle);
+  const attAttn = Math.max(
+    hasMonAtt ? 0 : 1,
+    (baseAttest.attention ?? 0) - archDisc - (hasMonAtt ? 1 : 0),
+  );
+  const attestCost = { ...baseAttest, attention: attAttn };
   if (!canPay(pl.budgets, attestCost)) {
     return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
   }
