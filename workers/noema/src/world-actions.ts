@@ -27,6 +27,11 @@ import {
   SUPPLY_MAX,
   TREASURY_STORAGE_CAP,
   TREASURY_CONSTRUCT_CLASSES,
+  RECHARGE_ENERGY_GRANT,
+  RECHARGE_ENERGY_CAP,
+  RECHARGE_COOLDOWN_CYCLES,
+  RECHARGE_GENERATOR_WEAR,
+  RECHARGE_MIN_GENERATOR_CONDITION,
   titleCaseLabel,
   type Budgets,
   type CanonicalAction,
@@ -83,16 +88,20 @@ import {
 import {
   ACCESS_CLASS,
   ACCESS_DURATION_CYCLES,
+  LAST_WINDOW_CYCLE,
   RESOURCE_CLASS,
   STOCK_DELTA,
   WATCH_ACCESS_PULSE,
   WATCH_INFRA_PULSE,
+  WATCH_ORBITAL_SURGE_PULSE,
   WATCH_RESOURCE_PULSE,
   classDue,
   collectHarvestNodes,
   collectLiveRelaysWithRoom,
   collectPublicExits,
+  effectiveInfraDelta,
   emptyPressure,
+  orbitalWaveBounds,
   ensurePressure,
   notePulse,
   previewAfter,
@@ -975,6 +984,7 @@ export function buildObservation(
     cautionToward,
     practice: pl.practice,
     cycle: w.cycle,
+    last_recharge_cycle: pl.last_recharge_cycle,
     focus: pl.focus,
     hiddenRoom: isHiddenRoom(room),
     roomId: room.room_id,
@@ -3904,6 +3914,74 @@ export async function applyWorldCommand(
         "You do not see that here.",
         action.arguments.operation === "HARVEST" ? "harvest"
           : action.arguments.operation === "REPAIR" ? "repair" : "act");
+    }
+
+    if (action.arguments.operation === "RECHARGE") {
+      if (
+        infraClassOf(entity) !== "generator" ||
+        isInProgress(entity) ||
+        entity.scar ||
+        (entity.condition ?? 0) < RECHARGE_MIN_GENERATOR_CONDITION
+      ) {
+        return failedAction(
+          w,
+          principal,
+          request_id,
+          "FORBIDDEN",
+          "That is not an active generator you can draw power from.",
+          "That is not an active generator you can draw power from.",
+          "recharge",
+        );
+      }
+      if (
+        pl.last_recharge_cycle != null &&
+        w.cycle - pl.last_recharge_cycle < RECHARGE_COOLDOWN_CYCLES
+      ) {
+        return failedAction(
+          w,
+          principal,
+          request_id,
+          "FORBIDDEN",
+          "You must wait before drawing power from a generator again.",
+          "You must wait before drawing power from a generator again.",
+          "recharge",
+        );
+      }
+      const energyBefore = pl.budgets.energy ?? 0;
+      if (energyBefore >= RECHARGE_ENERGY_CAP) {
+        return failedAction(
+          w,
+          principal,
+          request_id,
+          "FORBIDDEN",
+          "Your energy is already full.",
+          "Your energy is already full.",
+          "recharge",
+        );
+      }
+      const energyAfter = Math.min(RECHARGE_ENERGY_CAP, energyBefore + RECHARGE_ENERGY_GRANT);
+      const energyDelta = energyAfter - energyBefore;
+      pl.budgets.energy = energyAfter;
+      pl.last_recharge_cycle = w.cycle;
+      const condBefore = entity.condition ?? 0;
+      const condAfter = Math.max(RECHARGE_MIN_GENERATOR_CONDITION, condBefore - RECHARGE_GENERATOR_WEAR);
+      entity.condition = condAfter;
+      const eIdx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
+      if (eIdx >= 0) room.entities[eIdx] = entity;
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: entity.entity_id,
+        field: "condition",
+        from: condBefore,
+        to: condAfter,
+        actor_id: principal.player_id,
+        operation: "RECHARGE",
+        energy_delta: energyDelta,
+      });
+      await settleEv(ev);
+      const line = `You draw +${energyDelta} energy from ${titleCaseLabel(entity.label)} (energy ${energyAfter}/${RECHARGE_ENERGY_CAP}).`;
+      const result = success(w, principal, request_id, events, line, settled, "recharge", line);
+      w.seen_idempotency[idem] = result;
+      return result;
     }
 
     if (action.arguments.operation === "REPAIR") {
@@ -7296,14 +7374,25 @@ async function applyScheduledPressure(
   };
   const lastBy = w.pressure.last_by_class || {};
 
-  if (classDue(w.cycle, "infrastructure_failure", classes.infrastructure_failure || 0)) {
-    const target = selectScheduleRelay(collectLiveRelaysWithRoom(w.rooms));
+  const wave = orbitalWaveBounds(w.cycle);
+  const pulseUntil = w.cycle <= LAST_WINDOW_CYCLE ? LAST_WINDOW_CYCLE : (wave?.waveEnd ?? w.cycle + 11);
+
+  if (classDue(w.cycle, "infrastructure_failure", classes.infrastructure_failure || 0, lastBy.infrastructure_failure)) {
+    const relayDelta = (roomId: string): number =>
+      w.cycle > LAST_WINDOW_CYCLE
+        ? effectiveInfraDelta(Boolean(w.rooms[roomId] && readyClassInRoom(roomEntities(w.rooms[roomId]), "defensive_work")))
+        : effectiveInfraDelta(false);
+    const target = selectScheduleRelay(
+      collectLiveRelaysWithRoom(w.rooms),
+      w.cycle > LAST_WINDOW_CYCLE ? (t) => relayDelta(t.room_id) : undefined,
+    );
     if (target) {
       const room = w.rooms[target.room_id];
       const entity = room ? findEntity(room, target.entity_id) : undefined;
       if (entity) {
         const before = entity.condition ?? 0;
-        const after = previewAfter(before);
+        const delta = w.cycle > LAST_WINDOW_CYCLE ? relayDelta(target.room_id) : undefined;
+        const after = previewAfter(before, delta);
         entity.condition = after;
         const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
         if (idx >= 0) room.entities[idx] = entity;
@@ -7311,7 +7400,7 @@ async function applyScheduledPressure(
         lastBy.infrastructure_failure = w.cycle;
         w.pressure.schedule_activations = classes.infrastructure_failure;
         w.pressure.last_cycle = w.cycle;
-        notePulse(w.pressure, WATCH_INFRA_PULSE, 20);
+        notePulse(w.pressure, w.cycle > LAST_WINDOW_CYCLE ? WATCH_ORBITAL_SURGE_PULSE : WATCH_INFRA_PULSE, pulseUntil);
         const ev = pushEvent("ENTITY_UPDATE", {
           entity_id: entity.entity_id,
           field: "condition",
@@ -7325,7 +7414,7 @@ async function applyScheduledPressure(
     }
   }
 
-  if (classDue(w.cycle, RESOURCE_CLASS, classes.resource_scarcity || 0)) {
+  if (classDue(w.cycle, RESOURCE_CLASS, classes.resource_scarcity || 0, lastBy.resource_scarcity)) {
     const target = selectScheduleNode(collectHarvestNodes(w.rooms));
     if (target) {
       const room = w.rooms[target.room_id];
@@ -7340,7 +7429,7 @@ async function applyScheduledPressure(
           classes.resource_scarcity = (classes.resource_scarcity || 0) + 1;
           lastBy.resource_scarcity = w.cycle;
           w.pressure.last_cycle = w.cycle;
-          notePulse(w.pressure, WATCH_RESOURCE_PULSE, 20);
+          notePulse(w.pressure, WATCH_RESOURCE_PULSE, pulseUntil);
           const ev = pushEvent("ENTITY_UPDATE", {
             entity_id: entity.entity_id,
             field: "stock_amount",
@@ -7355,8 +7444,18 @@ async function applyScheduledPressure(
     }
   }
 
-  if (classDue(w.cycle, ACCESS_CLASS, classes.access_restriction || 0)) {
-    const target = selectScheduleExit(collectPublicExits(w.rooms));
+  if (classDue(w.cycle, ACCESS_CLASS, classes.access_restriction || 0, lastBy.access_restriction)) {
+    const publicExits = collectPublicExits(w.rooms);
+    const preferredExits = w.cycle > LAST_WINDOW_CYCLE
+      ? (() => {
+          const unlinked = publicExits.filter((ex) => {
+            const rm = w.rooms[ex.room_id];
+            return !rm || !readyClassInRoom(roomEntities(rm), "route_link");
+          });
+          return unlinked.length ? unlinked : publicExits;
+        })()
+      : publicExits;
+    const target = selectScheduleExit(preferredExits);
     const already = (w.access_restrictions || []).some(
       (r) =>
         r.scope === "EXIT" &&

@@ -4,10 +4,12 @@
  */
 
 import { isHiddenRoom } from "./construction";
+import { ensureCulture, siteMarks, traditionStatus, type CultureState, type TraditionStatus } from "./culture";
 import { isPresentNow, isPublicActivityPlayer, type PresencePlayer } from "./ops";
 import { publicTitleLine, type PracticeState } from "./practice";
 import { publicFocusLine, type FocusState } from "./focus";
 import { watchPublicDescriptorLines, type SocialEvent } from "./social-memory";
+import { pressureBand, scarBand } from "./watch-map";
 import {
   glyphForEntity,
   glyphForExit,
@@ -1419,6 +1421,29 @@ function buildRoomActivityMap(
         if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
         continue;
       }
+      if (op === "RECHARGE") {
+        const home = entityHome(scopeId, publicRooms);
+        if (!home) continue;
+        const targetLabel = sanitizePublicLabel(home.label);
+        const actorLabel = senderResident
+          ? (publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined)
+          : undefined;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NORMAL",
+          verb: "recharge",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          ...(targetLabel ? { target_label: targetLabel } : {}),
+          line: actorLabel && targetLabel
+            ? `${actorLabel} recharged at ${targetLabel}`
+            : `Power was drawn at ${home.room.name}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
+        continue;
+      }
       if (op === "REPURPOSE") {
         const home = entityHome(scopeId, publicRooms);
         if (!home) continue;
@@ -1578,10 +1603,23 @@ export function buildWatchLive(input: {
   rumor?: LaterTraceRumor;
   organizations?: LaterTraceOrg[];
   // Raw records must pass the public visibility gate below.
-  reconstructions?: Array<{ fidelity?: number; controllers?: number; visibility?: string }>;
+  reconstructions?: Array<{
+    fidelity?: number;
+    controllers?: number;
+    visibility?: string;
+    subject_ref?: string;
+    claim?: string;
+    epistemic?: string;
+    author_id?: string;
+  }>;
   // Optional preprojected public values, never unfiltered reconstruction state.
   reconstruction_fidelity?: number;
   controllers?: number;
+  /** RFC-0136: band-redacted Deep Time & Culture inputs (filtered strictly to public rooms). */
+  scars?: Array<{ room_id?: string; strength: number; visibility: string; domain: string; fossilized?: boolean }>;
+  harvest_pressure?: Record<string, number>;
+  lore_attractors?: Array<{ room_id?: string; label: string; weight: number; basin: string }>;
+  culture?: CultureState | null;
 }): Record<string, unknown> {
   const now = input.now ?? Date.now();
   const freshness = input.freshness || "live";
@@ -1638,6 +1676,46 @@ export function buildWatchLive(input: {
     input.players || [],
     live,
   );
+
+  const publicScarsByRoom = new Map<string, { strength: number; fossilized: boolean }>();
+  for (const s of input.scars || []) {
+    if (!s || s.visibility !== "public" || !s.room_id || !publicRooms[s.room_id]) continue;
+    if (!(s.strength >= 0.05)) continue;
+    const prev = publicScarsByRoom.get(s.room_id) || { strength: 0, fossilized: false };
+    publicScarsByRoom.set(s.room_id, {
+      strength: prev.strength + s.strength,
+      fossilized: prev.fossilized || s.fossilized === true,
+    });
+  }
+  const topLoreByRoom = new Map<string, { label: string; weight: number; state: "forming" | "crystallized" }>();
+  for (const a of input.lore_attractors || []) {
+    if (!a || !a.room_id || !publicRooms[a.room_id]) continue;
+    const label = sanitizePublicLabel(a.label);
+    if (!label) continue;
+    const state = String(a.basin || "").toLowerCase() === "crystallized" || a.weight >= 0.8 ? "crystallized" : "forming";
+    const prev = topLoreByRoom.get(a.room_id);
+    if (!prev || a.weight > prev.weight) {
+      topLoreByRoom.set(a.room_id, { label: label.slice(0, 48), weight: a.weight, state });
+    }
+  }
+  const cultureSnap = input.culture ? ensureCulture(input.culture) : null;
+  const publicCultureRecons = (input.reconstructions || [])
+    .filter((r) => r.visibility?.toUpperCase() === "PUBLIC" && r.subject_ref)
+    .map((r) => ({
+      subject_ref: String(r.subject_ref),
+      visibility: "PUBLIC",
+      claim: r.claim,
+      epistemic: r.epistemic,
+      author_id: r.author_id,
+    }));
+  const TRADITION_RANK: Record<TraditionStatus, number> = {
+    UNKNOWN: 0,
+    PRACTICING: 1,
+    DORMANT: 2,
+    CUSTOM: 3,
+    TRADITION: 4,
+    REVIVED: 5,
+  };
 
   const roomRefs = Object.values(publicRooms);
   const roomsOut = Object.values(publicRooms).map((r) => {
@@ -1698,6 +1776,40 @@ export function buildWatchLive(input: {
       .map((p) => publicFocusLine(publicPlayerLabel(p, roomRefs), p.focus, p.practice, input.cycle, p.player_id))
       .filter((line): line is string => Boolean(line));
     if (focuses.length) row.public_focus_lines = focuses;
+    // RFC-0136: band-redacted Deep Time & Culture per-room state (never raw scalars or hidden rooms).
+    const scarInfo = publicScarsByRoom.get(r.room_id);
+    const sBand = scarInfo ? scarBand(scarInfo.strength) : null;
+    if (sBand) {
+      row.scar_band = sBand;
+      if (scarInfo?.fossilized) row.scar_fossilized = true;
+    }
+    const pBand = pressureBand(input.harvest_pressure?.[r.room_id] || 0);
+    if (pBand) row.pressure_band = pBand;
+    const loreInfo = topLoreByRoom.get(r.room_id);
+    if (loreInfo) {
+      row.lore_state = loreInfo.state;
+      row.lore_label = loreInfo.label;
+    }
+    if (cultureSnap) {
+      let bestStatus: TraditionStatus = "UNKNOWN";
+      let inherited = false;
+      let schism = false;
+      for (const e of publicEntities) {
+        const site = cultureSnap.sites[e.entity_id];
+        if (!site) continue;
+        const forSite = publicCultureRecons.filter((rc) => rc.subject_ref === e.entity_id);
+        const st = traditionStatus(site, input.cycle, forSite);
+        if (TRADITION_RANK[st] > TRADITION_RANK[bestStatus]) bestStatus = st;
+        const marks = siteMarks(site, st, forSite);
+        if (marks.inherited) inherited = true;
+        if (marks.schism) schism = true;
+      }
+      if (bestStatus === "CUSTOM" || bestStatus === "TRADITION" || bestStatus === "DORMANT" || bestStatus === "REVIVED") {
+        row.tradition_status = bestStatus;
+        if (inherited) row.tradition_inherited = true;
+        if (schism) row.tradition_schism = true;
+      }
+    }
     return row;
   });
 

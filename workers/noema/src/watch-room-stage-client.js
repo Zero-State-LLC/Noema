@@ -275,6 +275,7 @@ function verbLabel(verb) {
     case "commit_supply": return "supplying";
     case "build": return "building";
     case "repair": return "repairing";
+    case "recharge": return "recharging";
     case "restore": return "restoring";
     case "repurpose": return "repurposing";
     case "promote": return "completing";
@@ -296,7 +297,7 @@ function verbLabel(verb) {
 
 function verbCategory(verb) {
   const v = normKey(verb);
-  if (v === "harvest" || v === "commit_supply" || v === "production") return "harvest";
+  if (v === "harvest" || v === "commit_supply" || v === "production" || v === "recharge") return "harvest";
   if (v === "build" || v === "repair" || v === "restore" || v === "repurpose" || v === "promote") return "weld";
   if (v === "contest" || v === "vest" || v === "trade" || v === "org") return "charter";
   if (v === "inspect" || v === "look" || v === "observe" || v === "wait") return "scan";
@@ -1623,6 +1624,130 @@ function mount(frame, opts) {
   }
 
   /**
+   * RFC-0136: Band-redacted Deep Time & Culture architectural markers inside the 3D Room Cutaway.
+   * Renders physical floor scar fissures (obsidian-violet when fossilized), hovering lore obelisk,
+   * and warm maintenance tradition hearth rings (split gold/violet on schism).
+   */
+  function buildDeepTimeProps(g, room, bands) {
+    // 1. Scar fissures on floor deck when room bears a public scar band
+    if (bands.scar) {
+      const fossil = room && room.scar_fossilized === true;
+      const crackHex = fossil ? 0x9b6dff : bands.scar === "deep" ? 0xff5a2a : 0xff9a34;
+      const crackMat = new MeshStandardMaterial({
+        color: crackHex,
+        emissive: crackHex,
+        emissiveIntensity: bands.scar === "deep" ? 1.5 : bands.scar === "marked" ? 1.05 : 0.65,
+        roughness: 0.25,
+        metalness: 0.3,
+      });
+      const count = bands.scar === "deep" ? 4 : bands.scar === "marked" ? 3 : 2;
+      const fissures = [
+        [-3.4, 0.03, 3.6, 1.9, 0.12, 0.42],
+        [-2.7, 0.03, 3.9, 1.25, 0.09, -0.55],
+        [3.1, 0.03, 3.5, 1.65, 0.11, -0.35],
+        [2.4, 0.03, 3.8, 1.1, 0.08, 0.62],
+      ];
+      for (let i = 0; i < count; i++) {
+        const [fx, fy, fz, len, wid, rot] = fissures[i];
+        const seg = makeBox(len, 0.035, wid, crackMat, false);
+        seg.position.set(fx, fy, fz);
+        seg.rotation.y = rot;
+        g.add(seg);
+        if (fossil) {
+          const shard = new Mesh(shared.oct, crackMat);
+          shard.scale.set(0.14, 0.38, 0.14);
+          shard.position.set(fx, 0.2, fz);
+          shard.rotation.z = rot * 0.4;
+          g.add(shard);
+        }
+      }
+      addHalo(g, -3.0, 0.04, 3.75, 2.5, crackHex, bands.scar === "deep" ? 0.34 : 0.22);
+    }
+
+    // 2. Lore Attractor Resonator Obelisk (forming vs crystallized)
+    if (room && room.lore_state) {
+      const crystal = room.lore_state === "crystallized";
+      const loreHex = crystal ? 0x56f0ff : 0xb18cff;
+      const lg = new Group();
+      lg.position.set(5.4, 0, -4.4);
+      const plinth = makeCyl(0.42, 0.56, 0.42, new MeshStandardMaterial({ color: 0x1c2633, roughness: 0.4, metalness: 0.68 }), true, true);
+      plinth.position.y = 0.21;
+      lg.add(plinth);
+      const crystalMat = new MeshStandardMaterial({
+        color: 0xeaf8ff,
+        emissive: loreHex,
+        emissiveIntensity: crystal ? 1.85 : 1.1,
+        roughness: 0.16,
+        metalness: 0.35,
+      });
+      const obelisk = new Mesh(shared.oct, crystalMat);
+      obelisk.scale.set(0.32, crystal ? 0.88 : 0.62, 0.32);
+      obelisk.position.y = 1.28;
+      obelisk.userData.spin = crystal ? 0.85 : 0.42;
+      obelisk.userData.bobY = 1.28;
+      lg.add(obelisk);
+      roomAnimProps.push(obelisk);
+      const orbitRing = new Mesh(shared.torusThin, crystalMat);
+      orbitRing.scale.setScalar(0.68);
+      orbitRing.position.y = 1.28;
+      orbitRing.rotation.set(0.85, 0.3, 0);
+      orbitRing.userData.spin = -0.65;
+      lg.add(orbitRing);
+      roomAnimProps.push(orbitRing);
+      addHalo(lg, 0, 0.05, 0, 2.4, loreHex, crystal ? 0.36 : 0.22);
+      if (room.lore_label) {
+        const chip = document.createElement("div");
+        chip.className = "room3d-trace is-scar";
+        chip.dataset.priority = "6";
+        chip.textContent = `${crystal ? "Lore: " : "Forming lore: "}${String(room.lore_label).slice(0, 32)}`;
+        const obj = new CSS2DObject(chip);
+        obj.position.set(0, 2.15, 0);
+        lg.add(obj);
+      }
+      g.add(lg);
+    }
+
+    // 3. Maintenance Tradition Hearth Ring (split gold + violet on schism)
+    if (room && room.tradition_status && room.tradition_status !== "DORMANT") {
+      const tradHex = room.tradition_inherited ? 0xffd268 : 0xffaa38;
+      const tradRing = new Mesh(
+        shared.ring,
+        new MeshBasicMaterial({
+          color: tradHex,
+          transparent: true,
+          opacity: room.tradition_status === "CUSTOM" ? 0.24 : 0.42,
+          blending: AdditiveBlending,
+          depthWrite: false,
+          side: DoubleSide,
+        }),
+      );
+      tradRing.rotation.x = -Math.PI / 2;
+      tradRing.position.set(0, 0.032, -0.4);
+      tradRing.scale.setScalar(3.35);
+      tradRing.raycast = () => {};
+      g.add(tradRing);
+      if (room.tradition_schism) {
+        const schismRing = new Mesh(
+          shared.ring,
+          new MeshBasicMaterial({
+            color: 0x9b6dff,
+            transparent: true,
+            opacity: 0.36,
+            blending: AdditiveBlending,
+            depthWrite: false,
+            side: DoubleSide,
+          }),
+        );
+        schismRing.rotation.x = -Math.PI / 2;
+        schismRing.position.set(0, 0.036, -0.4);
+        schismRing.scale.setScalar(3.62);
+        schismRing.raycast = () => {};
+        g.add(schismRing);
+      }
+    }
+  }
+
+  /**
    * Expressive hero-table.jpg-inspired miniature automaton rigs (4 deterministic archetypes per handle).
    *   0: Hooded Archivist (tapered cloak + deep cowl + twin glowing eyes + floating ledger tablet)
    *   1: CRT-Headed Operator (layered industrial coat + glowing CRT monitor head + shoulder lamp)
@@ -2546,13 +2671,20 @@ function mount(frame, opts) {
       ? lastCtx.map.base.rooms.find((r) => r && r.room_id === roomId)
       : null;
     const bands = {
-      pressure: mapRoom && mapRoom.pressure_band ? String(mapRoom.pressure_band) : "",
-      scar: mapRoom && mapRoom.scar_band ? String(mapRoom.scar_band) : "",
+      pressure: room.pressure_band
+        ? String(room.pressure_band)
+        : (mapRoom && mapRoom.pressure_band ? String(mapRoom.pressure_band) : ""),
+      scar: room.scar_band
+        ? String(room.scar_band)
+        : (mapRoom && mapRoom.scar_band ? String(mapRoom.scar_band) : ""),
     };
 
     const sig = JSON.stringify({
       roomId,
       bands,
+      fossil: Boolean(room.scar_fossilized),
+      lore: room.lore_state ? `${room.lore_state}:${room.lore_label || ""}` : "",
+      tradition: room.tradition_status ? `${room.tradition_status}:${Boolean(room.tradition_inherited)}:${Boolean(room.tradition_schism)}` : "",
       selectedEntity,
       exits: (room.exits || []).map((x) => `${x.direction}:${x.to_room_id}:${x.to_room_name}`),
       entities: (room.entities || []).map((e) => `${e.label}:${e.entity_type}`),
@@ -2578,6 +2710,7 @@ function mount(frame, opts) {
       buildExitPortals(roomGroup, room.exits || []);
       buildEntities(roomGroup, room.entities || []);
       buildTracePlaques(roomGroup, room.traces || []);
+      buildDeepTimeProps(roomGroup, room, bands);
     }
 
     syncAgentsAndActivity(live, room);

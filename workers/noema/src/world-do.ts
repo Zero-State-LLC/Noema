@@ -402,6 +402,10 @@ export class NoemaWorldDO {
       // census: the current reconstruction producer does not persist this field.
       controllers: (r as typeof r & { controllers?: number }).controllers,
       visibility: r.visibility,
+      subject_ref: r.subject_ref,
+      claim: r.claim,
+      epistemic: r.epistemic,
+      author_id: r.author_player_id,
     }));
     const snap = buildWatchLive({
       world_id: this.world!.world_id,
@@ -443,6 +447,10 @@ export class NoemaWorldDO {
       })),
       // Let the public builder select both fields after checking visibility.
       reconstructions,
+      scars: (this.world as { scars?: Array<{ room_id?: string; strength: number; visibility: string; domain: string; fossilized?: boolean }> } | null)?.scars,
+      harvest_pressure: this.world!.co_evolution?.harvest_pressure,
+      lore_attractors: (this.world as { lore_attractors?: Array<{ room_id?: string; label: string; weight: number; basin: string }> } | null)?.lore_attractors,
+      culture: this.world!.culture,
     });
     this.watchHeld = heldFromSnapshot(snap);
     return snap;

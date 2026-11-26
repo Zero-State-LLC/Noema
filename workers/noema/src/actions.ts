@@ -242,6 +242,8 @@ export type PlayerRuntime = {
   inherited?: InheritedHistory;
   /** GC8-S3 last cycle's WORN spoil lines. PLAY only. */
   spoil_lines?: string[];
+  /** RFC-0136: last world cycle when this player used RECHARGE at a generator. */
+  last_recharge_cycle?: number;
   /** GC6-S0 derived archive/inspect members. Not WorldState. */
   discovery?: {
     catalog_id: "discovery-catalog/gc6-s0";
@@ -366,6 +368,13 @@ export const TREASURY_STORAGE_CAP = 64;
 /** RFC-0133 amendment 1: classes the resource office may build with treasury cargo. */
 export const TREASURY_CONSTRUCT_CLASSES: ReadonlySet<string> = new Set(["generator", "storage_bay"]);
 
+/** RFC-0136: generator-powered RECHARGE constants. */
+export const RECHARGE_ENERGY_GRANT = 4;
+export const RECHARGE_ENERGY_CAP = 10;
+export const RECHARGE_COOLDOWN_CYCLES = 3;
+export const RECHARGE_GENERATOR_WEAR = 2;
+export const RECHARGE_MIN_GENERATOR_CONDITION = 25;
+
 export const COSTS = {
   LOOK: { attention: 1 } as Partial<Budgets>,
   INSPECT: { attention: 2 } as Partial<Budgets>,
@@ -463,7 +472,8 @@ export type CanonicalAction =
           | "AGREEMENT_TERMINATE"
           | "ACCESS_POLICY"
           | "FOCUS"
-          | "SUPPLY";
+          | "SUPPLY"
+          | "RECHARGE";
         signal?: ActionSignal;
         entity_id?: string;
         /** RFC-0133 SUPPLY recipient and resource. */
@@ -1424,6 +1434,24 @@ function parseHumanCommandCore(
         : acting_for
           ? `You try to repair ${raw} for ${acting_for}.`
           : `You try to repair ${raw}.`,
+    };
+  }
+  if (v === "recharge") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "");
+    if (!raw) return { ok: false, error: "Recharge at what? Name an active generator." };
+    if (ctx.entities && ctx.entities.length) {
+      const r = resolveVisibleEntity(raw, ctx.entities);
+      if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
+      return {
+        ok: true,
+        action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id: r.entity.entity_id } },
+        display: `You recharge at ${titleCaseLabel(r.entity.label)}.`,
+      };
+    }
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id: raw } },
+      display: `You try to recharge at ${raw}.`,
     };
   }
   if (v === "harvest") {
@@ -2527,6 +2555,15 @@ export function normalizeStructuredCommand(
         display: `SUPPLY ${amount} ${resource} to ${player_id}`,
       };
     }
+    if (operation === "RECHARGE") {
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
+      if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id } },
+        display: `RECHARGE ${entity_id}`,
+      };
+    }
     if (operation === "REPAIR" || operation === "HARVEST") {
       const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
@@ -3047,6 +3084,15 @@ export function normalizeStructuredCommand(
       display: extent ? "COMMIT.REPAIR overhaul" : "COMMIT.REPAIR",
     };
   }
+  if (cmd === "RECHARGE") {
+    const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
+    if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+    return {
+      ok: true,
+      action: { verb: "COMMIT", arguments: { operation: "RECHARGE", entity_id } },
+      display: "COMMIT.RECHARGE",
+    };
+  }
   if (cmd === "HARVEST") {
     const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
     if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
@@ -3254,6 +3300,7 @@ export function deriveAffordances(input: {
   cautionToward?: Record<string, boolean>;
   practice?: PracticeState | null;
   cycle?: number;
+  last_recharge_cycle?: number;
   focus?: FocusState | null;
   hiddenRoom?: boolean;
   roomId?: string;
@@ -3351,6 +3398,34 @@ export function deriveAffordances(input: {
           kind: "primary",
         });
       }
+    }
+    if (
+      infraClassOf(e) === "generator" &&
+      !e.in_progress &&
+      !e.scar &&
+      (e.condition ?? 0) >= RECHARGE_MIN_GENERATOR_CONDITION
+    ) {
+      const nowCycle = input.cycle ?? 0;
+      const onCooldown =
+        input.last_recharge_cycle != null && nowCycle - input.last_recharge_cycle < RECHARGE_COOLDOWN_CYCLES;
+      const atCap = (budgets.energy ?? 0) >= RECHARGE_ENERGY_CAP;
+      const ok = !onCooldown && !atCap;
+      out.push({
+        action: "RECHARGE",
+        verb: "COMMIT",
+        operation: "RECHARGE",
+        label: `Recharge at ${name}`,
+        cmd: `recharge ${e.label}`,
+        target_id: e.entity_id,
+        target_label: e.label,
+        available: ok,
+        reason: ok
+          ? undefined
+          : onCooldown
+            ? "You must wait before drawing power from a generator again."
+            : "Your energy is already full.",
+        kind: "primary",
+      });
     }
     if (e.stock_resource) {
       const hasStock = (e.stock_amount ?? 0) >= 1;
