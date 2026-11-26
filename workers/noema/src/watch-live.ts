@@ -1132,9 +1132,8 @@ function buildRoomActivityMap(
 
   const isSenderResident = (ev: WatchSourceEvent, senderId?: string, senderPlayer?: WatchPlayerIn): boolean => {
     if (senderPlayer) return isPublicActivityPlayer(senderPlayer.player_id, senderPlayer);
-    if (ev.actor_kind === "system") return true;
-    if (senderId && RESERVED_SYSTEM_PLAYER_RE.test(senderId)) return true;
-    return false;
+    const raw = String(ev.handle || senderId || "").replace(/^player\./i, "");
+    return /^reach-maint/i.test(raw);
   };
 
   const isRecipientResident = (recId?: string, recHandle?: string): boolean => {
@@ -1253,9 +1252,13 @@ function buildRoomActivityMap(
       const surface = String(payload.surface || "").toUpperCase();
       const isRoomBroadcast =
         recipients.length === 0 &&
+        surface !== "CHANNEL" &&
         (payload.broadcast === true ||
           payload.scope === "room" ||
           payload.channel === "room" ||
+          surface === "SHOUT" ||
+          surface === "BOARD" ||
+          surface === "NOTICE" ||
           surface === "TRADE_NOTICE" ||
           surface === "ROOM" ||
           surface === "ROOM_BROADCAST");
@@ -1513,8 +1516,10 @@ function buildRoomActivityMap(
   }
 
   // Deduplicate MESSAGE + MESSAGE_DELIVERED sharing the same message_id (prefer speech / richer entry).
-  const byRoom = new Map<string, RoomActivityEntry[]>();
-  for (const entry of rawEntries) {
+  type OrderedRoomActivityEntry = RoomActivityEntry & { order: number };
+  const byRoom = new Map<string, OrderedRoomActivityEntry[]>();
+  for (let idx = 0; idx < rawEntries.length; idx++) {
+    const entry: OrderedRoomActivityEntry = { ...rawEntries[idx], order: idx };
     const list = byRoom.get(entry.room_id) || [];
     if (entry.message_id) {
       const prevIdx = list.findIndex((x) => x.message_id === entry.message_id);
@@ -1525,7 +1530,8 @@ function buildRoomActivityMap(
           (entry.item.kind === prev.item.kind &&
             (Boolean(entry.item.speech) && !prev.item.speech
               ? true
-              : entry.item.sequence > prev.item.sequence));
+              : entry.item.sequence > prev.item.sequence ||
+                (entry.item.sequence === prev.item.sequence && entry.order > prev.order)));
         if (preferNew) list[prevIdx] = entry;
         continue;
       }
@@ -1537,14 +1543,19 @@ function buildRoomActivityMap(
   const out = new Map<string, WatchRoomActivity[]>();
   for (const [roomId, list] of byRoom.entries()) {
     const sorted = list
-      .map((x) => x.item)
+      .slice()
       .sort((a, b) => {
-        const sq = b.sequence - a.sequence;
+        const sq = b.item.sequence - a.item.sequence;
         if (sq) return sq;
-        const vb = a.verb.localeCompare(b.verb);
+        const at = (b.item.occurred_at ?? -1) - (a.item.occurred_at ?? -1);
+        if (at) return at;
+        const ord = b.order - a.order;
+        if (ord) return ord;
+        const vb = a.item.verb.localeCompare(b.item.verb);
         if (vb) return vb;
-        return a.line.localeCompare(b.line);
+        return a.item.line.localeCompare(b.item.line);
       })
+      .map((x) => x.item)
       .slice(0, 16);
     if (sorted.length) out.set(roomId, sorted);
   }

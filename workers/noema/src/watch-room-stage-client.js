@@ -485,6 +485,7 @@ function mount(frame, opts) {
   let portalPositions = [];
   const agentStates = new Map(); // handle -> { root, x, z, tx, tz, yaw, tyaw, rig, labelObj, speechObj, vfx, accent }
   let activeVfx = [];
+  let unnamedRigs = [];
 
   function makeBox(sx, sy, sz, mat, shadow) {
     const m = new Mesh(shared.unitBox, mat);
@@ -549,6 +550,7 @@ function mount(frame, opts) {
     scene.add(dynamicGroup);
     agentStates.clear();
     activeVfx = [];
+    unnamedRigs = [];
   }
 
   /** Architectural Cutaway Shell (obsidian-basalt deck + 2 cutaway North/West walls + conduits + band effects). */
@@ -2229,7 +2231,12 @@ function mount(frame, opts) {
       }
     }
 
-    // Unnamed agents (counted in players_present without public handles)
+    // Reconcile unnamed agents (counted in players_present without public handles)
+    for (const prevRoot of unnamedRigs) {
+      disposeGroup(prevRoot);
+      dynamicGroup.remove(prevRoot);
+    }
+    unnamedRigs = [];
     const unnamed = Math.max(0, (room.players_present || 0) - activeHandles.length);
     for (let u = 0; u < Math.min(unnamed, 4); u++) {
       const sp = plazaSpots[(activeHandles.length + u) % plazaSpots.length];
@@ -2237,6 +2244,7 @@ function mount(frame, opts) {
       rig.root.position.set(sp[0], 0, sp[1]);
       rig.root.rotation.y = Math.atan2(-sp[0], -1.6 - sp[1]);
       dynamicGroup.add(rig.root);
+      unnamedRigs.push(rig.root);
     }
   }
 
