@@ -190,6 +190,8 @@ export type PlayerRuntime = {
   actor_kind?: "live" | "system";
   controller_type?: "human" | "agent" | "hybrid";
   operator_id?: string;
+  /** RFC-0134: explicit resident/house-agent public visibility flag for WATCH Room View. */
+  public_activity?: boolean;
   /** RFC WAIT: actor wait-until. Does not advance World.cycle. */
   wait_until_cycle?: number;
   /** T0.6 session-local text clarification. Not world truth. */

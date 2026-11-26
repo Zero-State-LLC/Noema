@@ -67,6 +67,8 @@ export type PresencePlayer = {
   room_id?: string;
   controller_type?: string;
   operator_id?: string;
+  /** RFC-0134: explicit resident/house-agent public visibility flag for WATCH Room View. */
+  public_activity?: boolean;
 };
 
 /** Shared ADMIN_OPERATOR_TOKEN operators. Email operators use `op.mail.<hash>`. */
@@ -113,6 +115,19 @@ export function inferActorKind(
 
 function kindOf(id: string, p: PresencePlayer): ActorKind {
   return inferActorKind(id, p.actor_kind, p.controller_type);
+}
+
+/**
+ * RFC-0134: whether a Player's public-room actions and resident dialogue
+ * project into WATCH Room View (`rooms[].room_activity[]`).
+ * Explicit boolean wins; otherwise reserved house maintenance actors
+ * (`reach-maint*`) default true, while admin-minted testers and external
+ * third-party agents stay fail-closed false.
+ */
+export function isPublicActivityPlayer(id: string, p: PresencePlayer): boolean {
+  if (typeof p.public_activity === "boolean") return p.public_activity;
+  const handle = String(p.handle || id || "").replace(/^player\./i, "");
+  return /^reach-maint/i.test(handle);
 }
 
 /** Primary census: present agent Player Controllers only. Humans are observers. */
@@ -189,6 +204,7 @@ export type ActorRow = {
   actor_kind: ActorKind;
   controller_type?: string;
   operator_id?: string;
+  public_activity?: boolean;
 };
 
 export function listLivePlayers(
@@ -208,6 +224,7 @@ export function listLivePlayers(
       actor_kind: "live" as const,
       controller_type: p.controller_type,
       operator_id: p.operator_id,
+      public_activity: isPublicActivityPlayer(id, p),
     }));
 }
 
@@ -224,6 +241,7 @@ export function listSystemActors(players: Record<string, PresencePlayer> | undef
       actor_kind: "system" as const,
       controller_type: p.controller_type,
       operator_id: p.operator_id,
+      public_activity: isPublicActivityPlayer(id, p),
     }));
 }
 

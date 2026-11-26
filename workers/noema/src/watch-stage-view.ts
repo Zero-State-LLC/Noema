@@ -5,7 +5,13 @@
  * the accessible authority and carries every fact the stage draws (WS3-07, WS3-11).
  */
 
-import { STAGE_VERSION } from "./watch-stage-version";
+import { ROOM_STAGE_VERSION, STAGE_VERSION, VENDOR_VERSION } from "./watch-stage-version";
+
+/**
+ * Shared Three.js vendor chunk URL (D5). Cached and reused by both the
+ * World Overview and Full-Screen Place View so Three.js downloads once.
+ */
+export const VENDOR_SRC = "/assets/three-vendor.js?v=" + VENDOR_VERSION;
 
 /**
  * Stage chunk URL. Assets are cached for an hour; the content-hash version
@@ -13,6 +19,12 @@ import { STAGE_VERSION } from "./watch-stage-version";
  * model, which is bundled into the chunk itself.
  */
 export const STAGE_SRC = "/assets/watch-stage.js?v=" + STAGE_VERSION;
+
+/**
+ * Full-Screen Place View chunk URL (D5/D7). Lazy-loaded only when a spectator
+ * opens a specific Place view.
+ */
+export const ROOM_STAGE_SRC = "/assets/watch-room-stage.js?v=" + ROOM_STAGE_VERSION;
 
 /** Plain-language key for every mark the stage draws (WS3-06). HTML text, not canvas. */
 export const STAGE_KEY: Array<[string, string]> = [
@@ -36,6 +48,67 @@ export const STAGE_KEY: Array<[string, string]> = [
   ["caption", "Caption: what just happened at a site, same words as Recently"],
 ];
 
+export function placeSelectHtml(): string {
+  return `
+        <div class="watch-place-bar">
+          <label class="watch-place-label" for="watch-place-select">Places</label>
+          <select id="watch-place-select" class="watch-place-select" aria-label="Enter a Place view">
+            <option value="">Overview — Perihelion Reach</option>
+          </select>
+        </div>`;
+}
+
+export function roomOverlayHtml(): string {
+  return `
+  <div id="watch-room-overlay" class="room-overlay" role="dialog" aria-modal="true" aria-labelledby="watch-room-title" hidden>
+    <header class="room-bar">
+      <div class="room-bar-left">
+        <button type="button" class="btn quiet room-back-btn" id="watch-room-back">← Back to World</button>
+        <label class="sr" for="watch-room-select">Switch place</label>
+        <select id="watch-room-select" class="watch-place-select room-place-select" aria-label="Switch Place view">
+          <option value="">Overview — Perihelion Reach</option>
+        </select>
+      </div>
+      <div class="room-bar-center">
+        <h2 id="watch-room-title" class="room-title">Place</h2>
+        <div id="watch-room-bands" class="room-bands" hidden></div>
+        <nav id="watch-room-exits" class="room-exits" aria-label="Room exits"></nav>
+      </div>
+      <div class="room-bar-right">
+        <button type="button" class="btn quiet room-follow-chip" id="watch-room-follow-chip" hidden></button>
+        <button type="button" class="btn quiet room-ctrl-btn" id="watch-room-reset">Reset view</button>
+        <button type="button" class="btn quiet room-ctrl-btn" id="watch-room-drawer-btn" aria-expanded="true" aria-controls="watch-room-drawer">Activity</button>
+      </div>
+    </header>
+    <div class="room-body">
+      <div class="room-frame" id="watch-room-frame" tabindex="0" role="region"
+        aria-label="3D Place view. Drag to orbit, scroll to zoom, Esc to return to World Overview.">
+        <canvas id="watch-room-gl" aria-hidden="true"></canvas>
+        <div class="room3d-labels" id="watch-room-labels" aria-hidden="true"></div>
+        <p class="room3d-help" id="watch-room-help" aria-hidden="true">Drag to turn · scroll to zoom · click agent to follow · Esc to exit</p>
+        <div class="room-text-fallback" id="watch-room-text" hidden></div>
+      </div>
+      <aside class="room-drawer" id="watch-room-drawer" aria-label="Room activity and details">
+        <div class="room-drawer-inner">
+          <p class="room-drawer-desc" id="watch-room-desc"></p>
+          <section class="room-drawer-sec" aria-labelledby="watch-room-agents-label">
+            <h3 id="watch-room-agents-label">Present here</h3>
+            <div class="room-agents-list" id="watch-room-agents"></div>
+          </section>
+          <section class="room-drawer-sec" aria-labelledby="watch-room-activity-label">
+            <h3 id="watch-room-activity-label">Room activity &amp; dialogue</h3>
+            <ol class="room-activity-list" id="watch-room-activity"></ol>
+          </section>
+          <section class="room-drawer-sec" aria-labelledby="watch-room-works-label">
+            <h3 id="watch-room-works-label">Works &amp; traces</h3>
+            <div class="room-works-list" id="watch-room-works"></div>
+          </section>
+        </div>
+      </aside>
+    </div>
+  </div>`;
+}
+
 export function stageViewHtml(): string {
   const key = STAGE_KEY.map(([k, text]) => `<li data-mark="${k}">${text}</li>`).join("");
   return `
@@ -45,7 +118,7 @@ export function stageViewHtml(): string {
           <canvas id="watch-stage3d-gl" aria-hidden="true"></canvas>
           <div class="stage3d-labels" id="watch-stage3d-labels" aria-hidden="true"></div>
           <button type="button" class="btn stage3d-reset" id="watch-stage3d-reset">Reset view</button>
-          <p class="stage3d-help" aria-hidden="true">Drag to turn · scroll to zoom · right-drag to pan</p>
+          <p class="stage3d-help" aria-hidden="true">Drag to turn · scroll to zoom · double-click site to enter</p>
         </div>
         <dl class="stage3d-health" id="watch-stage3d-health" aria-label="World health"></dl>
         <p class="map-parity" id="watch-stage3d-parity" role="status" hidden></p>
@@ -214,5 +287,337 @@ body.is-low-noise #watch-stage3d{display:none!important}
   body:has(.watch-stage[data-mode="3d"]) .wrap{width:min(var(--max),calc(100% - 2*var(--pad)))}
   .stage3d-frame{height:52vh;min-height:320px}
   .stage3d-help{display:none}
+}
+/* D7 Places dropdown, collapsed text index drawer, and Full-Screen Place View overlay */
+.watch-place-bar{
+  display:inline-flex;align-items:center;gap:.45rem;flex:0 0 auto;max-width:100%;
+}
+.watch-place-label{
+  color:var(--faint);font:600 .66rem/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
+}
+.watch-place-select{
+  min-height:36px;max-width:100%;padding:.35rem 1.85rem .35rem .65rem;
+  border:1px solid color-mix(in srgb,var(--line-hot) 65%,var(--line));border-radius:var(--r-md,8px);
+  background-color:color-mix(in srgb,var(--void) 86%,var(--panel));
+  background-image:linear-gradient(45deg,transparent 50%,var(--color-state-active) 50%),linear-gradient(135deg,var(--color-state-active) 50%,transparent 50%);
+  background-position:calc(100% - 13px) 50%,calc(100% - 8px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+  appearance:none;-webkit-appearance:none;
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 7%,transparent),0 8px 20px -12px rgb(0 0 0/.82);
+  color:var(--ink);font:500 .78rem/1.2 var(--font-interface);letter-spacing:.01em;cursor:pointer;
+  transition:border-color .15s var(--ease),box-shadow .15s var(--ease),background-color .15s var(--ease);
+}
+.watch-place-select:hover{
+  border-color:color-mix(in srgb,var(--color-state-active) 68%,var(--line));
+  background-color:color-mix(in srgb,var(--panel) 84%,var(--void));
+}
+.watch-place-select:focus-visible{
+  outline:2px solid var(--color-border-focus,var(--color-state-active));outline-offset:2px;
+  border-color:var(--color-state-active);
+}
+.watch-place-select option{background:#0b0f15;color:#e8e4dc}
+.watch-places-drawer{
+  margin:.65rem 0 0;border:1px solid color-mix(in srgb,var(--line) 82%,transparent);
+  border-radius:var(--r-md,8px);background:color-mix(in srgb,var(--void) 76%,var(--panel));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 5%,transparent);
+}
+.watch-places-drawer > summary{
+  cursor:pointer;list-style:none;display:flex;align-items:center;gap:.45rem;
+  padding:.5rem .75rem;color:var(--muted);
+  font:600 .72rem/1.3 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;
+  transition:color .15s var(--ease);
+}
+.watch-places-drawer > summary::-webkit-details-marker{display:none}
+.watch-places-drawer > summary::before{
+  content:"▸";color:var(--color-state-active);font-size:.82rem;line-height:1;
+}
+.watch-places-drawer[open] > summary::before{content:"▾"}
+.watch-places-drawer > summary:hover{color:var(--ink)}
+.watch-places-drawer > summary:focus-visible{outline:2px solid var(--color-state-active);outline-offset:2px;border-radius:var(--r-md,8px)}
+.watch-places-drawer #watch-stage-places{
+  margin:0;padding:.25rem .75rem .75rem;border-top:1px solid color-mix(in srgb,var(--line) 75%,transparent);
+}
+.watch-enter-room-btn{
+  border-color:color-mix(in srgb,var(--color-state-active) 48%,var(--line))!important;
+  color:var(--color-state-active)!important;
+}
+.watch-enter-room-btn:hover{
+  background:color-mix(in srgb,var(--color-state-active) 14%,var(--void))!important;
+}
+body.is-room-open{overflow:hidden}
+#watch-room-overlay[hidden],#watch-room-overlay [hidden]{display:none!important}
+.room-overlay{
+  position:fixed;inset:0;z-index:40;background:var(--void);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.room-bar{
+  flex:0 0 auto;min-height:54px;height:54px;z-index:4;
+  display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:.55rem;
+  padding:0 .65rem;
+  background:color-mix(in srgb,var(--void) 92%,var(--panel));
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid color-mix(in srgb,var(--line-hot) 56%,var(--line));
+  box-shadow:0 12px 32px -18px rgb(0 0 0/.9);
+}
+.room-bar-left,.room-bar-right{
+  flex:0 0 auto;display:flex;flex-wrap:nowrap;align-items:center;gap:.38rem;min-width:0;
+}
+.room-bar-center{
+  flex:1 1 0;min-width:0;display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:.4rem;
+  overflow-x:auto;scrollbar-width:none;
+}
+.room-bar-center::-webkit-scrollbar{display:none}
+.room-back-btn,.room-ctrl-btn,.room-follow-chip{
+  min-height:44px;padding:.35rem .68rem;white-space:nowrap;flex:0 0 auto;
+  border:1px solid color-mix(in srgb,var(--line-hot) 58%,var(--line));border-radius:var(--r-md,8px);
+  background:color-mix(in srgb,var(--void) 84%,var(--panel));
+  color:var(--ink);font:600 .73rem/1 var(--font-interface);letter-spacing:.03em;
+  transition:border-color .15s var(--ease),color .15s var(--ease),background .15s var(--ease);
+}
+.room-back-btn:hover,.room-ctrl-btn:hover{
+  border-color:var(--color-state-active);color:var(--color-state-active);
+  background:color-mix(in srgb,var(--panel) 90%,var(--void));
+}
+.room-ctrl-btn[aria-expanded="true"]{
+  border-color:color-mix(in srgb,var(--color-state-active) 55%,var(--line));
+  color:var(--color-state-active);
+}
+.room-follow-chip{
+  border-color:var(--color-state-active);color:var(--color-state-active);
+  background:color-mix(in srgb,var(--color-state-active) 12%,var(--void));
+}
+.room-place-select{min-height:44px;max-width:12rem;padding:.3rem 1.65rem .3rem .55rem;font-size:.74rem}
+.room-title{
+  margin:0;flex:0 0 auto;color:var(--ink);font:600 .95rem/1.15 var(--font-display);letter-spacing:.01em;white-space:nowrap;
+}
+.room-bands{flex:0 0 auto;display:inline-flex;flex-wrap:nowrap;align-items:center;gap:.25rem}
+.room-band-chip{
+  display:inline-flex;align-items:center;padding:2px 6px;border-radius:999px;white-space:nowrap;
+  border:1px solid color-mix(in srgb,var(--line-hot) 56%,var(--line));
+  background:color-mix(in srgb,var(--void) 88%,var(--panel));
+  color:var(--muted);font:600 .6rem/1.2 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;
+}
+.room-band-chip.is-pressure{
+  border-color:color-mix(in srgb,var(--color-state-warning) 56%,var(--line));
+  color:var(--color-state-warning);
+}
+.room-band-chip.is-scar{
+  border-color:color-mix(in srgb,#9b6dff 56%,var(--line));
+  color:#c5a8ff;
+}
+.room-exits{flex:0 0 auto;display:inline-flex;flex-wrap:nowrap;align-items:center;gap:.25rem}
+.room-exit-pill{
+  cursor:pointer;flex:0 0 auto;min-height:30px;padding:.18rem .52rem;
+  border:1px solid color-mix(in srgb,var(--color-state-active) 40%,var(--line));border-radius:999px;
+  background:color-mix(in srgb,var(--void) 86%,var(--panel));
+  color:var(--ink);font:500 .66rem/1.2 var(--font-mono);white-space:nowrap;
+  transition:border-color .15s var(--ease),color .15s var(--ease),background .15s var(--ease);
+}
+.room-exit-pill:hover,.room-exit-pill:focus-visible{
+  border-color:var(--color-state-active);color:var(--color-state-active);
+  background:color-mix(in srgb,var(--color-state-active) 12%,var(--void));
+}
+.room-body{
+  flex:1;position:relative;display:flex;min-height:0;min-width:0;overflow:hidden;
+}
+.room-frame{
+  flex:1;position:relative;min-height:0;min-width:0;overflow:hidden;background:var(--void);
+}
+.room-frame:focus-visible{outline:2px solid var(--color-border-focus,var(--color-state-active));outline-offset:-2px}
+.room-frame canvas{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
+.room3d-labels{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.room3d-help{
+  position:absolute;left:.75rem;bottom:.75rem;z-index:3;margin:0;padding:.24rem .6rem;
+  border:1px solid color-mix(in srgb,var(--line) 78%,transparent);border-radius:999px;
+  background:color-mix(in srgb,var(--void) 88%,transparent);backdrop-filter:blur(6px);
+  color:var(--faint);font:500 .68rem/1.35 var(--font-interface);pointer-events:none;
+}
+/* Room View 3D DOM chips (CSS2DRenderer overlays) */
+.room3d-portal{
+  pointer-events:auto;cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;
+  padding:4px 10px;border:1px solid color-mix(in srgb,var(--color-state-active) 50%,var(--line));
+  border-radius:999px;background:color-mix(in srgb,var(--void) 88%,transparent);backdrop-filter:blur(6px);
+  box-shadow:0 6px 18px -4px rgb(0 0 0/.84),inset 0 1px 0 color-mix(in srgb,var(--color-state-active) 14%,transparent);
+  color:var(--ink);font:600 .68rem/1.2 var(--font-mono);letter-spacing:.02em;white-space:nowrap;
+  transition:border-color .15s var(--ease),color .15s var(--ease),box-shadow .15s var(--ease);
+}
+.room3d-portal:hover,.room3d-portal:focus-visible{
+  border-color:var(--color-state-active);color:var(--color-state-active);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--color-state-active) 40%,transparent),0 8px 22px -6px rgb(0 0 0/.92);
+}
+.room3d-entity{
+  pointer-events:auto;cursor:pointer;max-width:11.5rem;padding:2px 8px;
+  border:1px solid color-mix(in srgb,var(--line-hot) 60%,var(--line));border-radius:6px;
+  background:color-mix(in srgb,var(--void) 86%,var(--panel));backdrop-filter:blur(5px);
+  box-shadow:0 4px 12px -4px rgb(0 0 0/.8);
+  color:var(--muted);font:500 .64rem/1.2 var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:border-color .15s var(--ease),color .15s var(--ease);
+}
+.room3d-entity:hover,.room3d-entity.is-selected{
+  border-color:var(--color-state-active);color:var(--ink);
+}
+.room3d-trace{
+  pointer-events:auto;cursor:pointer;max-width:13rem;padding:3px 8px;
+  border:1px solid color-mix(in srgb,#d9c7a3 36%,var(--line));
+  border-left:2px solid color-mix(in srgb,#d9c7a3 76%,var(--color-state-warning));
+  border-radius:5px;background:color-mix(in srgb,var(--void) 88%,#231d14);backdrop-filter:blur(5px);
+  box-shadow:0 5px 14px -4px rgb(0 0 0/.82);
+  color:#e7dcc6;font:400 .63rem/1.28 var(--font-interface);text-align:left;white-space:normal;
+}
+.room3d-agent-label{
+  pointer-events:auto;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px 3px 7px;border:1px solid color-mix(in srgb,var(--line-hot) 64%,var(--line));
+  border-radius:999px;background:color-mix(in srgb,var(--void) 88%,transparent);backdrop-filter:blur(6px);
+  box-shadow:0 5px 14px -4px rgb(0 0 0/.84),inset 0 1px 0 color-mix(in srgb,var(--ink) 8%,transparent);
+  color:var(--ink);font:600 .68rem/1.15 var(--font-mono);white-space:nowrap;
+  transition:border-color .15s var(--ease),box-shadow .15s var(--ease);
+}
+.room3d-agent-label:hover,.room3d-agent-label.is-followed{
+  border-color:var(--color-state-active);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--color-state-active) 36%,transparent),0 8px 20px -6px rgb(0 0 0/.9);
+}
+.room3d-dot{
+  display:inline-block;width:7px;height:7px;border-radius:50%;flex:0 0 auto;
+  box-shadow:0 0 0 1px rgba(7,10,16,.75);
+}
+.room3d-verb{
+  color:var(--muted);font:500 .6rem/1 var(--font-interface);letter-spacing:.02em;margin-left:2px;
+}
+.room3d-speech{
+  position:relative;pointer-events:none;max-width:14rem;padding:5px 9px;
+  border:1px solid color-mix(in srgb,var(--speech-accent,var(--color-state-active)) 56%,var(--line));
+  border-left:2.5px solid var(--speech-accent,var(--color-state-active));
+  border-radius:9px;background:color-mix(in srgb,var(--void) 92%,var(--panel));backdrop-filter:blur(8px);
+  box-shadow:0 10px 26px -6px rgb(0 0 0/.9),inset 0 1px 0 color-mix(in srgb,var(--ink) 8%,transparent);
+  color:var(--ink);font:500 .68rem/1.32 var(--font-interface);text-align:left;white-space:normal;
+}
+.room3d-speech::after{
+  content:"";position:absolute;left:50%;bottom:-5px;width:8px;height:8px;margin-left:-4px;
+  transform:rotate(45deg);background:color-mix(in srgb,var(--void) 92%,var(--panel));
+  border-right:1px solid color-mix(in srgb,var(--speech-accent,var(--color-state-active)) 56%,var(--line));
+  border-bottom:1px solid color-mix(in srgb,var(--speech-accent,var(--color-state-active)) 56%,var(--line));
+}
+.room3d-speech-meta{
+  display:block;margin-bottom:2px;color:var(--muted);font:600 .6rem/1.2 var(--font-mono);letter-spacing:.03em;
+}
+/* Collapsible Room Activity & Details Drawer: docked on desktop (>=1024px), floating on narrower viewports */
+.room-drawer{
+  position:static;flex:0 0 21rem;width:21rem;height:100%;z-index:3;
+  display:flex;flex-direction:column;
+  border-left:1px solid color-mix(in srgb,var(--line-hot) 56%,var(--line));
+  background:color-mix(in srgb,var(--void) 90%,var(--panel));
+  box-shadow:inset 1px 0 0 color-mix(in srgb,var(--ink) 5%,transparent);
+  overflow:hidden;
+}
+.room-drawer-inner{
+  flex:1;min-height:0;overflow-y:auto;padding:.8rem .9rem;
+  display:flex;flex-direction:column;gap:.85rem;
+  scrollbar-width:thin;scrollbar-color:var(--line-hot) transparent;
+}
+.room-drawer-desc{margin:0;color:var(--muted);font:.78rem/1.45 var(--font-body)}
+.room-drawer-desc:empty{display:none}
+.room-drawer-sec h3{
+  margin:0 0 .4rem;color:var(--faint);font:600 .64rem/1.2 var(--font-mono);
+  letter-spacing:.12em;text-transform:uppercase;
+}
+.room-agents-list{display:flex;flex-direction:column;gap:.35rem}
+.room-agent-card{
+  width:100%;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:.18rem;
+  padding:.48rem .65rem;border:1px solid color-mix(in srgb,var(--line) 82%,transparent);
+  border-left:2.5px solid var(--agent-accent,var(--line-hot));border-radius:var(--r-md,8px);
+  background:color-mix(in srgb,var(--void) 76%,var(--panel));color:var(--ink);
+  font:.74rem/1.3 var(--font-interface);
+  transition:border-color .15s var(--ease),background .15s var(--ease);
+}
+.room-agent-card:hover,.room-agent-card.is-followed{
+  border-color:var(--agent-accent,var(--color-state-active));
+  background:color-mix(in srgb,var(--panel-2) 66%,var(--void));
+}
+.room-agent-card-head{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.room-agent-card-head strong{font-weight:600;color:var(--ink)}
+.room-resident-badge{
+  padding:1px 6px;border-radius:999px;
+  border:1px solid color-mix(in srgb,var(--color-state-active) 50%,var(--line));
+  background:color-mix(in srgb,var(--color-state-active) 12%,var(--void));
+  color:var(--color-state-active);font:600 .58rem/1.25 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;
+}
+.room-verb-tag{
+  padding:1px 6px;border-radius:4px;border:1px solid color-mix(in srgb,var(--line-hot) 56%,var(--line));
+  background:color-mix(in srgb,var(--void) 82%,var(--panel));
+  color:var(--muted);font:600 .6rem/1.25 var(--font-mono);letter-spacing:.04em;
+}
+.room-agent-card-sub{color:var(--muted);font:.68rem/1.3 var(--font-mono);padding-left:.85rem}
+.room-activity-list{
+  margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.4rem;
+}
+.room-activity-item{
+  padding:.48rem .6rem;border:1px solid color-mix(in srgb,var(--line) 80%,transparent);
+  border-radius:var(--r-md,8px);background:color-mix(in srgb,var(--void) 78%,var(--panel));
+  font:.74rem/1.36 var(--font-interface);color:var(--ink);
+}
+.room-activity-item.is-speech{
+  border-color:color-mix(in srgb,var(--speech-accent,var(--color-state-active)) 44%,var(--line));
+  border-left:2.5px solid var(--speech-accent,var(--color-state-active));
+  background:color-mix(in srgb,var(--panel) 72%,var(--void));
+}
+.room-activity-item.is-posture{
+  border-style:dashed;color:var(--muted);font-size:.7rem;
+}
+.room-activity-meta{
+  display:flex;flex-wrap:wrap;align-items:center;gap:.3rem .45rem;margin-bottom:.2rem;
+  color:var(--muted);font:600 .64rem/1.2 var(--font-mono);
+}
+.room-activity-speech{margin:.12rem 0 0;color:var(--ink);font:.76rem/1.38 var(--font-body)}
+.room-activity-line{margin:0;color:inherit;overflow-wrap:anywhere}
+.room-target-chip{
+  display:inline-block;padding:1px 5px;border-radius:4px;
+  border:1px solid color-mix(in srgb,var(--line-hot) 52%,var(--line));
+  color:var(--color-state-social);font:500 .62rem/1.2 var(--font-mono);
+}
+.room-works-list{display:flex;flex-direction:column;gap:.45rem}
+.room-works-entities{display:flex;flex-wrap:wrap;gap:.35rem}
+.room-work-chip{
+  display:inline-flex;align-items:center;gap:.28rem;padding:.24rem .55rem;
+  border:1px solid color-mix(in srgb,var(--line-hot) 56%,var(--line));border-radius:6px;
+  background:color-mix(in srgb,var(--void) 82%,var(--panel));
+  color:var(--ink);font:500 .68rem/1.2 var(--font-mono);
+}
+.room-work-chip.is-selected{border-color:var(--color-state-active);color:var(--color-state-active)}
+.room-trace-item{
+  margin:0;padding:.4rem .58rem;
+  border:1px solid color-mix(in srgb,#d9c7a3 32%,var(--line));
+  border-left:2px solid color-mix(in srgb,#d9c7a3 72%,var(--color-state-warning));
+  border-radius:6px;background:color-mix(in srgb,var(--void) 86%,#231d14);
+  color:#e7dcc6;font:.72rem/1.38 var(--font-interface);
+}
+.room-empty-note{margin:0;color:var(--faint);font:.72rem/1.35 var(--font-mono)}
+.room-text-fallback{
+  position:absolute;inset:0;z-index:3;overflow-y:auto;padding:1.1rem clamp(.85rem,3vw,2rem) 2rem;
+  background:var(--void);color:var(--ink);
+}
+.room-text-inner{max-width:52rem;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
+.room-text-note{margin:0;color:var(--faint);font:.74rem/1.4 var(--font-mono)}
+@media(max-width:1099px){
+  .room-bar{height:auto;flex-wrap:wrap;padding:.35rem .6rem;gap:.35rem .55rem}
+  .room-bar-center{flex:1 1 100%;order:3;flex-wrap:wrap;overflow-x:visible}
+  .room-bands,.room-exits{flex-wrap:wrap}
+}
+@media(max-width:1023px){
+  .room-drawer{
+    position:absolute;top:.65rem;right:.65rem;bottom:.65rem;height:auto;flex:none;
+    width:min(21rem,calc(100vw - 1.3rem));
+    border:1px solid color-mix(in srgb,var(--line-hot) 56%,var(--line));border-radius:var(--r-lg,12px);
+    background:color-mix(in srgb,var(--void) 88%,var(--panel));backdrop-filter:blur(12px);
+    box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 7%,transparent),0 22px 48px -20px rgb(0 0 0/.92);
+  }
+}
+@media(max-width:860px){
+  .room-bar{padding:.35rem .5rem;gap:.35rem}
+  .room-bar-left{width:100%;justify-content:space-between}
+  .room-bar-center{width:100%;justify-content:flex-start}
+  .room-bar-right{width:100%;justify-content:flex-end}
+  .room-place-select{flex:1 1 auto;max-width:none}
+  .room3d-help{display:none}
+  .room-drawer{left:.5rem;right:.5rem;top:auto;bottom:.5rem;width:auto;max-height:54vh}
 }
 `;

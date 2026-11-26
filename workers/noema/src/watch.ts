@@ -8,7 +8,7 @@ import { watchMapInlineSource } from "./watch-map-page";
 import { parseWatchMode, watchModeInlineSource, type WatchMode } from "./watch-mode";
 import { phosphorInlineScript } from "./watch-phosphor";
 import { STAGE_FALLBACK_LINE, STAGE_LOW_NOISE_LINE } from "./watch-stage-model";
-import { STAGE_SRC, STAGE_VIEW_CSS, stageViewHtml } from "./watch-stage-view";
+import { ROOM_STAGE_SRC, STAGE_SRC, STAGE_VIEW_CSS, placeSelectHtml, roomOverlayHtml, stageViewHtml } from "./watch-stage-view";
 import {
   NOT_PROJECTED_PUBLICLY,
   WITHHELD_LEDE,
@@ -130,12 +130,13 @@ body:has(.watch-stage) .wrap{width:min(88rem,calc(100% - 2*var(--pad)));padding-
 }
 .watch-agent-row > span{color:var(--muted);font:.68rem/1.28 var(--font-mono);padding-left:.86rem}
 .watch-map-col{min-width:0}
-.watch-stage-story{margin:0 0 .5rem}
+.watch-stage-story{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.45rem .85rem;margin:0 0 .5rem}
+.watch-stage-story-main{min-width:0;flex:1 1 16rem}
 .watch-stage-line{
   margin:0;color:var(--ink);font:550 clamp(1.02rem,1.7vw,1.3rem)/1.2 var(--font-display);
 }
-.watch-stage-honest{margin:.2rem 0 0;color:var(--faint);font:.72rem/1.35 var(--font-mono)}
-.watch-stage[data-mode="3d"] #watch-stage-places{margin-top:1.15rem;padding-top:.9rem;border-top:1px solid var(--line)}
+.watch-stage-honest{margin:.16rem 0 0;color:var(--faint);font:.72rem/1.35 var(--font-mono)}
+.watch-stage[data-mode="3d"] #watch-stage-places{margin-top:0;padding-top:.45rem;border-top:0}
 .watch-side{display:grid;align-content:start;gap:.85rem;min-width:0}
 @media(min-width:1024px){
   .watch-head{
@@ -155,9 +156,9 @@ body:has(.watch-stage) .wrap{width:min(88rem,calc(100% - 2*var(--pad)));padding-
   .watch-head .watch-standing ul{display:flex;flex-wrap:wrap;gap:.1rem .75rem}
   .watch-head .watch-standing li{margin:0;font-size:.74rem;line-height:1.35;color:var(--muted)}
   .watch-head .watch-standing li+li::before{content:"·";margin-right:.75rem;color:var(--faint)}
-  .watch-stage-story{display:flex;align-items:baseline;justify-content:space-between;gap:.45rem 1rem;margin:0 0 .45rem}
+  .watch-stage-story{display:flex;align-items:center;justify-content:space-between;gap:.45rem 1rem;margin:0 0 .45rem}
   .watch-stage-line{font-size:clamp(.98rem,1.32vw,1.16rem)}
-  .watch-stage-honest{margin:0;white-space:nowrap;flex:0 0 auto}
+  .watch-stage-honest{margin:.12rem 0 0;white-space:nowrap}
 }
 @media(max-width:860px){
   .watch-stage{grid-template-columns:1fr;gap:1.25rem}
@@ -391,18 +392,24 @@ export function watchHtml(opts?: { mode?: string }): string {
   <section class="watch-stage" data-mode="${mode}">
     <section class="watch-col watch-map-col" aria-label="Center stage">
       <div class="watch-stage-story" id="watch-stage-story">
-        <p class="watch-stage-line" id="watch-stage-line">Connecting…</p>
-        <p class="watch-stage-honest">A public sketch — not the world.</p>
+        <div class="watch-stage-story-main">
+          <p class="watch-stage-line" id="watch-stage-line">Connecting…</p>
+          <p class="watch-stage-honest">A public sketch — not the world.</p>
+        </div>
+        ${placeSelectHtml()}
       </div>
       ${stageViewHtml()}
-      <div id="watch-stage-places">
-      <h2 id="watch-graph-label">Places</h2>
-      <p class="lede">Public sites. Glyphs mark rooms, Players, exits, and visible works.</p>
-      <pre class="watch-pre" id="watch-pre" aria-hidden="true" hidden></pre>
-      <nav aria-label="Public sites">
-        <ul class="watch-graph" id="watch-map"></ul>
-      </nav>
-      </div>
+      <details class="watch-places-drawer" id="watch-places-drawer"${mode === "text" ? " open" : ""}>
+        <summary>All places (text index)</summary>
+        <div id="watch-stage-places">
+        <h2 id="watch-graph-label">Places</h2>
+        <p class="lede">Public sites. Glyphs mark rooms, Players, exits, and visible works.</p>
+        <pre class="watch-pre" id="watch-pre" aria-hidden="true" hidden></pre>
+        <nav aria-label="Public sites">
+          <ul class="watch-graph" id="watch-map"></ul>
+        </nav>
+        </div>
+      </details>
     </section>
     <aside class="watch-side" aria-label="Current and recent public activity">
       <article class="watch-hero" id="watch-hero">
@@ -447,6 +454,7 @@ export function watchHtml(opts?: { mode?: string }): string {
   </section>
   <button class="btn quiet" id="watch-here-open" type="button" aria-expanded="false" aria-controls="watch-here-sheet">Here</button>
   <div class="watch-here-backdrop" id="watch-here-backdrop" hidden></div>
+  ${roomOverlayHtml()}
 
   <div class="watch-foot-meta">
     ${legendHtml()}
@@ -458,7 +466,7 @@ export function watchHtml(opts?: { mode?: string }): string {
     const POLL_MS = 10000;
     const TIER_RANK = { NORMAL: 1, NOTABLE: 2, MAJOR: 3 };
     const GLYPHS = ${JSON.stringify(glyphCatalog())};
-    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "3d", mapBusy: false, mapLast: null, mapCoords: [], mapCamId: "", mapFollowId: "" };
+    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "3d", mapBusy: false, mapLast: null, mapCoords: [], mapCamId: "", mapFollowId: "", activePlaceId: "", pendingPlaceSlug: "", roomFollowHandle: "", roomDrawerOpen: true, roomSelectedEntity: "" };
     const $ = id => document.getElementById(id);
 
     try {
@@ -466,6 +474,12 @@ export function watchHtml(opts?: { mode?: string }): string {
     } catch (e) { state.reduce = false; }
     const LOW_NOISE_KEY = ${JSON.stringify(LOW_NOISE_KEY)};
     const parseLowNoiseFlag = ${parseLowNoiseFlag.toString()};
+    function syncPlacesDrawer() {
+      const drawer = $("watch-places-drawer");
+      if (!drawer) return;
+      const expand = document.body.classList.contains("is-low-noise") || state.mode === "text" || (typeof stage3d !== "undefined" && stage3d.failed);
+      drawer.open = !!expand;
+    }
     function applyLowNoise(on) {
       document.body.classList.toggle("is-low-noise", !!on);
       const btn = $("watch-low-noise-btn");
@@ -476,6 +490,14 @@ export function watchHtml(opts?: { mode?: string }): string {
       // D2: Low noise unmounts the 3D stage; the text map carries the page.
       // Repaint now so the cartogram replaces the stage without waiting for a poll.
       // At boot this runs before the stage code initializes; mode apply handles it then.
+      if (state.stageReady) {
+        syncPlacesDrawer();
+        if (state.activePlaceId) {
+          if (on) disposeRoomStage();
+          else tryRoomStage();
+          renderRoomOverlay();
+        }
+      }
       if (state.mode === "3d" && state.stageReady) {
         tryStage();
         if (state.last) render(state.last);
@@ -502,6 +524,7 @@ export function watchHtml(opts?: { mode?: string }): string {
     const MAP_PARITY_LINE = ${JSON.stringify(MAP_PARITY_LINE)};
     const MAP_PARITY_HOLD_LINE = ${JSON.stringify(MAP_PARITY_HOLD_LINE)};
     const STAGE_SRC = ${JSON.stringify(STAGE_SRC)};
+    const ROOM_STAGE_SRC = ${JSON.stringify(ROOM_STAGE_SRC)};
     const STAGE_FALLBACK_LINE = ${JSON.stringify(STAGE_FALLBACK_LINE)};
     const STAGE_LOW_NOISE_LINE = ${JSON.stringify(STAGE_LOW_NOISE_LINE)};
 
@@ -557,11 +580,13 @@ export function watchHtml(opts?: { mode?: string }): string {
         paintMapParity(mapParityState({ live: state.last, map: data, failed: false, holding: !fetchedRooms.length && state.mapCoords.length > 0 }));
         paintStageHealth(data);
         syncStage();
+        if (state.activePlaceId) { renderRoomOverlay(); syncRoomStage(); }
       } catch (e) {
         // Poll failed: say so, keep the last agreed sketch, never wipe labels.
         paintMapParity(mapParityState({ live: state.last, map: state.mapLast, failed: true, holding: state.mapCoords.length > 0 }));
         if (state.mapLast) paintStageHealth(state.mapLast);
         syncStage();
+        if (state.activePlaceId) { renderRoomOverlay(); syncRoomStage(); }
       } finally {
         state.mapBusy = false;
       }
@@ -612,6 +637,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       stage3d.failed = true;
       stage3d.loading = false;
       disposeStage();
+      syncPlacesDrawer();
       if (state.mode === "3d") applyWatchMode("text", false);
       paintStageFallback(STAGE_FALLBACK_LINE);
     }
@@ -652,6 +678,7 @@ export function watchHtml(opts?: { mode?: string }): string {
           reset: $("watch-stage3d-reset"),
           reduce: state.reduce,
           onSelect: function(id) { if (window.NoemaPhosphorPick) window.NoemaPhosphorPick(id); },
+          onEnterRoom: function(id) { if (id) enterRoom(id, true); },
           onLost: stageFallback,
         });
         paintStageFallback("");
@@ -695,9 +722,482 @@ export function watchHtml(opts?: { mode?: string }): string {
       } else {
         disposeStage();
       }
+      syncPlacesDrawer();
+      if (state.activePlaceId) {
+        if (mode === "text" || lowNoiseOn()) disposeRoomStage();
+        else tryRoomStage();
+        renderRoomOverlay();
+      }
       if (state.last) render(state.last);
     }
     state.mode = parseWatchMode(location.search || "", location.hash || "");
+
+    // D7 Full-Screen Place View: lazy-loaded room diorama, URL ?place=<slug> sync,
+    // collapsible Room Activity drawer, and Low noise / text-only parity.
+    const room3d = { api: null, loading: false, failed: false };
+    function roomSlugOf(raw) {
+      return String(raw || "")
+        .trim()
+        .toLowerCase()
+        .replace(/^room\./, "")
+        .replace(/[^a-z0-9-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+    function readPlaceParam(search) {
+      try {
+        const sp = new URLSearchParams(search || "");
+        return String(sp.get("place") || "").trim();
+      } catch (e) { return ""; }
+    }
+    function findRoomByPlaceParam(rooms, raw) {
+      const target = String(raw || "").trim();
+      if (!target) return null;
+      const slug = roomSlugOf(target);
+      for (let i = 0; i < (rooms || []).length; i++) {
+        const r = rooms[i];
+        if (!r) continue;
+        if (r.room_id === target) return r;
+        if (slug && (roomSlugOf(r.room_id) === slug || roomSlugOf(r.name) === slug)) return r;
+      }
+      return null;
+    }
+    function syncPlaceUrl(roomId) {
+      try {
+        const u = new URL(location.href);
+        if (roomId) u.searchParams.set("place", roomSlugOf(roomId));
+        else u.searchParams.delete("place");
+        history.replaceState(null, "", u.pathname + u.search + u.hash);
+      } catch (e) { /* history optional */ }
+    }
+    function roomBandsFor(roomId) {
+      const base = state.mapLast && state.mapLast.base && Array.isArray(state.mapLast.base.rooms)
+        ? state.mapLast.base.rooms : [];
+      const row = base.find((x) => x && x.room_id === roomId);
+      if (!row) return { scar: "", pressure: "", protocol: "" };
+      const scar = /^(faint|marked|deep)$/i.test(String(row.scar_band || "")) ? String(row.scar_band).toLowerCase() : "";
+      const pressure = /^(low|moderate|high)$/i.test(String(row.pressure_band || "")) ? String(row.pressure_band).toLowerCase() : "";
+      const protocol = /^(low|moderate|high)$/i.test(String(row.protocol_band || "")) ? String(row.protocol_band).toLowerCase() : "";
+      return { scar, pressure, protocol };
+    }
+    function disposeRoomStage() {
+      if (room3d.api) {
+        try { room3d.api.dispose(); } catch (e) { /* room stage is display-only */ }
+      }
+      room3d.api = null;
+    }
+    function roomFallback() {
+      room3d.failed = true;
+      room3d.loading = false;
+      disposeRoomStage();
+      renderRoomOverlay();
+    }
+    function syncRoomStage() {
+      if (!room3d.api || !state.activePlaceId) return;
+      if (!state.last || state.last.projection !== "public") return;
+      try {
+        room3d.api.update(state.last, state.activePlaceId, {
+          map: state.mapLast,
+          followHandle: state.roomFollowHandle || "",
+          selectedEntity: state.roomSelectedEntity || "",
+        });
+        if (state.paused && typeof room3d.api.pause === "function") room3d.api.pause(true);
+      } catch (e) { /* room stage is display-only */ }
+    }
+    function mountRoomStage() {
+      if (!state.activePlaceId || room3d.api || lowNoiseOn() || state.mode === "text") return;
+      const api = window.NoemaWatchRoomStage;
+      if (!api || !api.mount) { roomFallback(); return; }
+      try {
+        room3d.api = api.mount($("watch-room-frame"), {
+          canvas: $("watch-room-gl"),
+          labels: $("watch-room-labels"),
+          reset: $("watch-room-reset"),
+          reduce: state.reduce,
+          onNavigateRoom: function(id) { if (id) enterRoom(id, true); },
+          onFollowAgent: function(handle) { toggleRoomFollow(handle); },
+          onSelectEntity: function(label) {
+            state.roomSelectedEntity = String(label || "");
+            renderRoomOverlay();
+          },
+          onLost: roomFallback,
+        });
+        syncRoomStage();
+      } catch (e) {
+        roomFallback();
+      }
+    }
+    function tryRoomStage() {
+      if (!state.activePlaceId) { disposeRoomStage(); return; }
+      if (lowNoiseOn() || state.mode === "text") { disposeRoomStage(); renderRoomOverlay(); return; }
+      if (room3d.failed || !stageGlUsable()) { roomFallback(); return; }
+      if (room3d.api) { syncRoomStage(); return; }
+      if (window.NoemaWatchRoomStage) { mountRoomStage(); return; }
+      if (room3d.loading) return;
+      if (!document.head || !document.head.appendChild) { roomFallback(); return; }
+      room3d.loading = true;
+      const s = document.createElement("script");
+      s.type = "module";
+      s.src = ROOM_STAGE_SRC;
+      s.addEventListener("load", function() { room3d.loading = false; mountRoomStage(); renderRoomOverlay(); });
+      s.addEventListener("error", roomFallback);
+      document.head.appendChild(s);
+    }
+    function toggleRoomFollow(handle) {
+      const next = handle && state.roomFollowHandle !== handle ? String(handle) : "";
+      state.roomFollowHandle = next;
+      if (room3d.api && typeof room3d.api.followAgent === "function") {
+        try { room3d.api.followAgent(next); } catch (e) { /* display-only */ }
+      }
+      renderRoomOverlay();
+      syncRoomStage();
+    }
+    function setRoomDrawerOpen(on) {
+      state.roomDrawerOpen = !!on;
+      const drawer = $("watch-room-drawer");
+      const btn = $("watch-room-drawer-btn");
+      if (drawer) drawer.hidden = !state.roomDrawerOpen;
+      if (btn) btn.setAttribute("aria-expanded", state.roomDrawerOpen ? "true" : "false");
+    }
+    function renderPlaceSelects(rooms) {
+      const ids = ["watch-place-select", "watch-room-select"];
+      for (let s = 0; s < ids.length; s++) {
+        const sel = $(ids[s]);
+        if (!sel || !sel.replaceChildren) continue;
+        sel.replaceChildren();
+        const def = el("option", "", "Overview — Perihelion Reach");
+        def.value = "";
+        sel.append(def);
+        for (let i = 0; i < (rooms || []).length; i++) {
+          const r = rooms[i];
+          if (!r || !r.room_id) continue;
+          const count = Math.max(0, Number(r.players_present) || 0);
+          const opt = el("option", "", (r.name || r.room_id) + (count > 0 ? " (" + count + ")" : ""));
+          opt.value = r.room_id;
+          sel.append(opt);
+        }
+        sel.value = state.activePlaceId || "";
+      }
+    }
+    function roomAgentsFor(data, r) {
+      const handles = occupantLabelsForRoom(r);
+      const roster = Array.isArray(data && data.agents) ? data.agents : [];
+      const byHandle = {};
+      for (let i = 0; i < roster.length; i++) {
+        const ag = roster[i];
+        if (ag && ag.label) byHandle[String(ag.label)] = ag;
+      }
+      const list = [];
+      for (let i = 0; i < handles.length; i++) {
+        const h = handles[i];
+        const ag = byHandle[h] || null;
+        list.push({
+          handle: h,
+          resident: !!(ag && ag.public_activity === true),
+          verb: ag && ag.last_verb ? String(ag.last_verb) : "",
+          target: ag && ag.last_target_label ? String(ag.last_target_label) : "",
+          action: (ag && ag.last_action) || knownForLine(data || {}, h) || "Active on site",
+        });
+      }
+      return list;
+    }
+    function roomActivityItemsFor(data, r) {
+      if (Array.isArray(r && r.room_activity) && r.room_activity.length) return r.room_activity;
+      const events = Array.isArray(data && data.narrative && data.narrative.recently)
+        ? data.narrative.recently
+        : Array.isArray(data && data.recent_events) ? data.recent_events : [];
+      return siteRecent(events, r && r.room_id).map((e) => ({
+        sequence: e.sequence,
+        occurred_at: e.occurred_at,
+        tier: e.tier || "NORMAL",
+        verb: e.verb || "",
+        actor_label: e.actor_label || "",
+        target_label: e.target_label || "",
+        line: e.line || "",
+        kind: "deed",
+      }));
+    }
+    function buildActivityNodes(items) {
+      const nodes = [];
+      if (!items.length) {
+        nodes.push(el("li", "room-empty-note", "Quiet in this place right now."));
+        return nodes;
+      }
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (!item) continue;
+        const kind = item.kind === "speech" ? "speech" : item.kind === "posture" ? "posture" : "deed";
+        const li = el("li", "room-activity-item is-" + kind);
+        const actor = String(item.actor_label || "").trim();
+        const accent = actor ? agentAccentHex(actor) : "";
+        if (accent && li.style && typeof li.style.setProperty === "function") {
+          li.style.setProperty("--speech-accent", accent);
+        }
+        const meta = el("div", "room-activity-meta");
+        if (actor) {
+          const dot = el("span", "room3d-dot");
+          if (dot.style) dot.style.background = accent;
+          meta.append(dot);
+          const who = item.listener_label ? (actor + " → " + item.listener_label) : actor;
+          meta.append(el("span", "", who));
+        }
+        if (item.verb) meta.append(el("span", "room-verb-tag", String(item.verb)));
+        if (item.target_label) meta.append(el("span", "room-target-chip", String(item.target_label)));
+        const when = ago(item.occurred_at);
+        if (when) meta.append(el("span", "", when));
+        if (meta.children.length) li.append(meta);
+        if (kind === "speech" && item.speech) {
+          li.append(el("p", "room-activity-speech", "“" + String(item.speech) + "”"));
+        } else {
+          li.append(el("p", "room-activity-line", String(item.line || "")));
+        }
+        nodes.push(li);
+      }
+      return nodes;
+    }
+    function formatExitDir(raw) {
+      const d = String(raw || "").trim().toLowerCase();
+      if (d === "north" || d === "n") return "N";
+      if (d === "south" || d === "s") return "S";
+      if (d === "east" || d === "e") return "E";
+      if (d === "west" || d === "w") return "W";
+      if (d === "northeast" || d === "ne") return "NE";
+      if (d === "northwest" || d === "nw") return "NW";
+      if (d === "southeast" || d === "se") return "SE";
+      if (d === "southwest" || d === "sw") return "SW";
+      if (d === "up" || d === "u") return "Up";
+      if (d === "down" || d === "d") return "Down";
+      if (d === "in") return "In";
+      if (d === "out") return "Out";
+      return d ? d.slice(0, 1).toUpperCase() + d.slice(1) : "";
+    }
+    function renderRoomOverlay() {
+      const overlay = $("watch-room-overlay");
+      if (!overlay) return;
+      if (!state.activePlaceId) {
+        overlay.hidden = true;
+        return;
+      }
+      overlay.hidden = false;
+      const rooms = state.last && Array.isArray(state.last.rooms) ? state.last.rooms : [];
+      const r = rooms.find((x) => x && x.room_id === state.activePlaceId) || null;
+      const title = $("watch-room-title");
+      if (title) title.textContent = (r && (r.name || r.room_id)) || roomSlugOf(state.activePlaceId) || "Place";
+      const roomSel = $("watch-room-select");
+      if (roomSel) roomSel.value = state.activePlaceId;
+
+      const bandsEl = $("watch-room-bands");
+      if (bandsEl && bandsEl.replaceChildren) {
+        bandsEl.replaceChildren();
+        const b = roomBandsFor(state.activePlaceId);
+        if (b.pressure) bandsEl.append(el("span", "room-band-chip is-pressure", "pressure " + b.pressure));
+        if (b.scar) bandsEl.append(el("span", "room-band-chip is-scar", "scar " + b.scar));
+        if (b.protocol) bandsEl.append(el("span", "room-band-chip", "protocol " + b.protocol));
+        bandsEl.hidden = !bandsEl.children.length;
+      }
+
+      const exitsNav = $("watch-room-exits");
+      const exits = r && Array.isArray(r.exits) ? r.exits : [];
+      if (exitsNav && exitsNav.replaceChildren) {
+        exitsNav.replaceChildren();
+        for (let i = 0; i < exits.length; i++) {
+          const x = exits[i];
+          if (!x || !x.to_room_id) continue;
+          const shortDir = formatExitDir(x.direction);
+          const btn = el("button", "room-exit-pill", (shortDir ? shortDir + " → " : "→ ") + (x.to_room_name || x.to_room_id));
+          btn.type = "button";
+          btn.addEventListener("click", () => enterRoom(x.to_room_id, true));
+          exitsNav.append(btn);
+        }
+      }
+
+      const followChip = $("watch-room-follow-chip");
+      if (followChip) {
+        followChip.hidden = !state.roomFollowHandle;
+        followChip.textContent = state.roomFollowHandle ? ("Following " + state.roomFollowHandle + " ×") : "";
+      }
+
+      const textMode = lowNoiseOn() || state.mode === "text" || room3d.failed;
+      const canvas = $("watch-room-gl");
+      const labels = $("watch-room-labels");
+      const help = $("watch-room-help");
+      const textBox = $("watch-room-text");
+      const drawer = $("watch-room-drawer");
+      const drawerBtn = $("watch-room-drawer-btn");
+      const resetBtn = $("watch-room-reset");
+      if (canvas) canvas.hidden = textMode;
+      if (labels) labels.hidden = textMode;
+      if (help) help.hidden = textMode;
+      if (resetBtn) resetBtn.hidden = textMode;
+      if (drawerBtn) drawerBtn.hidden = textMode;
+      if (drawer) drawer.hidden = textMode || !state.roomDrawerOpen;
+      if (textBox) textBox.hidden = !textMode;
+
+      const agents = r ? roomAgentsFor(state.last, r) : [];
+      const activity = r ? roomActivityItemsFor(state.last, r) : [];
+      const ents = r && Array.isArray(r.entities) ? r.entities : [];
+      const traces = r && Array.isArray(r.traces) ? r.traces : [];
+      const unnamedCount = Math.max(0, Number(r && r.players_present || 0) - agents.length);
+
+      const descEl = $("watch-room-desc");
+      if (descEl) descEl.textContent = (r && r.description) ? String(r.description) : "";
+
+      const agentsEl = $("watch-room-agents");
+      if (agentsEl && agentsEl.replaceChildren) {
+        agentsEl.replaceChildren();
+        if (!agents.length && unnamedCount <= 0) {
+          agentsEl.append(el("p", "room-empty-note", "No agents currently visible here."));
+        } else {
+          for (let i = 0; i < agents.length; i++) {
+            const ag = agents[i];
+            const accent = agentAccentHex(ag.handle);
+            const card = el("button", "room-agent-card" + (state.roomFollowHandle === ag.handle ? " is-followed" : ""));
+            card.type = "button";
+            if (card.style && typeof card.style.setProperty === "function") {
+              card.style.setProperty("--agent-accent", accent);
+            }
+            const head = el("span", "room-agent-card-head");
+            const dot = el("span", "room3d-dot");
+            if (dot.style) dot.style.background = accent;
+            head.append(dot, el("strong", "", ag.handle));
+            if (ag.resident) head.append(el("span", "room-resident-badge", "Resident"));
+            if (ag.verb) head.append(el("span", "room-verb-tag", ag.verb));
+            card.append(head);
+            const detail = ag.target ? (ag.action + " · " + ag.target) : ag.action;
+            card.append(el("span", "room-agent-card-sub", detail));
+            card.addEventListener("click", () => toggleRoomFollow(ag.handle));
+            agentsEl.append(card);
+          }
+          if (unnamedCount > 0) {
+            agentsEl.append(el("p", "room-empty-note", unnamedCount === 1 ? "+ 1 unnamed agent present" : "+ " + unnamedCount + " unnamed agents present"));
+          }
+        }
+      }
+
+      const actEl = $("watch-room-activity");
+      if (actEl && actEl.replaceChildren) {
+        actEl.replaceChildren(...buildActivityNodes(activity));
+      }
+
+      const worksEl = $("watch-room-works");
+      if (worksEl && worksEl.replaceChildren) {
+        worksEl.replaceChildren();
+        if (ents.length) {
+          const eWrap = el("div", "room-works-entities");
+          for (let i = 0; i < ents.length; i++) {
+            const e = ents[i];
+            if (!e || !e.label) continue;
+            const chip = el("span", "room-work-chip" + (state.roomSelectedEntity === e.label ? " is-selected" : ""));
+            chip.append(glyphNode(e.glyph || "event"), document.createTextNode(String(e.label)));
+            eWrap.append(chip);
+          }
+          worksEl.append(eWrap);
+        }
+        for (let i = 0; i < traces.length; i++) {
+          const t = traces[i];
+          if (t && t.text) worksEl.append(el("p", "room-trace-item", String(t.text)));
+        }
+        if (!worksEl.children.length) {
+          worksEl.append(el("p", "room-empty-note", "No visible works or traces."));
+        }
+      }
+
+      if (textMode && textBox && textBox.replaceChildren) {
+        textBox.replaceChildren();
+        const inner = el("div", "room-text-inner");
+        const reason = lowNoiseOn() ? STAGE_LOW_NOISE_LINE : state.mode === "text" ? "Text mode active — showing full room index." : STAGE_FALLBACK_LINE;
+        inner.append(el("p", "room-text-note", reason));
+        if (r && r.description) inner.append(el("p", "room-drawer-desc", String(r.description)));
+        const agSec = el("section", "room-drawer-sec");
+        agSec.append(el("h3", "", "Present here"));
+        const agList = el("div", "room-agents-list");
+        if (!agents.length && unnamedCount <= 0) {
+          agList.append(el("p", "room-empty-note", "No agents currently visible here."));
+        } else {
+          for (let i = 0; i < agents.length; i++) {
+            const ag = agents[i];
+            const accent = agentAccentHex(ag.handle);
+            const row = el("div", "room-agent-card");
+            if (row.style && typeof row.style.setProperty === "function") row.style.setProperty("--agent-accent", accent);
+            const head = el("span", "room-agent-card-head");
+            const dot = el("span", "room3d-dot");
+            if (dot.style) dot.style.background = accent;
+            head.append(dot, el("strong", "", ag.handle));
+            if (ag.resident) head.append(el("span", "room-resident-badge", "Resident"));
+            if (ag.verb) head.append(el("span", "room-verb-tag", ag.verb));
+            row.append(head, el("span", "room-agent-card-sub", ag.action));
+            agList.append(row);
+          }
+          if (unnamedCount > 0) agList.append(el("p", "room-empty-note", "+ " + unnamedCount + " unnamed"));
+        }
+        agSec.append(agList);
+        inner.append(agSec);
+        const actSec = el("section", "room-drawer-sec");
+        actSec.append(el("h3", "", "Room activity & dialogue"));
+        const actList = el("ol", "room-activity-list");
+        actList.append(...buildActivityNodes(activity));
+        actSec.append(actList);
+        inner.append(actSec);
+        const wSec = el("section", "room-drawer-sec");
+        wSec.append(el("h3", "", "Works & traces"));
+        const wWrap = el("div", "room-works-list");
+        if (ents.length) {
+          const eWrap = el("div", "room-works-entities");
+          for (let i = 0; i < ents.length; i++) {
+            const e = ents[i];
+            if (e && e.label) eWrap.append(el("span", "room-work-chip", String(e.label)));
+          }
+          wWrap.append(eWrap);
+        }
+        for (let i = 0; i < traces.length; i++) {
+          const t = traces[i];
+          if (t && t.text) wWrap.append(el("p", "room-trace-item", String(t.text)));
+        }
+        if (!wWrap.children.length) wWrap.append(el("p", "room-empty-note", "No visible works or traces."));
+        wSec.append(wWrap);
+        inner.append(wSec);
+        textBox.append(inner);
+      }
+    }
+    function enterRoom(roomId, pushUrl) {
+      const next = String(roomId || "").trim();
+      if (!next) { exitRoom(pushUrl); return; }
+      const wasOpen = !!state.activePlaceId;
+      state.activePlaceId = next;
+      state.roomSelectedEntity = "";
+      if (state.roomFollowHandle && state.last && Array.isArray(state.last.rooms)) {
+        const hit = state.last.rooms.find((x) => x && x.room_id === next);
+        const here = hit ? occupantLabelsForRoom(hit) : [];
+        if (here.indexOf(state.roomFollowHandle) < 0) state.roomFollowHandle = "";
+      }
+      if (!wasOpen) {
+        let narrow = false;
+        try { narrow = window.matchMedia("(max-width: 860px)").matches; } catch (e) { narrow = false; }
+        state.roomDrawerOpen = !narrow;
+      }
+      if (document.body && document.body.classList) document.body.classList.add("is-room-open");
+      if (pushUrl !== false) syncPlaceUrl(next);
+      const pSel = $("watch-place-select");
+      if (pSel) pSel.value = next;
+      setRoomDrawerOpen(state.roomDrawerOpen);
+      renderRoomOverlay();
+      tryRoomStage();
+    }
+    function exitRoom(pushUrl) {
+      state.activePlaceId = "";
+      state.roomFollowHandle = "";
+      state.roomSelectedEntity = "";
+      disposeRoomStage();
+      const overlay = $("watch-room-overlay");
+      if (overlay) overlay.hidden = true;
+      if (document.body && document.body.classList) document.body.classList.remove("is-room-open");
+      if (pushUrl !== false) syncPlaceUrl("");
+      const pSel = $("watch-place-select");
+      if (pSel) pSel.value = "";
+      const rSel = $("watch-room-select");
+      if (rSel) rSel.value = "";
+      if (pSel && typeof pSel.focus === "function") pSel.focus();
+    }
+    state.pendingPlaceSlug = readPlaceParam(location.search || "");
 
     // §4.G Follow — client-local spectator preference. Emphasis only, never a
     // filter, never a server request. Matches only public snapshot identifiers.
@@ -1048,6 +1548,15 @@ export function watchHtml(opts?: { mode?: string }): string {
       const stageLine = $("watch-stage-line");
       if (stageLine) stageLine.textContent = story;
       const painted = paintPublicTheater(head, events, rooms, players);
+      renderPlaceSelects(rooms);
+      if (state.pendingPlaceSlug && !state.activePlaceId && rooms.length) {
+        const deepHit = findRoomByPlaceParam(rooms, state.pendingPlaceSlug);
+        state.pendingPlaceSlug = "";
+        if (deepHit && deepHit.room_id) enterRoom(deepHit.room_id, false);
+      } else if (state.activePlaceId) {
+        renderRoomOverlay();
+        syncRoomStage();
+      }
       if (state.mode === "3d") applyMapFocus(head, rooms, events);
       renderFollowChrome(data, rooms, events, head);
       renderStanding(data);
@@ -1231,6 +1740,12 @@ export function watchHtml(opts?: { mode?: string }): string {
           fBtnRow.append(isFollowedSite
             ? followButtonClear("Following — clear")
             : followButton("site", r.room_id || "", "Follow " + (r.name || "site")));
+          if (r.room_id) {
+            const enterBtn = el("button", "btn quiet watch-enter-room-btn", "Enter room →");
+            enterBtn.type = "button";
+            enterBtn.addEventListener("click", () => enterRoom(r.room_id, true));
+            fBtnRow.append(enterBtn);
+          }
           box.append(fBtnRow);
           const ents = Array.isArray(r.entities) ? r.entities : [];
           const eLine = el("p", "watch-ents");
@@ -1399,9 +1914,40 @@ export function watchHtml(opts?: { mode?: string }): string {
     // Mode rail swaps the center stage. Phosphor also binds TEXT/PIXEL;
     // apply after that handler so canvas mode and Chamber stage agree.
     applyWatchMode(state.mode, true);
+    const placeSelect = $("watch-place-select");
+    if (placeSelect) {
+      placeSelect.addEventListener("change", () => {
+        const val = String(placeSelect.value || "").trim();
+        if (val) enterRoom(val, true);
+        else exitRoom(true);
+      });
+    }
+    const roomSelect = $("watch-room-select");
+    if (roomSelect) {
+      roomSelect.addEventListener("change", () => {
+        const val = String(roomSelect.value || "").trim();
+        if (val) enterRoom(val, true);
+        else exitRoom(true);
+      });
+    }
+    const roomBack = $("watch-room-back");
+    if (roomBack) roomBack.addEventListener("click", () => exitRoom(true));
+    const roomFollowChip = $("watch-room-follow-chip");
+    if (roomFollowChip) roomFollowChip.addEventListener("click", () => toggleRoomFollow(""));
+    const roomDrawerBtn = $("watch-room-drawer-btn");
+    if (roomDrawerBtn) roomDrawerBtn.addEventListener("click", () => setRoomDrawerOpen(!state.roomDrawerOpen));
     if (window.addEventListener) {
       window.addEventListener("popstate", () => {
         applyWatchMode(parseWatchMode(location.search || "", location.hash || ""), false);
+        const slug = readPlaceParam(location.search || "");
+        if (!slug) {
+          if (state.activePlaceId) exitRoom(false);
+        } else if (state.last && Array.isArray(state.last.rooms)) {
+          const hit = findRoomByPlaceParam(state.last.rooms, slug);
+          if (hit && hit.room_id) enterRoom(hit.room_id, false);
+        } else {
+          state.pendingPlaceSlug = slug;
+        }
       });
       window.addEventListener("hashchange", () => {
         applyWatchMode(parseWatchMode(location.search || "", location.hash || ""), false);
@@ -1415,6 +1961,9 @@ export function watchHtml(opts?: { mode?: string }): string {
       // D6: the stage holds its paced playback with the page.
       if (stage3d.api && typeof stage3d.api.pause === "function") {
         try { stage3d.api.pause(state.paused); } catch (e) { /* stage is display-only */ }
+      }
+      if (room3d.api && typeof room3d.api.pause === "function") {
+        try { room3d.api.pause(state.paused); } catch (e) { /* room stage is display-only */ }
       }
       if (state.paused) {
         setTag("paused", "tag warn");
@@ -1462,6 +2011,11 @@ export function watchHtml(opts?: { mode?: string }): string {
     $("watch-follow-clear").addEventListener("click", () => setFollow(null));
     document.addEventListener("keydown", (ev) => {
       if (!ev || ev.key !== "Escape") return;
+      if (state.activePlaceId) {
+        if (typeof ev.preventDefault === "function") ev.preventDefault();
+        exitRoom(true);
+        return;
+      }
       const sheet = $("watch-here-sheet");
       if (sheet && sheet.classList.contains("is-open")) {
         if (typeof ev.preventDefault === "function") ev.preventDefault();

@@ -599,6 +599,7 @@ function mount(frame, opts) {
   const labelRoot = opts.labels;
   const reduce = !!opts.reduce;
   const onSelect = typeof opts.onSelect === "function" ? opts.onSelect : () => {};
+  const onEnterRoom = typeof opts.onEnterRoom === "function" ? opts.onEnterRoom : () => {};
   const onLost = typeof opts.onLost === "function" ? opts.onLost : () => {};
   const C = palette();
   const haloTexture = makeHaloTexture();
@@ -1578,6 +1579,7 @@ function mount(frame, opts) {
       el.append(s);
     }
     el.addEventListener("click", (ev) => { ev.stopPropagation(); onSelect(site.id); });
+    el.addEventListener("dblclick", (ev) => { ev.stopPropagation(); onEnterRoom(site.id); });
     const obj = new CSS2DObject(el);
     // Anchor along front-lower bevel; if a tight neighbor sits directly to our south-east
     // (e.g. Foundry Corridor above Generator Hall), anchor cleanly along the uncluttered north-west rim.
@@ -2801,8 +2803,16 @@ function mount(frame, opts) {
     const hit = ray.intersectObjects(world.children, true).find((h) => h.object.userData && h.object.userData.siteId);
     if (hit) onSelect(hit.object.userData.siteId);
   };
+  const onDblClick = (ev) => {
+    const r = canvas.getBoundingClientRect();
+    ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const hit = ray.intersectObjects(world.children, true).find((h) => h.object.userData && h.object.userData.siteId);
+    if (hit) onEnterRoom(hit.object.userData.siteId);
+  };
   canvas.addEventListener("pointerdown", onDown);
   canvas.addEventListener("pointerup", onUp);
+  canvas.addEventListener("dblclick", onDblClick);
   // Any spectator camera movement suspends the director until Reset view.
   controls.addEventListener("start", () => { spectatorMoved = true; tween = null; shot = null; });
   controls.addEventListener("change", request);
@@ -2859,6 +2869,7 @@ function mount(frame, opts) {
     controls.dispose();
     canvas.removeEventListener("pointerdown", onDown);
     canvas.removeEventListener("pointerup", onUp);
+    canvas.removeEventListener("dblclick", onDblClick);
     canvas.removeEventListener("webglcontextlost", onContextLost);
     frame.removeEventListener("keydown", onKey);
     controls.stopListenToKeyEvents();

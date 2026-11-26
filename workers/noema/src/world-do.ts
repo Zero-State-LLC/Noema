@@ -325,23 +325,77 @@ export class NoemaWorldDO {
       entered: p.entered,
       last_seen_ms: p.last_seen_ms,
       actor_kind: inferActorKind(player_id, p.actor_kind, p.controller_type),
+      controller_type: p.controller_type,
+      public_activity: p.public_activity,
       practice: p.practice,
       focus: p.focus,
     }));
-    const events: WatchSourceEvent[] = digestEvents.slice(-80).map((ev) => ({
-      event_type: ev.event_type,
-      sequence: ev.sequence,
-      cycle: ev.cycle,
-      handle: ev.handle,
-      player_id: ev.player_id,
-      actor_kind: inferActorKind(
-        ev.player_id || "",
-        this.world!.players[ev.player_id || ""]?.actor_kind,
-        this.world!.players[ev.player_id || ""]?.controller_type,
-      ),
-      at: ev.at,
-      payload: ev.payload,
-    }));
+    const msgById = new Map<string, { sender_id?: string; recipient_id?: string; text?: string }>();
+    for (const m of this.world!.messages || []) {
+      if (m && typeof m.message_id === "string" && m.message_id) {
+        msgById.set(m.message_id, {
+          sender_id: m.sender_id,
+          recipient_id: m.recipient_id,
+          text: m.text,
+        });
+      }
+    }
+    const windowEvents = digestEvents.slice(-80);
+    for (const ev of windowEvents) {
+      if (String(ev.event_type || "").toUpperCase() === "MESSAGE" && typeof ev.payload?.message_id === "string") {
+        const mid = ev.payload.message_id;
+        if (!msgById.has(mid)) {
+          msgById.set(mid, {
+            sender_id: typeof ev.payload.sender_id === "string" ? ev.payload.sender_id : ev.player_id,
+            recipient_id: typeof ev.payload.recipient_id === "string"
+              ? ev.payload.recipient_id
+              : typeof ev.payload.to_player_id === "string"
+                ? ev.payload.to_player_id
+                : undefined,
+            text: typeof ev.payload.text === "string" ? ev.payload.text : undefined,
+          });
+        }
+      }
+    }
+    const events: WatchSourceEvent[] = windowEvents.map((ev) => {
+      const playerRec = ev.player_id ? this.world!.players[ev.player_id] : undefined;
+      const evType = String(ev.event_type || "").toUpperCase();
+      let payload = ev.payload;
+      if (evType === "MESSAGE_DELIVERED" || evType === "MESSAGE") {
+        const mid = typeof ev.payload?.message_id === "string" ? ev.payload.message_id : undefined;
+        const known = mid ? msgById.get(mid) : undefined;
+        const recipientId =
+          (typeof ev.payload?.to_player_id === "string" && ev.payload.to_player_id) ||
+          (typeof ev.payload?.recipient_id === "string" && ev.payload.recipient_id) ||
+          known?.recipient_id;
+        const senderId =
+          (typeof ev.payload?.sender_id === "string" && ev.payload.sender_id) ||
+          known?.sender_id ||
+          ev.player_id;
+        const text =
+          (typeof ev.payload?.text === "string" ? ev.payload.text : undefined) ?? known?.text;
+        payload = {
+          ...(ev.payload || {}),
+          ...(senderId ? { sender_id: senderId } : {}),
+          ...(recipientId ? { to_player_id: recipientId, recipient_id: recipientId } : {}),
+          ...(typeof text === "string" ? { text } : {}),
+        };
+      }
+      return {
+        event_type: ev.event_type,
+        sequence: ev.sequence,
+        cycle: ev.cycle,
+        handle: ev.handle || playerRec?.handle,
+        player_id: ev.player_id,
+        actor_kind: inferActorKind(
+          ev.player_id || "",
+          playerRec?.actor_kind,
+          playerRec?.controller_type,
+        ),
+        at: ev.at,
+        payload,
+      };
+    });
     const reconstructions = Object.values(this.world!.reconstructions || {}).map((r) => ({
       fidelity: r.fidelity,
       // Preserve optional stored adapter data without inventing a Controller
@@ -798,6 +852,38 @@ export class NoemaWorldDO {
             succession: office.succession || null,
           })),
         ),
+      });
+    }
+
+    if (request.method === "POST" && path.endsWith("/operator/player/public-activity")) {
+      this.bindAdminGenesisWorld(request);
+      await this.load();
+      const body = (await request.json().catch(() => ({}))) as {
+        player_id?: unknown;
+        public_activity?: unknown;
+      };
+      const playerId = typeof body.player_id === "string" ? body.player_id.trim() : "";
+      if (!playerId || typeof body.public_activity !== "boolean") {
+        return Response.json(
+          { error: { code: "INVALID_REQUEST", message: "player_id and boolean public_activity required" } },
+          { status: 400 },
+        );
+      }
+      const player = this.world!.players[playerId];
+      if (!player) {
+        return Response.json(
+          { error: { code: "PLAYER_NOT_FOUND", message: "player not found" } },
+          { status: 404 },
+        );
+      }
+      player.public_activity = Boolean(body.public_activity);
+      await this.save();
+      await this.pushWatchSnapshot().catch(() => {});
+      return Response.json({
+        ok: true,
+        world_id: this.world!.world_id,
+        player_id: playerId,
+        public_activity: player.public_activity,
       });
     }
 

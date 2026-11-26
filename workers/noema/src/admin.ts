@@ -1137,7 +1137,36 @@ export function adminHtml(): string {
         rows.forEach((row) => {
           const label = row.handle || row.player_id;
           const note = row.entered ? "present" : "idle";
-          el.append(pairLi(label, note));
+          const li = pairLi(label, note);
+          const isPublic = row.public_activity === true;
+          const toggle = document.createElement("button");
+          toggle.type = "button";
+          toggle.className = "btn quiet";
+          toggle.style.minHeight = "1.75rem";
+          toggle.style.padding = ".2rem .5rem";
+          toggle.style.fontSize = ".68rem";
+          toggle.style.marginLeft = ".5rem";
+          toggle.setAttribute("aria-pressed", isPublic ? "true" : "false");
+          toggle.textContent = isPublic ? "Public WATCH" : "Private";
+          toggle.addEventListener("click", async () => {
+            toggle.disabled = true;
+            try {
+              await api("/v1/operator/player/public-activity", {
+                method: "POST",
+                body: JSON.stringify({
+                  player_id: row.player_id,
+                  public_activity: !isPublic,
+                }),
+              });
+              notice((isPublic ? "Disabled" : "Enabled") + " public WATCH activity for " + label + ".", "ok");
+              await load();
+            } catch (err) {
+              notice(err.message || "Failed to update player visibility.", "bad");
+              toggle.disabled = false;
+            }
+          });
+          li.append(toggle);
+          el.append(li);
         });
       };
       fillActors("live-player-list", live, "No live Players.");
