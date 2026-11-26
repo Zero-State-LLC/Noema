@@ -2313,6 +2313,10 @@ function mount(frame, opts) {
         o.material.dispose();
       }
     });
+    if (sun.shadow && typeof sun.shadow.dispose === "function") sun.shadow.dispose();
+    if (typeof sun.dispose === "function") sun.dispose();
+    if (typeof rim.dispose === "function") rim.dispose();
+    if (typeof hearth.dispose === "function") hearth.dispose();
     for (const geo of Object.values(shared)) geo.dispose();
     if (haloTexture) haloTexture.dispose();
     if (beaconTexture) beaconTexture.dispose();
