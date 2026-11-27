@@ -1,0 +1,107 @@
+{
+  "_source": "Published tool surface of cloudflare/mcp @ 66b361ed7c94153bb37a5d0c94874c860a86cb0c (src/tools/*.ts). Long dynamic descriptions shortened. Replace by running `python3 codemode/gen_wrappers.py cloudflare_api` with CLOUDFLARE_API_TOKEN set.",
+  "tools": [
+    {
+      "name": "search",
+      "title": "Cloudflare API Spec Search",
+      "description": "Search the Cloudflare OpenAPI spec by running a JavaScript async arrow function against `spec` (all $refs pre-resolved inline); returns only the operations, parameters or schemas the code selects.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "JavaScript async arrow function to search the OpenAPI spec"
+          },
+          "truncate": {
+            "type": "boolean",
+            "description": "Cap the result at ~6,000 tokens. Set to false only when the result goes straight to a file or pipe, not into the conversation."
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      }
+    },
+    {
+      "name": "execute",
+      "title": "Cloudflare API Execute",
+      "description": "Execute JavaScript code against the Cloudflare API with cloudflare.request({ method, path, query, body }); chain calls, paginate and reduce results inside the code.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "JavaScript async arrow function to execute"
+          },
+          "account_id": {
+            "type": "string",
+            "description": "Cloudflare account ID to run against. Optional when the session is authorized for exactly one account."
+          },
+          "truncate": {
+            "type": "boolean",
+            "description": "Cap the result at ~6,000 tokens. Set to false only when the result goes straight to a file or pipe, not into the conversation."
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      }
+    },
+    {
+      "name": "docs",
+      "title": "Cloudflare Docs Search",
+      "description": "Search the Cloudflare developer documentation (Workers, Durable Objects, D1, KV, R2, Access, DNS and more); returns semantically similar chunks.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Cloudflare documentation search query"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      }
+    },
+    {
+      "name": "whoami",
+      "title": "Current Cloudflare Identity",
+      "description": "Return the Cloudflare user or account this connection is authenticated as ({ id, email } or { id, name }); takes no arguments.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      }
+    },
+    {
+      "name": "submit_feedback",
+      "title": "Send Feedback to Cloudflare",
+      "description": "Report a problem with Cloudflare products, this MCP server or its tools to the Cloudflare team.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "annotations": {}
+    }
+  ]
+}

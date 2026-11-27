@@ -39,6 +39,13 @@ Do not invent new gotchas.
 - Isolated tests and Chamber (dev tooling) may still move. RFC-0120 identity
   remains constitution. Hosted alpha is THAWED.
 
+## Code mode
+
+Prefer it for multi-step or data-heavy GitHub board/CI and read-only Cloudflare
+work: write a script, run it with `python3 codemode/run.py`. Find tools with
+`python3 codemode/search_tools.py <words>`; check `codemode/skills/` first.
+Rules: [`codemode/README.md`](codemode/README.md).
+
 ## Deploy
 
 Pin-on-publish is dispatch-only (`.github/workflows/deploy-worker-pin-pr.yml`).

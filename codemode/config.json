@@ -1,0 +1,84 @@
+{
+  "_comment": "Code-mode registry. Servers here become ./servers/<name>/ wrappers. Policy lives in runtime/policy.py, not in generated files.",
+  "repos": [
+    "Zero-State-LLC/Noema",
+    "Zero-State-LLC/Noema-Specs",
+    "Zero-State-LLC/Noema-Orin",
+    "Zero-State-LLC/noema-client"
+  ],
+  "board_repo": "Zero-State-LLC/Noema-Specs",
+  "home_repo": "Zero-State-LLC/Noema",
+  "servers": {
+    "cloudflare_api": {
+      "transport": "http",
+      "url": "https://mcp.cloudflare.com/mcp",
+      "token_env": "CLOUDFLARE_API_TOKEN",
+      "source": ".cursor/mcp.json (cloudflare-api)",
+      "policy": "read-only: list and read Workers and account state. Not a deploy path (AGENTS.md Deploy).",
+      "skip_tools": [
+        "submit_feedback"
+      ],
+      "skip_reason": "submit_feedback sends session details to Cloudflare; not Noema work."
+    },
+    "github": {
+      "transport": "gh-rest",
+      "source": "gh api (REST). The repos' declared tracker interface: docs/agents/issue-tracker.md",
+      "policy": "reads are free; writes default to dry_run and never map PII placeholders back into public text."
+    }
+  },
+  "excluded": {
+    "noema-world": "Hosted inhabit is agents-only through noema-client. Code mode never sends /v1/command, /play/action or Durable Object /command. Do not PLAY world-01.",
+    "graft/trail": "Already progressive-disclosure code context. Use `graft ask` / `trail ask` directly."
+  },
+  "sandbox": {
+    "writable": [
+      "codemode/.work",
+      "codemode/skills"
+    ],
+    "allow_exec": [
+      "gh"
+    ],
+    "allow_git_subcommands": [
+      "log",
+      "show",
+      "diff",
+      "status",
+      "rev-parse",
+      "ls-files",
+      "blame"
+    ],
+    "allow_hosts": [
+      "mcp.cloudflare.com"
+    ],
+    "pass_env": [
+      "PATH",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "LC_CTYPE",
+      "TERM",
+      "TZ",
+      "HTTPS_PROXY",
+      "https_proxy",
+      "HTTP_PROXY",
+      "http_proxy",
+      "NO_PROXY",
+      "no_proxy",
+      "SSL_CERT_FILE",
+      "SSL_CERT_DIR",
+      "REQUESTS_CA_BUNDLE",
+      "NODE_EXTRA_CA_CERTS",
+      "GH_HOST",
+      "GH_NO_UPDATE_NOTIFIER",
+      "GH_CONFIG_DIR",
+      "XDG_CONFIG_HOME"
+    ],
+    "secret_env": [
+      "GH_TOKEN",
+      "GITHUB_TOKEN",
+      "CLOUDFLARE_API_TOKEN"
+    ],
+    "timeout_seconds": 300,
+    "max_output_chars": 12000
+  }
+}
