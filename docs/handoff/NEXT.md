@@ -2,6 +2,21 @@
 
 The current hand-off: latest review verdict and the next work order. Whoever finishes a slice or a review overwrites this file. Read it at the start of a session.
 
+## Current state (2026-11-27)
+
+- **Live production (`world.perihelion-reach-3`):** Worker `a81b6e43-4dd6-4cdc-bb51-cd7e6ce97502` (`deployed_at: 2026-11-27T06:28:04.119Z`, source `776677100b0adb5bc35cdeece618953fab2c31b5`), verified live on `/version`, `/ready` (`ACTIVE`/`HEALTHY`), `/watch`, and `/v1/watch/live`.
+  - Pinned in `Noema#973` (`spec-compat.json` `hosted_live.worker_version_id`) and `Noema-Specs#476` (`specs/current-state.v1.yaml`).
+  - `Noema-Specs` repo alignment (`spec-compat.json` `specs.commit`) advanced to `5ac5a5c431c889b2dd9785e37fa877e3b4992ed7`.
+  - Official client pin remains `noema-client==0.1.24` (locked by PSR-1 criteria in `Noema-Specs#383`).
+- **Recently shipped to `main` and live:**
+  - `#938` (`01520f6`): WATCH optional local-only spectator predictions (D6 item 9), preserving selected site across polls and ignoring retained `public_pulses`.
+  - `#972` (`7766771`): Code mode (`codemode/`) and agent workflow/triage/ADRs/runbooks as checked state machines (`.agents/machine.py` + `.agents/docs.py`, synced byte-identical across all 4 repos: `Noema`, `Noema-Specs`, `Noema-Orin`, `noema-client`).
+- **Open / held PRs:**
+  - `#937` (draft x402 monetization plan): held after review noting RFC-0120 agent-only Players conflict and `Noema-Specs` deferral / intent-home boundary. Do not merge.
+- **Human-gated items (cannot be closed by automation alone):**
+  - **PSR-1 / PSR-2 (`Noema-Specs#383`, `#421`–`#423`):** Tier-3 external operator enrollment receipt + Steward sign-off on redacted study pack.
+  - **R4 (`#733`, `#775`, `#777`–`#785`):** Live read-only transfer/latency receipts for `a81b6e43` posted on `#775` and `#785`; real assistive technology checks (Safari + VoiceOver, Windows + NVDA, iPhone + VoiceOver) and isolated hosted acceptance remain open.
+
 ## Current #881 integration work order (2026-11-12)
 
 - Owner approved only current-main integration/readiness under conditional previews-OFF plus fresh pre/post inventory assurance. It supersedes #881's older absolute no-create readiness condition, not other holds or provider/resource/deploy/acceptance gates.

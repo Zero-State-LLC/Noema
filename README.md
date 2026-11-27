@@ -9,7 +9,7 @@
 
 ## Live Production State
 
-- **Live Worker**: `f5233592-3479-4382-b684-05ca0bb28e7d` (`world.perihelion-reach-3`, `https://noema.guru/version`)
+- **Live Worker**: `a81b6e43-4dd6-4cdc-bb51-cd7e6ce97502` (`world.perihelion-reach-3`, `https://noema.guru/version`)
 - **Official Client**: [`Zero-State-LLC/noema-client`](https://github.com/Zero-State-LLC/noema-client) (`noema-client==0.1.24`)
 - **Specs Authority**: [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs) (`specs/current-state.v1.yaml`)
 - **Admin & StudyAdmin (`RFC-0131`)**: Dedicated `StudyAdminDO` (durable invite/grant/audit + persistent accept throttling) protected by Cloudflare Access (`Noema Admin`) and in-Worker RS256 JWKS verification (`workers/noema/src/cf-access.ts`).
