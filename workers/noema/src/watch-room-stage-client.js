@@ -230,7 +230,12 @@ function mount(frame, opts) {
   const onNavigateRoom = typeof opts.onNavigateRoom === "function" ? opts.onNavigateRoom : () => {};
   const onFollowAgent = typeof opts.onFollowAgent === "function" ? opts.onFollowAgent : () => {};
   const onSelectEntity = typeof opts.onSelectEntity === "function" ? opts.onSelectEntity : () => {};
+  const onLabelModeChange = typeof opts.onLabelModeChange === "function" ? opts.onLabelModeChange : () => {};
+  const onCameraPresetChange = typeof opts.onCameraPresetChange === "function" ? opts.onCameraPresetChange : () => {};
   const onLost = typeof opts.onLost === "function" ? opts.onLost : () => {};
+  let labelMode = (opts.labelMode === "all" || opts.labelMode === "clean") ? opts.labelMode : "focus";
+  let cameraPreset = (opts.cameraPreset === 2 || opts.cameraPreset === 3) ? opts.cameraPreset : 1;
+  if (frame && frame.dataset) frame.dataset.labelMode = labelMode;
 
   const haloTexture = makeHaloTexture();
   const shaftTexture = makeShaftTexture();
@@ -312,13 +317,42 @@ function mount(frame, opts) {
     motes.raycast = () => {};
     envGroup.add(motes);
   }
+  let innerMotes = null;
+  {
+    const innerCount = 48;
+    const pos = new Float32Array(innerCount * 3);
+    const rand = mulberry32(9077);
+    for (let i = 0; i < innerCount; i++) {
+      const th = rand() * Math.PI * 2;
+      const r = 1.2 + rand() * 5.6;
+      pos[i * 3] = Math.cos(th) * r;
+      pos[i * 3 + 1] = 0.45 + rand() * 3.4;
+      pos[i * 3 + 2] = Math.sin(th) * r;
+    }
+    const geo = new BufferGeometry();
+    geo.setAttribute("position", new BufferAttribute(pos, 3));
+    innerMotes = new Points(
+      geo,
+      new PointsMaterial({
+        color: 0xffd28a,
+        map: haloTexture || null,
+        size: haloTexture ? 0.16 : 0.08,
+        transparent: true,
+        opacity: 0.34,
+        blending: AdditiveBlending,
+        depthWrite: false,
+      }),
+    );
+    innerMotes.raycast = () => {};
+    envGroup.add(innerMotes);
+  }
   scene.add(envGroup);
 
-  // Atmospheric Chiaroscuro Lighting Rig
-  const hemi = new HemisphereLight(0xb2d2f0, 0x1d2b3e, 1.62);
+  // Atmospheric Chiaroscuro Lighting Rig (hero-table.jpg contrast: cool nocturnal slate vs warm hearth core)
+  const hemi = new HemisphereLight(0x9abae0, 0x152030, 1.38);
   scene.add(hemi);
 
-  const sun = new DirectionalLight(0xdcebfa, 2.55);
+  const sun = new DirectionalLight(0xcbe2f8, 2.38);
   sun.position.set(-11, 19, 13);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -333,19 +367,20 @@ function mount(frame, opts) {
   sun.shadow.normalBias = 0.024;
   scene.add(sun);
 
-  const rim = new DirectionalLight(0x52d0f6, 1.32);
+  const rim = new DirectionalLight(0x4cccf4, 1.38);
   rim.position.set(14, 10, -12);
   scene.add(rim);
 
-  const hearth = new PointLight(0xffb454, 3.5, 25, 1.28);
+  const hearth = new PointLight(0xffb044, 3.85, 25, 1.24);
   hearth.position.set(0, 3.4, -1.6);
   scene.add(hearth);
+  let baseHearthInt = 3.85;
 
-  const fillLight = new PointLight(0x3ddcff, 1.7, 22, 1.4);
+  const fillLight = new PointLight(0x3ddcff, 1.5, 22, 1.45);
   fillLight.position.set(4.5, 2.8, 3.5);
   scene.add(fillLight);
 
-  const coveBounce = new PointLight(0xffc478, 1.35, 18, 1.45);
+  const coveBounce = new PointLight(0xffbe68, 1.55, 18, 1.4);
   coveBounce.position.set(-5.4, 3.6, -4.8);
   scene.add(coveBounce);
 
@@ -362,6 +397,7 @@ function mount(frame, opts) {
   controls.listenToKeyEvents(frame);
 
   // Shared primitive geometry pool (reused across rooms, entities, agents, VFX)
+  // Includes turned LatheGeometry architectural silhouettes (zero extra vendor bytes, D8)
   const shared = {
     unitBox: new BoxGeometry(1, 1, 1),
     cyl: new CylinderGeometry(0.5, 0.5, 1, 16),
@@ -376,6 +412,26 @@ function mount(frame, opts) {
     ring: new RingGeometry(0.76, 1.0, 28),
     plane: new PlaneGeometry(1, 1),
     scanCone: new ConeGeometry(1.15, 2.5, 16, 1, true),
+    brazierBowl: new LatheGeometry([
+      new Vector2(0.06, 0.0), new Vector2(0.16, 0.05), new Vector2(0.24, 0.14),
+      new Vector2(0.32, 0.24), new Vector2(0.34, 0.28), new Vector2(0.27, 0.28),
+    ], 16),
+    reactorBell: new LatheGeometry([
+      new Vector2(0.95, 0.0), new Vector2(0.86, 0.18), new Vector2(0.68, 0.48),
+      new Vector2(0.56, 0.82), new Vector2(0.62, 1.0),
+    ], 16),
+    lanternDome: new LatheGeometry([
+      new Vector2(0.42, 0.0), new Vector2(0.38, 0.14), new Vector2(0.26, 0.28),
+      new Vector2(0.12, 0.36), new Vector2(0.02, 0.42),
+    ], 14),
+    daisPedestal: new LatheGeometry([
+      new Vector2(0.96, 0.0), new Vector2(0.92, 0.14), new Vector2(0.74, 0.28),
+      new Vector2(0.72, 0.78), new Vector2(0.92, 0.92), new Vector2(1.06, 1.0),
+    ], 12),
+    parabolicDish: new LatheGeometry([
+      new Vector2(0.04, 0.0), new Vector2(0.24, 0.04), new Vector2(0.48, 0.14),
+      new Vector2(0.74, 0.30), new Vector2(0.92, 0.48),
+    ], 20),
   };
   const sharedGeos = new Set(Object.values(shared));
 
@@ -740,6 +796,31 @@ function mount(frame, opts) {
       g.add(lamp);
     }
 
+    // Instanced recessed wall console indicator strips along North/West alcoves (1 draw call)
+    {
+      const strips = [
+        [-5.1, 1.55, -HALF_D + 0.06, 0.9, 0.055, 0.04],
+        [-5.1, 1.38, -HALF_D + 0.06, 0.62, 0.04, 0.04],
+        [5.1, 1.55, -HALF_D + 0.06, 0.9, 0.055, 0.04],
+        [5.1, 1.38, -HALF_D + 0.06, 0.62, 0.04, 0.04],
+        [-HALF_W + 0.06, 1.55, -4.3, 0.04, 0.055, 0.9],
+        [-HALF_W + 0.06, 1.38, -4.3, 0.04, 0.04, 0.62],
+        [-HALF_W + 0.06, 1.55, 4.3, 0.04, 0.055, 0.9],
+        [-HALF_W + 0.06, 1.38, 4.3, 0.04, 0.04, 0.62],
+      ];
+      const stripInst = new InstancedMesh(shared.unitBox, conduitGlow, strips.length);
+      const dummy = new Object3D();
+      for (let i = 0; i < strips.length; i++) {
+        dummy.position.set(strips[i][0], strips[i][1], strips[i][2]);
+        dummy.scale.set(strips[i][3], strips[i][4], strips[i][5]);
+        dummy.updateMatrix();
+        stripInst.setMatrixAt(i, dummy.matrix);
+      }
+      stripInst.instanceMatrix.needsUpdate = true;
+      stripInst.raycast = () => {};
+      g.add(stripInst);
+    }
+
     // Instanced structural fasteners & grounded exterior basalt horizon context (Pass 4B)
     addInstancedHardware(g, brassMat);
     buildExteriorContext(g, theme);
@@ -848,41 +929,45 @@ function mount(frame, opts) {
         rimRing.position.set(cx, 0.18 + i * 0.18, cz);
         g.add(rimRing);
       }
-      // Central obsidian ledger dais & floating golden-amber charter prism
-      const plinth = makeCyl(0.82, 0.96, 0.92, darkMetal, true, true);
-      plinth.position.set(cx, 0.96, cz);
+      // Central sculpted LatheGeometry obsidian ledger dais & floating golden-amber charter prism
+      const plinth = new Mesh(shared.daisPedestal, darkMetal);
+      plinth.scale.set(0.95, 0.96, 0.95);
+      plinth.position.set(cx, 0.52, cz);
+      plinth.castShadow = true;
+      plinth.receiveShadow = true;
       g.add(plinth);
-      const tableCap = makeCyl(1.12, 1.0, 0.14, brass, true, true);
-      tableCap.position.set(cx, 1.45, cz);
+      const tableCap = makeCyl(1.12, 1.0, 0.12, brass, true, true);
+      tableCap.position.set(cx, 1.52, cz);
       g.add(tableCap);
       const prism = new Mesh(shared.oct, amberGlow);
       prism.scale.set(0.75, 1.05, 0.75);
-      prism.position.set(cx, 2.25, cz);
+      prism.position.set(cx, 2.28, cz);
       prism.userData.spin = 0.65;
-      prism.userData.bobY = 2.25;
+      prism.userData.bobY = 2.28;
       g.add(prism);
       roomAnimProps.push(prism);
       const haloRing = new Mesh(shared.torusThin, cyanGlow);
       haloRing.rotation.x = Math.PI / 2;
       haloRing.scale.setScalar(1.15);
-      haloRing.position.set(cx, 2.22, cz);
+      haloRing.position.set(cx, 2.25, cz);
       haloRing.userData.spin = -0.5;
       g.add(haloRing);
       roomAnimProps.push(haloRing);
-      // 4 warm amber brazier pylons
+      // 4 warm amber sculpted brazier pylons (LatheGeometry chalices + warm tabletop floor pools)
       for (const [bx, bz] of [[-2.4, -2.2], [2.4, -2.2], [-2.4, 2.2], [2.4, 2.2]]) {
         const py = makeBox(0.32, 1.85, 0.32, steel, true);
         py.position.set(cx + bx, 0.925, cz + bz);
         g.add(py);
-        const bowl = makeCyl(0.28, 0.18, 0.2, brass, true, false);
-        bowl.position.set(cx + bx, 1.94, cz + bz);
+        const bowl = new Mesh(shared.brazierBowl, brass);
+        bowl.position.set(cx + bx, 1.82, cz + bz);
+        bowl.castShadow = true;
         g.add(bowl);
         const flame = new Mesh(shared.oct, amberGlow);
         flame.scale.set(0.28, 0.42, 0.28);
-        flame.position.set(cx + bx, 2.22, cz + bz);
+        flame.position.set(cx + bx, 2.24, cz + bz);
         g.add(flame);
-        addLightShaft(g, cx + bx, 3.05, cz + bz, 0.62, 0.22, 1.65, 0xffaa38, 0.24);
-        addHalo(g, cx + bx, 0.04, cz + bz, 2.6, 0xffa832, 0.26);
+        addLightShaft(g, cx + bx, 3.05, cz + bz, 0.62, 0.22, 1.65, 0xffaa38, 0.26);
+        addHalo(g, cx + bx, 0.04, cz + bz, 3.1, 0xffa62e, 0.34);
       }
       // Vaulted gallery overhead ribs curving gracefully from North wall (TubeGeometry)
       for (const rx of [-4.2, -1.4, 1.4, 4.2]) {
@@ -919,12 +1004,21 @@ function mount(frame, opts) {
       const coreCol = makeCyl(0.76, 0.84, 3.95, amberGlow, false, false);
       coreCol.position.set(cx, 2.25, cz);
       g.add(coreCol);
-      // Armored structural collars around plasma column
+      // Armored structural collars + flared LatheGeometry containment shrouds around plasma column
       for (const cy of [0.7, 1.65, 2.85, 3.95]) {
         const col = makeCyl(1.18, 1.18, 0.24, steel, true, true);
         col.position.set(cx, cy, cz);
         g.add(col);
       }
+      const lowerBell = new Mesh(shared.reactorBell, darkMetal);
+      lowerBell.scale.set(1.65, 0.85, 1.65);
+      lowerBell.position.set(cx, 0.42, cz);
+      lowerBell.castShadow = true;
+      g.add(lowerBell);
+      const upperBell = new Mesh(shared.reactorBell, brass);
+      upperBell.scale.set(1.38, -0.68, 1.38);
+      upperBell.position.set(cx, 4.35, cz);
+      g.add(upperBell);
       // 4 armored radiator fins
       for (let i = 0; i < 4; i++) {
         const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
@@ -994,15 +1088,15 @@ function mount(frame, opts) {
         rib.position.set(cx, sy, cz);
         g.add(rib);
       }
-      // Rotating parabolic dish assembly
+      // Rotating smooth LatheGeometry parabolic dish assembly
       const dishPivot = new Group();
       dishPivot.position.set(cx, 4.7, cz);
       dishPivot.userData.spin = 0.6;
-      const dish = new Mesh(shared.dish, new MeshStandardMaterial({
-        color: 0xa4c0d2, emissive: 0x3ddcff, emissiveIntensity: 0.28, roughness: 0.3, metalness: 0.62, side: DoubleSide,
+      const dish = new Mesh(shared.parabolicDish, new MeshStandardMaterial({
+        color: 0xa4c0d2, emissive: 0x3ddcff, emissiveIntensity: 0.28, roughness: 0.28, metalness: 0.68, side: DoubleSide,
       }));
       dish.scale.setScalar(1.35);
-      dish.rotation.z = 0.68;
+      dish.rotation.z = 0.72;
       dish.castShadow = true;
       dishPivot.add(dish);
       const horn = new Mesh(shared.oct, cyanGlow);
@@ -1077,9 +1171,12 @@ function mount(frame, opts) {
         cap.rotation.y = rot;
         g.add(cap);
       }
-      // Central floating holographic record prism inside gyroscopic rings
-      const lectern = makeCyl(0.62, 0.85, 1.05, slate, true, true);
-      lectern.position.set(cx, 0.65, cz);
+      // Central floating holographic record prism inside gyroscopic rings atop LatheGeometry lectern
+      const lectern = new Mesh(shared.daisPedestal, slate);
+      lectern.scale.set(0.78, 1.05, 0.78);
+      lectern.position.set(cx, 0.16, cz);
+      lectern.castShadow = true;
+      lectern.receiveShadow = true;
       g.add(lectern);
       const prism = new Mesh(shared.oct, cyanGlow);
       prism.scale.set(0.68, 1.12, 0.68);
@@ -1095,14 +1192,18 @@ function mount(frame, opts) {
       gyro.userData.spin = -0.6;
       g.add(gyro);
       roomAnimProps.push(gyro);
-      // Cantilevered West reading alcove with warm amber lantern
+      // Cantilevered West reading alcove with sculpted brass lantern dome
       const alcove = makeBox(1.5, 0.2, 3.4, slate, true);
       alcove.position.set(-HALF_W + 0.9, 2.4, 2.2);
       g.add(alcove);
+      const lampCap = new Mesh(shared.lanternDome, brass);
+      lampCap.position.set(-HALF_W + 1.1, 2.94, 2.2);
+      g.add(lampCap);
       const lamp = new Mesh(shared.oct, amberGlow);
-      lamp.scale.setScalar(0.28);
-      lamp.position.set(-HALF_W + 1.1, 2.85, 2.2);
+      lamp.scale.setScalar(0.26);
+      lamp.position.set(-HALF_W + 1.1, 2.82, 2.2);
       g.add(lamp);
+      addHalo(g, -HALF_W + 1.1, 0.04, 2.2, 3.0, 0xffaa38, 0.26);
       // Draped luminous data conduits from outer codex monoliths to lectern + zenith skylight shaft
       for (const [mx, mz] of [[-2.1, -5.0], [0.1, -5.2], [2.3, -5.0]]) {
         addCableSpan(g, new Vector3(mx, 3.3, mz + 0.2), new Vector3(cx, 1.35, cz), 0.78, 0.045, darkMetal);
@@ -1156,9 +1257,12 @@ function mount(frame, opts) {
       const bridge = makeBox(1.6, 0.18, 2.3, steel, true);
       bridge.position.set(cx + 0.6, 0.24, cz);
       g.add(bridge);
-      // Massive industrial furnace hood at North-West
-      const hood = makeCyl(1.1, 1.85, 2.6, darkMetal, true, true);
-      hood.position.set(-4.2, 2.75, -3.4);
+      // Massive flared LatheGeometry industrial furnace hood at North-West
+      const hood = new Mesh(shared.reactorBell, darkMetal);
+      hood.scale.set(1.95, 2.55, 1.95);
+      hood.position.set(-4.2, 1.48, -3.4);
+      hood.castShadow = true;
+      hood.receiveShadow = true;
       g.add(hood);
       const hearthBox = makeBox(2.8, 1.5, 2.1, slate, true);
       hearthBox.position.set(-4.2, 0.75, -3.4);
@@ -1459,7 +1563,13 @@ function mount(frame, opts) {
         btn.className = "room3d-portal";
         btn.dataset.priority = "18";
         btn.dataset.exitRoomId = ex.to_room_id;
-        btn.textContent = `${dirShort(ex.direction)} → ${ex.to_room_name || ex.to_room_id}`;
+        const dirSpan = document.createElement("span");
+        dirSpan.className = "room3d-portal-dir";
+        dirSpan.textContent = dirShort(ex.direction);
+        const destSpan = document.createElement("span");
+        destSpan.className = "room3d-portal-dest";
+        destSpan.textContent = ` → ${ex.to_room_name || ex.to_room_id}`;
+        btn.append(dirSpan, destSpan);
         btn.title = `Step ${ex.direction} into ${ex.to_room_name || ex.to_room_id}`;
         btn.addEventListener("click", (ev) => {
           ev.stopPropagation();
@@ -1694,7 +1804,7 @@ function mount(frame, opts) {
       eg.add(obj);
 
       g.add(eg);
-      entityPositions.set(normKey(ent.label), { x: ex, z: ez, label: ent.label, trimMat: trim.material, isSel });
+      entityPositions.set(normKey(ent.label), { x: ex, z: ez, label: ent.label, trimMat: trim.material, isSel, tagEl });
     });
   }
 
@@ -2603,8 +2713,9 @@ function mount(frame, opts) {
       if (st.targetEnt && st.targetEnt.label) activeTargets.add(normKey(st.targetEnt.label));
     }
     for (const [key, ent] of entityPositions) {
-      if (!ent.trimMat) continue;
       const busy = activeTargets.has(key);
+      if (ent.tagEl) ent.tagEl.classList.toggle("is-active", busy);
+      if (!ent.trimMat) continue;
       ent.trimMat.color.setHex(ent.isSel ? 0xffb020 : busy ? 0x52f2ff : 0x3ddcff);
       ent.trimMat.opacity = ent.isSel ? 0.92 : busy ? 0.78 : 0.34;
     }
@@ -2658,7 +2769,28 @@ function mount(frame, opts) {
   }
 
   function defaultView() {
-    return presetView(1);
+    return presetView(cameraPreset);
+  }
+
+  function setLabelMode(nextMode) {
+    if (disposed) return;
+    const m = (nextMode === "all" || nextMode === "clean") ? nextMode : "focus";
+    if (m === labelMode) return;
+    labelMode = m;
+    if (frame && frame.dataset) frame.dataset.labelMode = labelMode;
+    declutterDirty = true;
+    onLabelModeChange(labelMode);
+    request();
+  }
+
+  function setCameraPreset(nextPreset) {
+    if (disposed) return;
+    const p = (nextPreset === 2 || nextPreset === 3) ? nextPreset : 1;
+    cameraPreset = p;
+    spectatorMoved = false;
+    const v = presetView(p);
+    easeTo(v.target, v.position, 460);
+    onCameraPresetChange(p);
   }
 
   function agentFocusView(st) {
@@ -2700,7 +2832,9 @@ function mount(frame, opts) {
 
   function reset() {
     if (disposed) return;
+    cameraPreset = 1;
     spectatorMoved = false;
+    onCameraPresetChange(1);
     const v = defaultView();
     easeTo(v.target, v.position, 520);
   }
@@ -2785,9 +2919,12 @@ function mount(frame, opts) {
     for (const el of els) {
       el.style.marginLeft = "";
       el.style.marginTop = "";
+      const isSpeech = el.classList.contains("room3d-speech");
+      if (labelMode === "clean" && !isSpeech) continue;
       const base = el.getBoundingClientRect();
       if (base.width <= 0 || base.height <= 0) continue;
-      const isSpeech = el.classList.contains("room3d-speech");
+      // Compact anchor dots in Focus mode stay pinned right on their 3D prop without pushing agent labels away
+      if (labelMode === "focus" && base.width <= 14 && base.height <= 14) continue;
       const maxShift = isSpeech ? 220 : 140;
       let [ox, oy] = clamp(base, 0, 0, maxShift);
       let box = { left: base.left + ox, right: base.right + ox, top: base.top + oy, bottom: base.bottom + oy };
@@ -2888,6 +3025,13 @@ function mount(frame, opts) {
     }
 
     if (!reduce && !paused) {
+      // Gentle warm hearth flicker & interior tabletop dust drift (hero-table.jpg atmosphere)
+      hearth.intensity = baseHearthInt * (1 + Math.sin(sec * 2.15) * 0.055 + Math.sin(sec * 5.3) * 0.025);
+      if (innerMotes) {
+        innerMotes.rotation.y = sec * 0.024;
+        innerMotes.position.y = Math.sin(sec * 0.55) * 0.14;
+      }
+
       // Animate room centerpiece machinery (rotating turbine rings, dishes, floating codex/ledger prisms)
       for (const prop of roomAnimProps) {
         if (prop.userData.spin) prop.rotation.y = sec * prop.userData.spin;
@@ -3043,7 +3187,8 @@ function mount(frame, opts) {
       clearRoomShell();
       const theme = roomTheme(roomId);
       hearth.color.setHex(bands.pressure === "high" ? 0xff8818 : theme.hearthHex);
-      hearth.intensity = theme.hearthInt + (bands.pressure === "high" ? 1.2 : bands.pressure === "moderate" ? 0.6 : 0);
+      baseHearthInt = theme.hearthInt + 0.35 + (bands.pressure === "high" ? 1.2 : bands.pressure === "moderate" ? 0.6 : 0);
+      hearth.intensity = baseHearthInt;
       fillLight.color.setHex(bands.scar === "deep" ? 0x9b6dff : theme.accent);
 
       buildCutawayShell(roomGroup, theme, bands);
@@ -3110,9 +3255,10 @@ function mount(frame, opts) {
     const tag = ev.target && ev.target.tagName ? String(ev.target.tagName).toLowerCase() : "";
     if (tag === "input" || tag === "textarea" || tag === "select") return;
     if (ev.key === "1" || ev.key === "2" || ev.key === "3") {
-      spectatorMoved = false;
-      const v = presetView(Number(ev.key));
-      easeTo(v.target, v.position, 460);
+      setCameraPreset(Number(ev.key));
+    } else if (ev.key === "l" || ev.key === "L") {
+      const next = labelMode === "focus" ? "all" : labelMode === "all" ? "clean" : "focus";
+      setLabelMode(next);
     }
   };
   frame.addEventListener("keydown", onKeyPreset);
@@ -3175,7 +3321,7 @@ function mount(frame, opts) {
     renderer.dispose();
   }
 
-  return { update, followAgent, reset, dispose, pause };
+  return { update, followAgent, reset, setLabelMode, setCameraPreset, dispose, pause };
 }
 
 window.NoemaWatchRoomStage = { mount };

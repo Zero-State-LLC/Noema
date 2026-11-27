@@ -81,11 +81,23 @@ export function roomOverlayHtml(): string {
       </div>
     </header>
     <div class="room-body">
-      <div class="room-frame" id="watch-room-frame" tabindex="0" role="region"
-        aria-label="3D Place view. Drag to orbit, scroll to zoom, Esc to return to World Overview.">
+      <div class="room-frame" id="watch-room-frame" data-label-mode="focus" tabindex="0" role="region"
+        aria-label="3D Place view. Drag to orbit, scroll to zoom, 1/2/3 camera, L labels, Esc to return to World Overview.">
         <canvas id="watch-room-gl" aria-hidden="true"></canvas>
         <div class="room3d-labels" id="watch-room-labels" aria-hidden="true"></div>
-        <p class="room3d-help" id="watch-room-help" aria-hidden="true">Drag to turn · scroll to zoom · 1/2/3 camera · click agent to follow · Esc to exit</p>
+        <p class="room3d-help" id="watch-room-help" aria-hidden="true">Drag to turn · scroll to zoom · 1/2/3 camera · L labels · Esc to exit</p>
+        <div class="room-stage-ctrls" id="watch-room-stage-ctrls" role="toolbar" aria-label="Room view display controls">
+          <div class="room-stage-group" role="group" aria-label="Room labels">
+            <button type="button" class="room-stage-pill" data-label-mode="focus" aria-pressed="true" title="Agents, active works, and compact markers (L)">Focus</button>
+            <button type="button" class="room-stage-pill" data-label-mode="all" aria-pressed="false" title="Show every room label (L)">All</button>
+            <button type="button" class="room-stage-pill" data-label-mode="clean" aria-pressed="false" title="Minimal diorama view (L)">Clean</button>
+          </div>
+          <div class="room-stage-group" role="group" aria-label="Camera angle">
+            <button type="button" class="room-stage-pill" data-cam-preset="1" aria-pressed="true" title="Classic isometric view (1)">1 Iso</button>
+            <button type="button" class="room-stage-pill" data-cam-preset="2" aria-pressed="false" title="Low tabletop view (2)">2 Low</button>
+            <button type="button" class="room-stage-pill" data-cam-preset="3" aria-pressed="false" title="Overhead tactical view (3)">3 Top</button>
+          </div>
+        </div>
         <div class="room-text-fallback" id="watch-room-text" hidden></div>
       </div>
       <aside class="room-drawer" id="watch-room-drawer" aria-label="Room activity and details">
@@ -302,11 +314,12 @@ body.is-low-noise #watch-stage3d{display:none!important}
   background-image:linear-gradient(45deg,transparent 50%,var(--color-state-active) 50%),linear-gradient(135deg,var(--color-state-active) 50%,transparent 50%);
   background-position:calc(100% - 13px) 50%,calc(100% - 8px) 50%;
   background-size:5px 5px,5px 5px;background-repeat:no-repeat;
-  appearance:none;-webkit-appearance:none;
+  appearance:none;-webkit-appearance:none;-moz-appearance:none;
   box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 7%,transparent),0 8px 20px -12px rgb(0 0 0/.82);
   color:var(--ink);font:500 .78rem/1.2 var(--font-interface);letter-spacing:.01em;cursor:pointer;
   transition:border-color .15s var(--ease),box-shadow .15s var(--ease),background-color .15s var(--ease);
 }
+.watch-place-select::-ms-expand,.watch-place-select::picker-icon{display:none}
 .watch-place-select:hover{
   border-color:color-mix(in srgb,var(--color-state-active) 68%,var(--line));
   background-color:color-mix(in srgb,var(--panel) 84%,var(--void));
@@ -433,6 +446,26 @@ body.is-room-open{overflow:hidden}
   background:color-mix(in srgb,var(--void) 88%,transparent);backdrop-filter:blur(6px);
   color:var(--faint);font:500 .68rem/1.35 var(--font-interface);pointer-events:none;
 }
+.room-stage-ctrls{
+  position:absolute;right:.75rem;bottom:.75rem;z-index:3;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.38rem;
+}
+.room-stage-group{
+  display:inline-flex;align-items:center;overflow:hidden;
+  border:1px solid color-mix(in srgb,var(--line-hot) 56%,var(--line));border-radius:var(--r-md,8px);
+  background:color-mix(in srgb,var(--void) 88%,var(--panel));backdrop-filter:blur(8px);
+  box-shadow:0 8px 22px -10px rgb(0 0 0/.88),inset 0 1px 0 color-mix(in srgb,var(--ink) 6%,transparent);
+}
+.room-stage-pill{
+  cursor:pointer;min-height:44px;padding:.25rem .58rem;border:0;background:transparent;
+  color:var(--muted);font:600 .66rem/1 var(--font-mono);letter-spacing:.04em;white-space:nowrap;
+  transition:color .15s var(--ease),background .15s var(--ease);
+}
+.room-stage-pill + .room-stage-pill{border-left:1px solid color-mix(in srgb,var(--line) 78%,transparent)}
+.room-stage-pill:hover{color:var(--ink);background:color-mix(in srgb,var(--panel) 65%,transparent)}
+.room-stage-pill[aria-pressed="true"]{
+  color:var(--color-state-active);background:color-mix(in srgb,var(--color-state-active) 14%,transparent);
+}
+.room-stage-pill:focus-visible{outline:2px solid var(--color-state-active);outline-offset:-2px}
 /* Room View 3D DOM chips (CSS2DRenderer overlays) */
 .room3d-portal{
   pointer-events:auto;cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;
@@ -440,8 +473,9 @@ body.is-room-open{overflow:hidden}
   border-radius:999px;background:color-mix(in srgb,var(--void) 88%,transparent);backdrop-filter:blur(6px);
   box-shadow:0 6px 18px -4px rgb(0 0 0/.84),inset 0 1px 0 color-mix(in srgb,var(--color-state-active) 14%,transparent);
   color:var(--ink);font:600 .68rem/1.2 var(--font-mono);letter-spacing:.02em;white-space:nowrap;
-  transition:border-color .15s var(--ease),color .15s var(--ease),box-shadow .15s var(--ease);
+  transition:border-color .15s var(--ease),color .15s var(--ease),box-shadow .15s var(--ease),opacity .15s var(--ease);
 }
+.room3d-portal-dir{color:var(--color-state-active)}
 .room3d-portal:hover,.room3d-portal:focus-visible{
   border-color:var(--color-state-active);color:var(--color-state-active);
   box-shadow:0 0 0 1px color-mix(in srgb,var(--color-state-active) 40%,transparent),0 8px 22px -6px rgb(0 0 0/.92);
@@ -450,11 +484,11 @@ body.is-room-open{overflow:hidden}
   pointer-events:auto;cursor:pointer;max-width:11.5rem;padding:2px 8px;
   border:1px solid color-mix(in srgb,var(--line-hot) 60%,var(--line));border-radius:6px;
   background:color-mix(in srgb,var(--void) 86%,var(--panel));backdrop-filter:blur(5px);
-  box-shadow:0 4px 12px -4px rgb(0 0 0/.8);opacity:.78;
+  box-shadow:0 4px 12px -4px rgb(0 0 0/.8);opacity:.82;
   color:var(--muted);font:500 .64rem/1.2 var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   transition:border-color .15s var(--ease),color .15s var(--ease),opacity .15s var(--ease);
 }
-.room3d-entity:hover,.room3d-entity.is-selected{
+.room3d-entity:hover,.room3d-entity.is-selected,.room3d-entity.is-active{
   border-color:var(--color-state-active);color:var(--ink);opacity:1;
 }
 .room3d-trace{
@@ -462,11 +496,41 @@ body.is-room-open{overflow:hidden}
   border:1px solid color-mix(in srgb,#d9c7a3 36%,var(--line));
   border-left:2px solid color-mix(in srgb,#d9c7a3 76%,var(--color-state-warning));
   border-radius:5px;background:color-mix(in srgb,var(--void) 88%,#231d14);backdrop-filter:blur(5px);
-  box-shadow:0 5px 14px -4px rgb(0 0 0/.82);opacity:.76;
+  box-shadow:0 5px 14px -4px rgb(0 0 0/.82);opacity:.78;
   color:#e7dcc6;font:400 .63rem/1.28 var(--font-interface);text-align:left;white-space:normal;
   transition:opacity .15s var(--ease);
 }
 .room3d-trace:hover{opacity:1}
+/* Pass 5A Focus / Clean label hierarchy: keep agents & active speech legible while letting the diorama breathe */
+.room-frame[data-label-mode="focus"] .room3d-entity:not(.is-selected):not(.is-active):not(:hover):not(:focus-visible){
+  width:10px;height:10px;min-width:10px;min-height:10px;padding:0;border-radius:999px;
+  font-size:0;line-height:0;color:transparent;opacity:.76;
+  border-color:color-mix(in srgb,var(--color-state-active) 72%,var(--line));
+  background:color-mix(in srgb,var(--color-state-active) 32%,var(--void));
+  box-shadow:0 0 0 2px rgba(7,10,16,.76),0 0 10px rgba(61,220,255,.32);
+}
+.room-frame[data-label-mode="focus"] .room3d-trace:not(:hover):not(:focus-visible){
+  width:10px;height:10px;min-width:10px;min-height:10px;padding:0;border-radius:3px;
+  font-size:0;line-height:0;color:transparent;overflow:hidden;opacity:.78;
+  border:1px solid color-mix(in srgb,#d9c7a3 82%,var(--color-state-warning));
+  background:color-mix(in srgb,#d9c7a3 34%,var(--void));
+  box-shadow:0 0 0 2px rgba(7,10,16,.76);
+}
+.room-frame[data-label-mode="focus"] .room3d-trace.is-scar:not(:hover):not(:focus-visible){
+  border-color:#b68cff;background:color-mix(in srgb,#9b6dff 40%,var(--void));
+}
+.room-frame[data-label-mode="focus"] .room3d-portal:not(:hover):not(:focus-visible){
+  padding:2px 7px;opacity:.78;border-color:color-mix(in srgb,var(--color-state-active) 36%,var(--line));
+}
+.room-frame[data-label-mode="focus"] .room3d-portal:not(:hover):not(:focus-visible) .room3d-portal-dest{
+  display:none;
+}
+.room-frame[data-label-mode="clean"] .room3d-entity,
+.room-frame[data-label-mode="clean"] .room3d-trace,
+.room-frame[data-label-mode="clean"] .room3d-portal,
+.room-frame[data-label-mode="clean"] .room3d-agent-label{
+  opacity:0;visibility:hidden;pointer-events:none;
+}
 .room3d-agent-label{
   pointer-events:auto;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
   padding:3px 9px 3px 7px;border:1px solid color-mix(in srgb,var(--line-hot) 64%,var(--line));
@@ -627,5 +691,7 @@ body.is-room-open{overflow:hidden}
   .room-bar-left{width:100%;justify-content:space-between}
   .room-bar-right{width:100%;justify-content:flex-end}
   .room-place-select{flex:1 1 auto;max-width:none;min-width:0}
+  .room-stage-ctrls{left:.5rem;right:.5rem;bottom:.5rem;justify-content:center}
+  .room-stage-pill{padding:.22rem .48rem;font-size:.62rem}
 }
 `;

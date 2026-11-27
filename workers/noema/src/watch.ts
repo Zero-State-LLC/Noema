@@ -496,7 +496,7 @@ export function watchHtml(opts?: { mode?: string }): string {
     const POLL_MS = 10000;
     const TIER_RANK = { NORMAL: 1, NOTABLE: 2, MAJOR: 3 };
     const GLYPHS = ${JSON.stringify(glyphCatalog())};
-    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "3d", mapBusy: false, mapLast: null, mapCoords: [], mapCamId: "", mapFollowId: "", activePlaceId: "", pendingPlaceSlug: "", roomFollowHandle: "", roomDrawerOpen: true, roomSelectedEntity: "" };
+    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "3d", mapBusy: false, mapLast: null, mapCoords: [], mapCamId: "", mapFollowId: "", activePlaceId: "", pendingPlaceSlug: "", roomFollowHandle: "", roomDrawerOpen: true, roomSelectedEntity: "", roomLabelMode: "focus", roomCameraPreset: 1 };
     const $ = id => document.getElementById(id);
 
     try {
@@ -951,6 +951,36 @@ export function watchHtml(opts?: { mode?: string }): string {
         if (state.paused && typeof room3d.api.pause === "function") room3d.api.pause(true);
       } catch (e) { /* room stage is display-only */ }
     }
+    function syncRoomStageControls() {
+      const frame = $("watch-room-frame");
+      if (frame && frame.dataset) frame.dataset.labelMode = state.roomLabelMode || "focus";
+      const ctrls = $("watch-room-stage-ctrls");
+      if (!ctrls || !ctrls.querySelectorAll) return;
+      const lBtns = ctrls.querySelectorAll("[data-label-mode]");
+      for (let i = 0; i < lBtns.length; i++) {
+        lBtns[i].setAttribute("aria-pressed", lBtns[i].getAttribute("data-label-mode") === state.roomLabelMode ? "true" : "false");
+      }
+      const cBtns = ctrls.querySelectorAll("[data-cam-preset]");
+      for (let i = 0; i < cBtns.length; i++) {
+        cBtns[i].setAttribute("aria-pressed", Number(cBtns[i].getAttribute("data-cam-preset")) === Number(state.roomCameraPreset) ? "true" : "false");
+      }
+    }
+    function setRoomLabelMode(mode) {
+      const m = (mode === "all" || mode === "clean") ? mode : "focus";
+      state.roomLabelMode = m;
+      syncRoomStageControls();
+      if (room3d.api && typeof room3d.api.setLabelMode === "function") {
+        try { room3d.api.setLabelMode(m); } catch (e) { /* display-only */ }
+      }
+    }
+    function setRoomCameraPreset(preset) {
+      const p = (preset === 2 || preset === 3) ? preset : 1;
+      state.roomCameraPreset = p;
+      syncRoomStageControls();
+      if (room3d.api && typeof room3d.api.setCameraPreset === "function") {
+        try { room3d.api.setCameraPreset(p); } catch (e) { /* display-only */ }
+      }
+    }
     function mountRoomStage() {
       if (!state.activePlaceId || room3d.api || lowNoiseOn() || state.mode === "text") return;
       const api = window.NoemaWatchRoomStage;
@@ -961,14 +991,25 @@ export function watchHtml(opts?: { mode?: string }): string {
           labels: $("watch-room-labels"),
           reset: $("watch-room-reset"),
           reduce: state.reduce,
+          labelMode: state.roomLabelMode || "focus",
+          cameraPreset: state.roomCameraPreset || 1,
           onNavigateRoom: function(id) { if (id) enterRoom(id, true); },
           onFollowAgent: function(handle) { toggleRoomFollow(handle); },
           onSelectEntity: function(label) {
             state.roomSelectedEntity = String(label || "");
             renderRoomOverlay();
           },
+          onLabelModeChange: function(m) {
+            state.roomLabelMode = (m === "all" || m === "clean") ? m : "focus";
+            syncRoomStageControls();
+          },
+          onCameraPresetChange: function(p) {
+            state.roomCameraPreset = (p === 2 || p === 3) ? p : 1;
+            syncRoomStageControls();
+          },
           onLost: roomFallback,
         });
+        syncRoomStageControls();
         syncRoomStage();
       } catch (e) {
         roomFallback();
@@ -1168,6 +1209,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       const canvas = $("watch-room-gl");
       const labels = $("watch-room-labels");
       const help = $("watch-room-help");
+      const stageCtrls = $("watch-room-stage-ctrls");
       const textBox = $("watch-room-text");
       const drawer = $("watch-room-drawer");
       const drawerBtn = $("watch-room-drawer-btn");
@@ -1175,10 +1217,12 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (canvas) canvas.hidden = textMode;
       if (labels) labels.hidden = textMode;
       if (help) help.hidden = textMode;
+      if (stageCtrls) stageCtrls.hidden = textMode;
       if (resetBtn) resetBtn.hidden = textMode;
       if (drawerBtn) drawerBtn.hidden = textMode;
       if (drawer) drawer.hidden = textMode || !state.roomDrawerOpen;
       if (textBox) textBox.hidden = !textMode;
+      syncRoomStageControls();
 
       const agents = r ? roomAgentsFor(state.last, r) : [];
       const activity = r ? roomActivityItemsFor(state.last, r) : [];
@@ -2087,6 +2131,17 @@ export function watchHtml(opts?: { mode?: string }): string {
     if (roomFollowChip) roomFollowChip.addEventListener("click", () => toggleRoomFollow(""));
     const roomDrawerBtn = $("watch-room-drawer-btn");
     if (roomDrawerBtn) roomDrawerBtn.addEventListener("click", () => setRoomDrawerOpen(!state.roomDrawerOpen));
+    const roomStageCtrls = $("watch-room-stage-ctrls");
+    if (roomStageCtrls) {
+      roomStageCtrls.addEventListener("click", (ev) => {
+        const tgt = ev.target && ev.target.closest ? ev.target.closest("button") : null;
+        if (!tgt) return;
+        const lm = tgt.getAttribute("data-label-mode");
+        if (lm) { setRoomLabelMode(lm); return; }
+        const cp = tgt.getAttribute("data-cam-preset");
+        if (cp) { setRoomCameraPreset(Number(cp)); }
+      });
+    }
     if (window.addEventListener) {
       window.addEventListener("popstate", () => {
         applyWatchMode(parseWatchMode(location.search || "", location.hash || ""), false);
