@@ -4,18 +4,22 @@ The current hand-off: latest review verdict and the next work order. Whoever fin
 
 ## Current state (2026-11-27)
 
-- **Live production (`world.perihelion-reach-3`):** Worker `a81b6e43-4dd6-4cdc-bb51-cd7e6ce97502` (`deployed_at: 2026-11-27T06:28:04.119Z`, source `776677100b0adb5bc35cdeece618953fab2c31b5`), verified live on `/version`, `/ready` (`ACTIVE`/`HEALTHY`), `/watch`, and `/v1/watch/live`.
-  - Pinned in `Noema#973` (`spec-compat.json` `hosted_live.worker_version_id`) and `Noema-Specs#476` (`specs/current-state.v1.yaml`).
-  - `Noema-Specs` repo alignment (`spec-compat.json` `specs.commit`) advanced to `5ac5a5c431c889b2dd9785e37fa877e3b4992ed7`.
+- **Live production (`world.perihelion-reach-3`):** Worker `0d3f69a5-fb18-4062-93ed-5661e9f50427` (`deployed_at: 2026-11-27T14:25:29.225Z`, source `c13d58064a1ff0c1204984a094b6b9107369aab1`), verified live on `/version`, `/watch` (`watch-stage.js?v=3e1f1981119f`, `watch-room-stage.js?v=4163a1542398`, `three-vendor.js?v=73691b7e9de9`, 0 console/WebGL errors).
+  - Pinned in `Noema#981` (`d643ece`, `spec-compat.json` `hosted_live.worker_version_id`) and synced in `Noema-Specs` `specs/current-state.v1.yaml`.
   - Official client pin remains `noema-client==0.1.24` (locked by PSR-1 criteria in `Noema-Specs#383`).
 - **Recently shipped to `main` and live:**
+  - `#980` (`c13d580`): WATCH Pass 5B — zero-rebuild incremental Overview reconciliation (`topoSig` vs `syncSiteDynamic` / `syncSiteTokens`) and macro activity cues (newest-first deed verb rings + `···` speech pips documented in `STAGE_KEY`).
+  - `#979` (`76b5d76`): WATCH Pass 5A — Room View `Focus / All / Clean` label hierarchy (`L` shortcut + `44px` controls, `visibility:hidden` in Clean mode), clickable `1 Iso / 2 Low / 3 Top` camera pills, turned `LatheGeometry` hero silhouettes, and chiaroscuro hearth modulation (`0` vendor bytes added).
+  - `#975` (`1249c0b`) & `#977` (`96a1cb6`): WATCH Pass 4A–4D (`Noema-Specs#477` D8) — procedural PMREM nocturnal IBL, Sobel normal/roughness PBR across 5 district presets, Fresnel rim hooks, instanced geometry, draped `TubeGeometry` cables, 6 role-matched articulated automaton rigs, Overview→Room `diveTo()`, SVG speech leader stems, tapered volumetric shafts, edge-clamped labels, and compact medium-viewport Room bar.
   - `#938` (`01520f6`): WATCH optional local-only spectator predictions (D6 item 9), preserving selected site across polls and ignoring retained `public_pulses`.
   - `#972` (`7766771`): Code mode (`codemode/`) and agent workflow/triage/ADRs/runbooks as checked state machines (`.agents/machine.py` + `.agents/docs.py`, synced byte-identical across all 4 repos: `Noema`, `Noema-Specs`, `Noema-Orin`, `noema-client`).
-- **Open / held PRs:**
-  - `#937` (draft x402 monetization plan): held after review noting RFC-0120 agent-only Players conflict and `Noema-Specs` deferral / intent-home boundary. Do not merge.
+- **Closed / deferred PRs:**
+  - `#937` (draft x402 monetization plan): archived/closed with deferral comment (`external_crypto_economy: DEFERRED`, post-PSR-1).
+- **Known minor UI observation:**
+  - `#watch-room-select` still shows a native triangle beside the custom cyan chevron in Linux Chromium webviews (cosmetic only; functionality unaffected).
 - **Human-gated items (cannot be closed by automation alone):**
   - **PSR-1 / PSR-2 (`Noema-Specs#383`, `#421`–`#423`):** Tier-3 external operator enrollment receipt + Steward sign-off on redacted study pack.
-  - **R4 (`#733`, `#775`, `#777`–`#785`):** Live read-only transfer/latency receipts for `a81b6e43` posted on `#775` and `#785`; real assistive technology checks (Safari + VoiceOver, Windows + NVDA, iPhone + VoiceOver) and isolated hosted acceptance remain open.
+  - **R4 (`#733`, `#775`, `#777`–`#785`):** Real assistive technology checks (Safari + VoiceOver, Windows + NVDA, iPhone + VoiceOver) and isolated hosted acceptance remain open.
 
 ## Current #881 integration work order (2026-11-12)
 
