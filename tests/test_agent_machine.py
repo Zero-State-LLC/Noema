@@ -265,3 +265,56 @@ def test_empty_index_still_reports_missing_entries(tmp_path: Path, monkeypatch: 
             "index": {"file": "docs/adr/README.md", "row": "^\\|\\s*\\[ADR-\\d+\\]\\((?P<file>[^)]+)\\)\\s*\\|[^|]*\\|\\s*(?P<status>[^|]+?)\\s*\\|"}}
     keys = [v["key"] for v in dm.lifecycle_violations({"kinds": {"adr": kind}})]
     assert keys == ["adr:0001-x.md:not_in_index"]
+
+
+def test_since_applies_default_and_index_fallback_on_historical_states(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def git(*args: str) -> None:
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init")
+    git("config", "user.email", "test@example.com")
+    git("config", "user.name", "Test")
+    (tmp_path / "docs" / "adr").mkdir(parents=True)
+    (tmp_path / "rfcs").mkdir(parents=True)
+    # Bare ADR (no Status line -> default accepted) and index-only RFC (no Status line -> Accepted in README)
+    (tmp_path / "docs" / "adr" / "0001-bare.md").write_text("# ADR 1\n\nDecision.\n")
+    (tmp_path / "rfcs" / "RFC-0001-base.md").write_text("# RFC 1\n\nBody.\n")
+    (tmp_path / "rfcs" / "README.md").write_text("| RFC | Status |\n| --- | --- |\n| [RFC-0001](RFC-0001-base.md) | Accepted |\n")
+    git("add", ".")
+    git("commit", "-m", "initial")
+
+    # Move both backward in working tree: bare ADR -> proposed, index-only RFC -> Draft
+    (tmp_path / "docs" / "adr" / "0001-bare.md").write_text("# ADR 1\n\nStatus: proposed\n\nDecision.\n")
+    (tmp_path / "rfcs" / "README.md").write_text("| RFC | Status |\n| --- | --- |\n| [RFC-0001](RFC-0001-base.md) | Draft |\n")
+
+    monkeypatch.setattr(dm, "ROOT", tmp_path)
+    lc = {
+        "kinds": {
+            "adr": {
+                "title": "ADR",
+                "declared": "docs/adr",
+                "files": "docs/adr/[0-9]*.md",
+                "status": ["^status:\\s*(.+)$"],
+                "default": "accepted",
+                "states": ["proposed", "accepted"],
+                "aliases": {"proposed": ["proposed"], "accepted": ["accepted"]},
+                "next": {"proposed": ["accepted"], "accepted": []},
+            },
+            "rfc": {
+                "title": "RFC",
+                "declared": "rfcs/README.md",
+                "files": "rfcs/RFC-[0-9]*.md",
+                "status": ["^status:\\s*(.+)$"],
+                "states": ["Draft", "Accepted"],
+                "aliases": {"Draft": ["draft"], "Accepted": ["accepted"]},
+                "next": {"Draft": ["Accepted"], "Accepted": []},
+                "index": {
+                    "file": "rfcs/README.md",
+                    "row": "^\\|\\s*\\[RFC-\\d+\\]\\((?P<file>[^)]+)\\)\\s*\\|\\s*(?P<status>[^|]+?)\\s*\\|",
+                },
+            },
+        }
+    }
+    keys = [v["key"] for v in dm.lifecycle_violations(lc, since="HEAD")]
+    assert "adr:0001-bare.md:backward:accepted->proposed" in keys
+    assert "rfc:RFC-0001-base.md:backward:Accepted->Draft" in keys

@@ -92,6 +92,11 @@ def test_quoted_secret_keys_are_redacted(vault: privacy.Vault) -> None:
     out = privacy.tokenize('{"api_token": "synthetic-opaque-value-123", "password": "synthetic-password-456", "max_tokens": 4096}', vault, secrets=[])
     assert "synthetic" not in out and '"max_tokens": 4096' in out
     assert "abc123xyz789" not in privacy.tokenize("{'client_secret': 'abc123xyz789'}", vault, secrets=[])
+    spaced = privacy.tokenize('{"password": "my synthetic password value", "api_secret": "short pw"}', vault, secrets=[])
+    assert "my synthetic" not in spaced and "password value" not in spaced and "short pw" not in spaced
+    assert '"password": "[SECRET]"' in spaced and '"api_secret": "[SECRET]"' in spaced
+    escaped = privacy.tokenize(r'{"password": "my \"quoted\" secret"}', vault, secrets=[])
+    assert "quoted" not in escaped and '"password": "[SECRET]"' in escaped
 
 
 # shape and skills ----------------------------------------------------------

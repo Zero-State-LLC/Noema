@@ -43,9 +43,13 @@ _SECRET_KEEP_PREFIX = [
     (re.compile(r"(?i)\b((?:set-)?cookie\s*:\s*)[^\n]+"), 1),
     (re.compile(r"(?i)\b((?:postgres(?:ql)?|mysql|redis|amqps?)://[^\s:@/]+:)[^\s@/]+(?=@)"), 1),
 ]
+_SECRET_KV_QUOTED = re.compile(
+    r"(?i)(?<![\w/.\\-])([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|PRIVATE_KEY|DSN|COOKIE)[A-Z0-9_]*[\"']?\s*[=:]\s*)"
+    r"([\"'])((?:\\.|(?!\2)[^\\\r\n])+)\2"
+)
 _SECRET_KV = re.compile(
-    r"(?i)(?<![\w/.\\-])([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|PRIVATE_KEY|DSN|COOKIE)[A-Z0-9_]*[\"']?\s*[=:]\s*[\"']?)"
-    r"([^\s\"']{6,})"
+    r"(?i)(?<![\w/.\\-])([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|PRIVATE_KEY|DSN|COOKIE)[A-Z0-9_]*[\"']?\s*[=:]\s*)"
+    r"([^\s\"',}\]]{6,})"
 )
 _NOT_PEOPLE = {"claude", "github", "github actions", "copilot", "dependabot", "renovate", "web-flow"}
 _SECRET_ENV_NAME = re.compile(r"TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|PRIVATE|DSN|COOKIE|CREDENTIAL", re.I)
@@ -106,12 +110,19 @@ def _scrub_secrets(text: str, secrets: list[str]) -> str:
     for pattern, keep in _SECRET_KEEP_PREFIX:
         text = pattern.sub(lambda m, k=keep: m.group(k) + SECRET, text)
 
+    def _kv_quoted(m: re.Match[str]) -> str:
+        value = m.group(3)
+        if value.isdigit() or value.startswith(("$", "<", "*", "[")):
+            return m.group(0)
+        return m.group(1) + m.group(2) + SECRET + m.group(2)
+
     def _kv(m: re.Match[str]) -> str:
         value = m.group(2)
         if value.isdigit() or value.startswith(("$", "<", "*", "[")):
             return m.group(0)
         return m.group(1) + SECRET
 
+    text = _SECRET_KV_QUOTED.sub(_kv_quoted, text)
     return _SECRET_KV.sub(_kv, text)
 
 
