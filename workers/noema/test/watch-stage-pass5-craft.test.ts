@@ -66,8 +66,9 @@ describe("WATCH Pass 5B: zero-rebuild Overview reconciliation and macro activity
     expect(stageSrc).toContain("let [ox, oy] = clampOffset(base, 0, 0, maxShift);");
   });
 
-  it("extracts macro verb/speech cues from public recent_events and documents speech pips in STAGE_KEY", () => {
+  it("extracts macro verb/speech cues newest-first from public recent_events and documents speech pips in STAGE_KEY", () => {
     expect(stageSrc).toContain("function extractMacroActivity(");
+    expect(stageSrc).toContain("(Number(b.sequence) || 0) - (Number(a.sequence) || 0)");
     expect(stageSrc).toContain("VERB_RING_COLORS");
     expect(stageSrc).toContain("stage3d-speech-pip");
     expect(viewSrc).toContain(".stage3d-speech-pip");

@@ -108,15 +108,17 @@ function macroVerbKind(ev) {
   return "";
 }
 
-/** Extract recent public macro activity (speaking sites + latest actor deed class) from live.recent_events. */
+/** Extract recent public macro activity (speaking sites + latest actor deed class) from live.recent_events (newest-first). */
 function extractMacroActivity(live) {
   const speakingSites = new Set();
   const actorActivity = new Map();
   const events = Array.isArray(live && live.recent_events) ? live.recent_events : [];
-  const slice = events.slice(-16);
-  for (let i = slice.length - 1; i >= 0; i--) {
-    const ev = slice[i];
-    if (!ev) continue;
+  const newest = events
+    .filter(Boolean)
+    .slice()
+    .sort((a, b) => (Number(b.sequence) || 0) - (Number(a.sequence) || 0))
+    .slice(0, 16);
+  for (const ev of newest) {
     const vk = macroVerbKind(ev);
     if (!vk) continue;
     const rid = String(ev.room_id || ev.place_id || "");
