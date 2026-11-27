@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const stageSrc = readFileSync(join(here, "../src/watch-stage-client.js"), "utf8");
 const roomSrc = readFileSync(join(here, "../src/watch-room-stage-client.js"), "utf8");
 const viewSrc = readFileSync(join(here, "../src/watch-stage-view.ts"), "utf8");
 const watchSrc = readFileSync(join(here, "../src/watch.ts"), "utf8");
@@ -47,11 +48,30 @@ describe("WATCH Pass 5A: Room View label hierarchy, clickable presets, and Lathe
     expect(roomSrc).toContain("parabolicDish: new LatheGeometry");
     expect(roomSrc).toContain("daisPedestal: new LatheGeometry");
     expect(roomSrc).toContain("innerMotes");
-    for (const src of [roomSrc, viewSrc]) {
+    for (const src of [stageSrc, roomSrc, viewSrc]) {
       expect(src).not.toContain("EffectComposer");
       expect(src).not.toContain("UnrealBloomPass");
       expect(src).not.toContain("postprocessing");
       expect(src).not.toMatch(BRAND_BAN);
     }
+  });
+});
+
+describe("WATCH Pass 5B: zero-rebuild Overview reconciliation and macro activity cues", () => {
+  it("separates topology rebuilds (topoSig) from in-place dynamic site and token reconciliation", () => {
+    expect(stageSrc).toContain("topoSig !== lastTopoSig");
+    expect(stageSrc).toContain("function syncSiteDynamic(");
+    expect(stageSrc).toContain("function syncSiteTokens(");
+    expect(stageSrc).toContain("function updateSiteLabel(");
+    expect(stageSrc).toContain("let [ox, oy] = clampOffset(base, 0, 0, maxShift);");
+  });
+
+  it("extracts macro verb/speech cues newest-first from public recent_events and documents speech pips in STAGE_KEY", () => {
+    expect(stageSrc).toContain("function extractMacroActivity(");
+    expect(stageSrc).toContain("(Number(b.sequence) || 0) - (Number(a.sequence) || 0)");
+    expect(stageSrc).toContain("VERB_RING_COLORS");
+    expect(stageSrc).toContain("stage3d-speech-pip");
+    expect(viewSrc).toContain(".stage3d-speech-pip");
+    expect(viewSrc).toContain('["speech",');
   });
 });

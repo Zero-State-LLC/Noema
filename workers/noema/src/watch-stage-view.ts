@@ -45,6 +45,7 @@ export const STAGE_KEY: Array<[string, string]> = [
   ["oneway", "One-way route: arrow toward its destination"],
   ["lit", "Lit route: an agent just moved through this site"],
   ["travel", "Travel: an agent token moving along a drawn public route"],
+  ["speech", "Speech pip (···): recent public dialogue at a site"],
   ["caption", "Caption: what just happened at a site, same words as Recently"],
 ];
 
@@ -214,6 +215,12 @@ body.is-low-noise #watch-stage3d{display:none!important}
 .stage3d-label[data-state~="major"]{
   border-color:var(--color-state-warning);
   box-shadow:0 0 0 1px color-mix(in srgb,var(--color-state-warning) 30%,transparent),0 8px 22px -8px rgb(0 0 0/.85);
+}
+.stage3d-speech-pip{
+  display:inline-block;margin-left:5px;padding:0 4px;border-radius:999px;vertical-align:middle;
+  border:1px solid color-mix(in srgb,var(--color-state-social) 55%,var(--line));
+  background:color-mix(in srgb,var(--color-state-social) 18%,var(--void));
+  color:var(--color-state-social);font:700 .62rem/1.2 var(--font-mono);letter-spacing:.04em;
 }
 .stage3d-label.is-moment{outline:2px solid var(--color-state-warning);outline-offset:1px;box-shadow:0 0 0 4px color-mix(in srgb,var(--color-state-warning) 32%,transparent)}
 .stage3d-label[data-state~="partial"]{border-style:dashed;color:var(--muted)}
