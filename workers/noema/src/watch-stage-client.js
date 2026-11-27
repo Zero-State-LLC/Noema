@@ -574,6 +574,7 @@ function mount(frame, opts) {
   let lastSeq = null;
   let pulses = [];
   let tween = null;
+  let pendingDive = null;
   let spectatorMoved = false;
   /** D6 tier director: the shot the camera holds, or null when it holds none. */
   let shot = null;
@@ -2205,17 +2206,32 @@ function mount(frame, opts) {
     request();
   }
 
+  function finishPendingDive() {
+    if (!pendingDive) return;
+    const d = pendingDive;
+    pendingDive = null;
+    if (d.timer) clearTimeout(d.timer);
+    d.done();
+  }
+
   /** Smooth macro->micro dive-in ease toward a site plinth before opening Full-Screen Room View (Pass 4C). */
   function diveTo(roomId, onDone) {
     const cb = typeof onDone === "function" ? onDone : () => {};
+    if (pendingDive && pendingDive.timer) clearTimeout(pendingDive.timer);
+    pendingDive = null;
     const g = groups.get(roomId);
     if (reduce || !g) { cb(); return; }
+    pendingDive = {
+      done: cb,
+      timer: setTimeout(finishPendingDive, 320),
+    };
     const toTarget = new Vector3(g.position.x, (g.userData.baseY || 0) + 0.35, g.position.z);
     const offset = camera.position.clone().sub(controls.target).multiplyScalar(0.54);
-    easeTo(toTarget, toTarget.clone().add(offset), 260, cb);
+    easeTo(toTarget, toTarget.clone().add(offset), 260, finishPendingDive);
   }
 
   function focus(roomId) {
+    if (pendingDive) return;
     const g = groups.get(roomId);
     if (!g) return;
     const toTarget = new Vector3(g.position.x, g.userData.baseY || 0, g.position.z);
@@ -2601,7 +2617,7 @@ function mount(frame, opts) {
       sites: model.sites.map((s) => [
         s.id, s.name, s.x, s.z, s.certainty, s.active, s.players, s.unnamed, s.more, s.traces,
         s.selected, s.followed, s.major, s.bands.scar, s.bands.pressure, s.bands.protocol,
-        s.tokens.map((t) => t.handle + ":" + t.line),
+        s.handles, s.tokens.map((t) => t.handle + ":" + t.line),
       ]),
       routes: model.routes.map((r) => [r.from, r.to, r.direction, r.dashed, r.oneWay]),
       sunken: Array.from(sunkenSites).sort(),
@@ -2792,6 +2808,8 @@ function mount(frame, opts) {
   function dispose() {
     if (disposed) return;
     disposed = true;
+    if (pendingDive && pendingDive.timer) clearTimeout(pendingDive.timer);
+    pendingDive = null;
     if (frameId) cancelAnimationFrame(frameId);
     for (const entry of captions) if (entry.timer) clearTimeout(entry.timer);
     captions = [];
