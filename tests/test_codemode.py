@@ -72,6 +72,8 @@ def test_registered_names_are_tokenized(vault: privacy.Vault) -> None:
         'async () => cloudflare.request({ method: "POST", path: "/x" })',
         "async () => cloudflare.request({ method: 'delete', path: '/x' })",
         "async () => { const m = 'PUT'; return cloudflare.request({ method: m, path: '/x' }) }",
+        'async () => cloudflare.request({"method": "DELETE", "path": "/accounts/a/workers/scripts/live"})',
+        "async () => { const o = {path: '/x'}; o.method = 'PATCH'; return cloudflare.request(o) }",
     ],
 )
 def test_cloudflare_execute_refuses_writes(code: str) -> None:
@@ -82,6 +84,14 @@ def test_cloudflare_execute_refuses_writes(code: str) -> None:
 def test_cloudflare_execute_allows_reads() -> None:
     policy.check("cloudflare_api", "execute", {"code": 'async () => cloudflare.request({ method: "GET", path: "/accounts" })'})
     policy.check("cloudflare_api", "search", {"code": "async () => spec.paths"})
+    policy.check("cloudflare_api", "execute", {"code": 'async () => cloudflare.request({"method": "HEAD", "path": "/x"})'})
+    policy.check("cloudflare_api", "execute", {"code": 'async () => (r.method === "GET" ? 1 : 2)'})
+
+
+def test_quoted_secret_keys_are_redacted(vault: privacy.Vault) -> None:
+    out = privacy.tokenize('{"api_token": "synthetic-opaque-value-123", "password": "synthetic-password-456", "max_tokens": 4096}', vault, secrets=[])
+    assert "synthetic" not in out and '"max_tokens": 4096' in out
+    assert "abc123xyz789" not in privacy.tokenize("{'client_secret': 'abc123xyz789'}", vault, secrets=[])
 
 
 # shape and skills ----------------------------------------------------------

@@ -44,7 +44,7 @@ _SECRET_KEEP_PREFIX = [
     (re.compile(r"(?i)\b((?:postgres(?:ql)?|mysql|redis|amqps?)://[^\s:@/]+:)[^\s@/]+(?=@)"), 1),
 ]
 _SECRET_KV = re.compile(
-    r"(?i)(?<![\w/.\\-])([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|PRIVATE_KEY|DSN|COOKIE)[A-Z0-9_]*\s*[=:]\s*[\"']?)"
+    r"(?i)(?<![\w/.\\-])([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|PRIVATE_KEY|DSN|COOKIE)[A-Z0-9_]*[\"']?\s*[=:]\s*[\"']?)"
     r"([^\s\"']{6,})"
 )
 _NOT_PEOPLE = {"claude", "github", "github actions", "copilot", "dependabot", "renovate", "web-flow"}

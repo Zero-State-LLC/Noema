@@ -18,24 +18,30 @@ class PolicyError(PermissionError):
     pass
 
 
-_METHOD = re.compile(r"""\bmethod\s*:\s*(?:(['"`])([A-Za-z]+)\1|([^\s,}]+))""")
 _READ_METHODS = {"GET", "HEAD"}
+# Any quoted HTTP write verb anywhere in the code, and any `method` key or assignment in any quoting.
+_WRITE_LITERAL = re.compile(r"""(['"`])\s*(POST|PUT|PATCH|DELETE)\s*\1""", re.I)
+_METHOD_KEY = re.compile(r"""(?:\bmethod\b|(['"`])method\1)\s*(?::|=(?!=))\s*(?:(['"`])\s*([A-Za-z]+)\s*\2|([^\s,;})]+))""", re.I)
 
 
 def _cloudflare_execute(arguments: dict[str, Any]) -> None:
+    """Fail closed: refuse unless every request method can be read as a literal GET or HEAD."""
     code = str(arguments.get("code", ""))
-    for m in _METHOD.finditer(code):
-        literal = m.group(2)
+    m = _WRITE_LITERAL.search(code)
+    if m:
+        raise PolicyError(
+            f"cloudflare_api.execute: {m.group(2).upper()} refused. Code mode is read-only on Cloudflare; "
+            "deploys go through the dispatch-only pin workflow and only when the user says deploy."
+        )
+    for m in _METHOD_KEY.finditer(code):
+        literal = m.group(3)
         if literal is None:
             raise PolicyError(
-                f"cloudflare_api.execute: request method {m.group(3)!r} is not a string literal, "
+                f"cloudflare_api.execute: request method {m.group(4)!r} is not a string literal, "
                 "so it cannot be checked as read-only. Write method: \"GET\"."
             )
         if literal.upper() not in _READ_METHODS:
-            raise PolicyError(
-                f"cloudflare_api.execute: {literal.upper()} refused. Code mode is read-only on Cloudflare; "
-                "deploys go through the dispatch-only pin workflow and only when the user says deploy."
-            )
+            raise PolicyError(f"cloudflare_api.execute: method {literal!r} refused; only GET and HEAD are allowed.")
 
 
 def require(action: str) -> None:

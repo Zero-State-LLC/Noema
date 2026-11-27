@@ -230,3 +230,38 @@ def test_plan_done_must_show_in_its_design_spec() -> None:
     import re
     m = re.search(plan["requires"][0]["field"], "| `docs/superpowers/specs/2026-08-21-maint-evolve-design.md` | Already on main |", re.M)
     assert m and m.group(1) == "2026-08-21-maint-evolve-design.md"
+
+
+# review fixes (Codex on #972/#473/#56) ----------------------------------------
+
+
+def test_nested_interruptions_unwind_one_level(m) -> None:
+    am.go(m, "IMPLEMENT", evidence="x")
+    am.go(m, "AWAITING_USER", evidence="asked to rotate a secret")
+    am.go(m, "ESCALATED", evidence="CI broke while waiting")
+    assert am.go(m, "back", evidence="bug #1 filed") == "AWAITING_USER"  # still waiting for the user's words
+    assert am.go(m, "back", user_said="no, leave it") == "IMPLEMENT"
+    assert am.read_state(m)["stack"] == []
+
+
+def test_escalated_procedure_can_be_resolved_and_rerun(runbooks) -> None:
+    dm.run_cmd(runbooks, ["run", "OPERATOR_SMOKE"])
+    dm.run_cmd(runbooks, ["escalate", "--evidence", "/ready shows INCIDENT"])
+    with pytest.raises(dm.DocsError, match="resolve"):
+        dm.run_cmd(runbooks, ["run", "OPERATOR_SMOKE"])
+    with pytest.raises(dm.DocsError, match="own words"):
+        dm.run_cmd(runbooks, ["resolve", "--evidence", "fixed"])
+    assert "resolved" in dm.run_cmd(runbooks, ["resolve", "--user-said", "recovered, carry on"])
+    assert "Step 1/9 READY" in dm.run_cmd(runbooks, ["run", "OPERATOR_SMOKE"])
+
+
+def test_empty_index_still_reports_missing_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "docs" / "adr").mkdir(parents=True)
+    (tmp_path / "docs" / "adr" / "0001-x.md").write_text("# X\n\nStatus: accepted\n")
+    (tmp_path / "docs" / "adr" / "README.md").write_text("| ADR | Title | Status |\n| --- | --- | --- |\n")
+    monkeypatch.setattr(dm, "ROOT", tmp_path)
+    kind = {"title": "ADR", "files": "docs/adr/[0-9]*.md", "status": ["^status:\\s*(.+)$"], "states": ["accepted"],
+            "aliases": {"accepted": ["accepted"]}, "next": {"accepted": []},
+            "index": {"file": "docs/adr/README.md", "row": "^\\|\\s*\\[ADR-\\d+\\]\\((?P<file>[^)]+)\\)\\s*\\|[^|]*\\|\\s*(?P<status>[^|]+?)\\s*\\|"}}
+    keys = [v["key"] for v in dm.lifecycle_violations({"kinds": {"adr": kind}})]
+    assert keys == ["adr:0001-x.md:not_in_index"]
