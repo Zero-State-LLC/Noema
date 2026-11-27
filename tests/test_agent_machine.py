@@ -137,3 +137,34 @@ def test_codemode_gate_follows_agent_state(monkeypatch: pytest.MonkeyPatch) -> N
         policy.require("docs_board")
     monkeypatch.setenv("CODEMODE_AGENT_ALLOWED", "read,docs_board")
     policy.require("docs_board")
+
+
+# document machines (.agents/docs.py) ---------------------------------------
+
+_dspec = importlib.util.spec_from_file_location("docs_machine", ROOT / ".agents" / "docs.py")
+assert _dspec and _dspec.loader
+dm = importlib.util.module_from_spec(_dspec)
+sys.modules["docs_machine"] = dm
+_dspec.loader.exec_module(dm)
+
+
+def test_docs_machine_check_passes() -> None:
+    assert dm.check() == []
+
+
+def test_bare_adr_is_accepted_and_moves_forward_only() -> None:
+    adr = json.loads((ROOT / ".agents" / "lifecycles.json").read_text())["kinds"]["adr"]
+    assert dm.normalize(dm.status_text("# Title\n\nWe decided X.\n", adr["status"]) or adr["default"], adr) == "accepted"
+    assert dm.normalize(dm.status_text("Status: Accepted (operator-selected)\n", adr["status"]), adr) == "accepted"
+    assert dm.forward(adr, "accepted", "superseded") and not dm.forward(adr, "superseded", "accepted")
+
+
+def test_gate_entries_and_mirror_drift(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    gate = {"title": "Gate", "entries": {"file": "D.md", "heading": "^## (?P<id>G-\\d+): .*, (?P<status>[A-Z_ ]+)$"},
+            "states": ["BLOCKED", "APPROVED"], "aliases": {"BLOCKED": ["blocked"], "APPROVED": ["approved"]}, "next": {"BLOCKED": ["APPROVED"], "APPROVED": []}}
+    assert dm.entries(gate, "## G-001: Spark writer, BLOCKED\n") == {"G-001": "BLOCKED"}
+    monkeypatch.setattr(dm, "ROOT", tmp_path)
+    (tmp_path / "SKILL.md").write_text("## Stop\n\nStop on INCIDENT.\n\n## Next\n")
+    procs = {"play": {"stop": ["INCIDENT", "SEAL_MISMATCH"]}}
+    errs = dm._mirror_errors(procs, {"file": "SKILL.md", "section": "## Stop", "mentions": "play.stop"})
+    assert errs == ["SKILL.md ## Stop: does not mention 'SEAL_MISMATCH' (play.stop)"]
