@@ -14,21 +14,27 @@ import {
   BufferAttribute,
   BufferGeometry,
   CanvasTexture,
+  CatmullRomCurve3,
   Color,
   ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
   DoubleSide,
   EdgesGeometry,
+  ExtrudeGeometry,
   FogExp2,
   Group,
   HemisphereLight,
+  InstancedMesh,
+  LatheGeometry,
   Line,
   LineBasicMaterial,
   LineSegments,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  Object3D,
   OctahedronGeometry,
   PCFShadowMap,
   PerspectiveCamera,
@@ -41,14 +47,24 @@ import {
   RingGeometry,
   SRGBColorSpace,
   Scene,
+  Shape,
   SphereGeometry,
   TorusGeometry,
+  TubeGeometry,
   Vector2,
   Vector3,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
+import {
+  applyRimGlow,
+  buildNocturnalEnvMap,
+  makeCanvas,
+  makeCutawayWallPbr,
+  makeDistrictFloorPbr,
+  mulberry32,
+} from "./watch-stage-craft";
 
 const ROOM_W = 16.0;
 const ROOM_D = 14.0;
@@ -77,29 +93,6 @@ function hexCss(n) {
 
 function normKey(s) {
   return String(s || "").trim().toLowerCase();
-}
-
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function makeCanvas(w, h) {
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx2d = typeof canvas.getContext === "function" ? canvas.getContext("2d") : null;
-    if (!ctx2d) return null;
-    return { canvas, ctx2d };
-  } catch (e) {
-    return null;
-  }
 }
 
 /** Velvety multi-stop radial glow halo texture for ground rings, lanterns, and beams. */
@@ -147,126 +140,34 @@ function makeSkyTexture() {
   return tex;
 }
 
-/** Procedural brushed obsidian-basalt architectural floor tile PBR texture (albedo + bump). */
-function makeFloorTextures() {
-  const albedo = makeCanvas(512, 512);
-  const bump = makeCanvas(512, 512);
-  if (!albedo || !bump) return null;
-  const ctx = albedo.ctx2d;
-  const bctx = bump.ctx2d;
-  ctx.fillStyle = "#b0bcc8";
-  ctx.fillRect(0, 0, 512, 512);
-  bctx.fillStyle = "#969696";
-  bctx.fillRect(0, 0, 512, 512);
-
-  const rand = mulberry32(5021);
-  const step = 64;
-  for (let gy = 0; gy < 8; gy++) {
-    for (let gx = 0; gx < 8; gx++) {
-      const shade = 166 + ((rand() * 28) | 0);
-      ctx.fillStyle = `rgb(${shade},${shade + 7},${shade + 15})`;
-      ctx.fillRect(gx * step + 2, gy * step + 2, step - 4, step - 4);
-      const bs = 142 + ((rand() * 34) | 0);
-      bctx.fillStyle = `rgb(${bs},${bs},${bs})`;
-      bctx.fillRect(gx * step + 2, gy * step + 2, step - 4, step - 4);
-      // Machined corner rivets
-      ctx.fillStyle = "#485564";
-      bctx.fillStyle = "#424242";
-      for (const [rx, ry] of [[6, 6], [step - 9, 6], [6, step - 9], [step - 9, step - 9]]) {
-        ctx.fillRect(gx * step + rx, gy * step + ry, 2.5, 2.5);
-        bctx.fillRect(gx * step + rx, gy * step + ry, 2.5, 2.5);
-      }
-    }
-  }
-  // Recessed panel seams
-  ctx.strokeStyle = "#3c4856";
-  ctx.lineWidth = 2;
-  bctx.strokeStyle = "#262626";
-  bctx.lineWidth = 2.6;
-  for (let i = 0; i <= 512; i += step) {
-    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
-    bctx.beginPath(); bctx.moveTo(i, 0); bctx.lineTo(i, 512); bctx.stroke();
-    bctx.beginPath(); bctx.moveTo(0, i); bctx.lineTo(512, i); bctx.stroke();
-  }
-  // Fine brushed-slate micro-grain
-  for (let i = 0; i < 1100; i++) {
-    const x = rand() * 512;
-    const y = rand() * 512;
-    const len = 8 + rand() * 28;
-    ctx.fillStyle = rand() > 0.5 ? "rgba(220,238,255,0.045)" : "rgba(12,18,26,0.075)";
-    ctx.fillRect(x, y, len, 1);
-  }
-  const map = new CanvasTexture(albedo.canvas);
-  map.colorSpace = SRGBColorSpace;
-  map.wrapS = map.wrapT = RepeatWrapping;
-  map.repeat.set(2.5, 2.2);
-  const bumpMap = new CanvasTexture(bump.canvas);
-  bumpMap.wrapS = bumpMap.wrapT = RepeatWrapping;
-  bumpMap.repeat.set(2.5, 2.2);
-  return { map, bump: bumpMap };
+/** Soft volumetric light-shaft texture for brazier cones, furnace glow, and skylight beams. */
+function makeShaftTexture() {
+  const c = makeCanvas(64, 128);
+  if (!c) return null;
+  const { canvas, ctx2d } = c;
+  const g = ctx2d.createLinearGradient(0, 0, 0, 128);
+  g.addColorStop(0, "rgba(255,255,255,0.68)");
+  g.addColorStop(0.35, "rgba(255,255,255,0.28)");
+  g.addColorStop(0.75, "rgba(255,255,255,0.07)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx2d.fillStyle = g;
+  ctx2d.fillRect(0, 0, 64, 128);
+  return new CanvasTexture(canvas);
 }
 
-/** Procedural fluted dark basalt-titanium cutaway wall panel texture (albedo + bump). */
-function makeWallTextures() {
-  const albedo = makeCanvas(512, 256);
-  const bump = makeCanvas(512, 256);
-  if (!albedo || !bump) return null;
-  const ctx = albedo.ctx2d;
-  const bctx = bump.ctx2d;
-  ctx.fillStyle = "#a2aebc";
-  ctx.fillRect(0, 0, 512, 256);
-  bctx.fillStyle = "#888888";
-  bctx.fillRect(0, 0, 512, 256);
-
-  const rand = mulberry32(8191);
-  // Horizontal architectural strata & armored panel joints
-  for (let y = 0; y < 256; y += 64) {
-    const shade = 152 + ((rand() * 22) | 0);
-    ctx.fillStyle = `rgb(${shade},${shade + 6},${shade + 14})`;
-    ctx.fillRect(0, y + 2, 512, 60);
-    ctx.fillStyle = "#3b4654";
-    ctx.fillRect(0, y, 512, 3);
-    bctx.fillStyle = "#2b2b2b";
-    bctx.fillRect(0, y, 512, 4);
-  }
-  // Vertical panel seams
-  for (let x = 0; x <= 512; x += 128) {
-    ctx.fillStyle = "#3c4755";
-    ctx.fillRect(x, 0, 3, 256);
-    bctx.fillStyle = "#2b2b2b";
-    bctx.fillRect(x, 0, 4, 256);
-  }
-  // Subtle vertical fluting accents
-  for (let x = 16; x < 512; x += 32) {
-    ctx.fillStyle = "rgba(215,232,248,0.05)";
-    ctx.fillRect(x, 8, 2, 240);
-    bctx.fillStyle = "rgba(220,220,220,0.22)";
-    bctx.fillRect(x, 8, 2, 240);
-  }
-  const map = new CanvasTexture(albedo.canvas);
-  map.colorSpace = SRGBColorSpace;
-  map.wrapS = map.wrapT = RepeatWrapping;
-  map.repeat.set(2, 1);
-  const bumpMap = new CanvasTexture(bump.canvas);
-  bumpMap.wrapS = bumpMap.wrapT = RepeatWrapping;
-  bumpMap.repeat.set(2, 1);
-  return { map, bump: bumpMap };
-}
-
-/** Room palette & atmosphere profile per Perihelion Reach district. */
+/** Room palette, district PBR materiality & atmosphere profile per Perihelion Reach district. */
 function roomTheme(roomId) {
   const s = normKey(roomId);
-  if (s.includes("generator")) return { kind: "generator", accent: 0xffa832, sec: 0x3ddcff, hearthHex: 0xff9a28, hearthInt: 4.1, floorTint: 0x2a394a, wallTint: 0x253445 };
-  if (s.includes("relay")) return { kind: "relay", accent: 0x3ddcff, sec: 0xffb020, hearthHex: 0x48d8ff, hearthInt: 3.2, floorTint: 0x263647, wallTint: 0x223143 };
-  if (s.includes("archive")) return { kind: "archive", accent: 0x4ad8f8, sec: 0x9b6dff, hearthHex: 0x56cef4, hearthInt: 3.3, floorTint: 0x243344, wallTint: 0x1f2d3e };
-  if (s.includes("civic")) return { kind: "civic", accent: 0xffb84d, sec: 0x3ddcff, hearthHex: 0xffb858, hearthInt: 3.7, floorTint: 0x2d3c4e, wallTint: 0x273648 };
-  if (s.includes("transit")) return { kind: "transit", accent: 0x3ddcff, sec: 0x52e5a8, hearthHex: 0x4ed6f6, hearthInt: 3.1, floorTint: 0x28384a, wallTint: 0x233344 };
-  if (s.includes("foundry")) return { kind: "foundry", accent: 0xff8c24, sec: 0xffcc66, hearthHex: 0xff8224, hearthInt: 4.2, floorTint: 0x2b3644, wallTint: 0x25303e };
-  if (s.includes("storage")) return { kind: "storage", accent: 0xd4a65a, sec: 0x3ddcff, hearthHex: 0xe8b25e, hearthInt: 3.2, floorTint: 0x2a394a, wallTint: 0x243344 };
-  if (s.includes("vault")) return { kind: "vault", accent: 0x3ddcff, sec: 0xff9e30, hearthHex: 0x52c8ea, hearthInt: 3.1, floorTint: 0x243242, wallTint: 0x202d3c };
-  if (s.includes("outer")) return { kind: "outer", accent: 0x9b6dff, sec: 0xffb020, hearthHex: 0xffae48, hearthInt: 3.3, floorTint: 0x273545, wallTint: 0x223040 };
-  return { kind: "frontier", accent: 0x3ddcff, sec: 0x9b6dff, hearthHex: 0xffb450, hearthInt: 3.3, floorTint: 0x283748, wallTint: 0x233242 };
+  if (s.includes("generator")) return { kind: "generator", matKind: "hexgrate", accent: 0xffa832, sec: 0x3ddcff, hearthHex: 0xff9a28, hearthInt: 4.1, floorTint: 0x2e3f52, wallTint: 0x253445 };
+  if (s.includes("relay")) return { kind: "relay", matKind: "hexgrate", accent: 0x3ddcff, sec: 0xffb020, hearthHex: 0x48d8ff, hearthInt: 3.2, floorTint: 0x283a4d, wallTint: 0x223143 };
+  if (s.includes("archive")) return { kind: "archive", matKind: "flagstone", accent: 0x4ad8f8, sec: 0x9b6dff, hearthHex: 0x56cef4, hearthInt: 3.3, floorTint: 0x263547, wallTint: 0x1f2d3e };
+  if (s.includes("civic")) return { kind: "civic", matKind: "flagstone", accent: 0xffb84d, sec: 0x3ddcff, hearthHex: 0xffb858, hearthInt: 3.8, floorTint: 0x303f52, wallTint: 0x273648 };
+  if (s.includes("transit")) return { kind: "transit", matKind: "apron", accent: 0x3ddcff, sec: 0x52e5a8, hearthHex: 0x4ed6f6, hearthInt: 3.1, floorTint: 0x2a3b4e, wallTint: 0x233344 };
+  if (s.includes("foundry")) return { kind: "foundry", matKind: "diamond", accent: 0xff8c24, sec: 0xffcc66, hearthHex: 0xff8224, hearthInt: 4.3, floorTint: 0x2f3946, wallTint: 0x25303e };
+  if (s.includes("storage")) return { kind: "storage", matKind: "apron", accent: 0xd4a65a, sec: 0x3ddcff, hearthHex: 0xe8b25e, hearthInt: 3.3, floorTint: 0x2d3c4d, wallTint: 0x243344 };
+  if (s.includes("vault")) return { kind: "vault", matKind: "diamond", accent: 0x3ddcff, sec: 0xff9e30, hearthHex: 0x52c8ea, hearthInt: 3.1, floorTint: 0x263546, wallTint: 0x202d3c };
+  if (s.includes("outer")) return { kind: "outer", matKind: "basalt", accent: 0x9b6dff, sec: 0xffb020, hearthHex: 0xffae48, hearthInt: 3.4, floorTint: 0x293748, wallTint: 0x223040 };
+  return { kind: "frontier", matKind: "basalt", accent: 0x3ddcff, sec: 0x9b6dff, hearthHex: 0xffb450, hearthInt: 3.4, floorTint: 0x2a394b, wallTint: 0x233242 };
 }
 
 function verbLabel(verb) {
@@ -331,9 +232,15 @@ function mount(frame, opts) {
   const onLost = typeof opts.onLost === "function" ? opts.onLost : () => {};
 
   const haloTexture = makeHaloTexture();
+  const shaftTexture = makeShaftTexture();
   const skyTexture = makeSkyTexture();
-  const floorTex = makeFloorTextures();
-  const wallTex = makeWallTextures();
+  const floorPbrCache = new Map();
+  const getFloorPbr = (kind) => {
+    const k = kind || "flagstone";
+    if (!floorPbrCache.has(k)) floorPbrCache.set(k, makeDistrictFloorPbr(k));
+    return floorPbrCache.get(k);
+  };
+  const wallTex = makeCutawayWallPbr();
 
   // Reset WebGL2 unpack flags on mount so remounted canvases never warn.
   try {
@@ -350,12 +257,19 @@ function mount(frame, opts) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearColor(0x0b0f15, 1);
   renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.38;
+  renderer.toneMappingExposure = 1.32;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
 
   const labels = new CSS2DRenderer({ element: labelRoot });
   const scene = new Scene();
+  const envRig = buildNocturnalEnvMap(renderer);
+  if (envRig) {
+    scene.environment = envRig.envMap;
+    scene.environmentIntensity = 0.96;
+  }
   scene.fog = new FogExp2(0x0b0f15, 0.011);
 
   // Nocturnal void backdrop + ambient drifting starlight motes
@@ -478,6 +392,8 @@ function mount(frame, opts) {
   let paused = false;
   let disposed = false;
   let dirty = false;
+  let shadowsDirty = true;
+  let declutterDirty = true;
   let frameId = 0;
   let framed = false;
   let tween = null;
@@ -524,6 +440,112 @@ function mount(frame, opts) {
     return m;
   }
 
+  /** Soft additive volumetric light-shaft cylinder/cone (zero post-processing, D6 §8 compliant). */
+  function addLightShaft(parent, x, y, z, rTop, rBot, height, colorHex, opacity) {
+    if (!shaftTexture) return null;
+    const geo = new CylinderGeometry(rTop, rBot, height, 16, 1, true);
+    const mat = new MeshBasicMaterial({
+      map: shaftTexture,
+      color: colorHex,
+      transparent: true,
+      opacity,
+      blending: AdditiveBlending,
+      depthWrite: false,
+      side: DoubleSide,
+    });
+    const m = new Mesh(geo, mat);
+    m.position.set(x, y, z);
+    m.raycast = () => {};
+    parent.add(m);
+    return m;
+  }
+
+  /** Draped industrial cable/conduit span using CatmullRomCurve3 + TubeGeometry. */
+  function addCableSpan(parent, p0, p1, sag, radius, mat) {
+    const mid = new Vector3(
+      (p0.x + p1.x) * 0.5,
+      Math.min(p0.y, p1.y) - sag,
+      (p0.z + p1.z) * 0.5,
+    );
+    const curve = new CatmullRomCurve3([p0, mid, p1]);
+    const geo = new TubeGeometry(curve, 14, radius, 6, false);
+    const mesh = new Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.raycast = () => {};
+    parent.add(mesh);
+    return mesh;
+  }
+
+  /** Instanced architectural fasteners & wall coping rivets (1 draw call for tactile diorama craft). */
+  function addInstancedHardware(g, mat) {
+    const pts = [];
+    // Conduit trench flange bolts
+    for (const cz of [-4.1, 3.9]) {
+      for (let gx = -6.0; gx <= 6.0; gx += 1.5) {
+        pts.push([gx, 0.032, cz - 0.14], [gx, 0.032, cz + 0.14]);
+      }
+    }
+    // Buttress wall base brackets
+    for (const bx of [-6.8, -3.4, 3.4, 6.8]) {
+      pts.push([bx - 0.14, 0.28, -HALF_D + 0.3], [bx + 0.14, 0.28, -HALF_D + 0.3]);
+    }
+    for (const bz of [-5.8, -2.8, 2.8, 5.8]) {
+      pts.push([-HALF_W + 0.3, 0.28, bz - 0.14], [-HALF_W + 0.3, 0.28, bz + 0.14]);
+    }
+    const inst = new InstancedMesh(shared.unitBox, mat, pts.length);
+    const dummy = new Object3D();
+    for (let i = 0; i < pts.length; i++) {
+      dummy.position.set(pts[i][0], pts[i][1], pts[i][2]);
+      dummy.scale.set(0.065, 0.04, 0.065);
+      dummy.updateMatrix();
+      inst.setMatrixAt(i, dummy.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+    inst.raycast = () => {};
+    g.add(inst);
+  }
+
+  /**
+   * Compass-aligned distant obsidian basin crags & exterior foundation shelf outside the cutaway.
+   * Anchors every room in Perihelion Reach's dark volcanic basin without ever implying unpublished rooms.
+   */
+  function buildExteriorContext(g, theme) {
+    const shelfMat = new MeshStandardMaterial({ color: 0x0b111a, roughness: 0.9, metalness: 0.16 });
+    const rimRockMat = applyRimGlow(new MeshStandardMaterial({
+      color: 0x131d2b,
+      roughness: 0.86,
+      metalness: 0.18,
+    }), theme.accent, 0.18, 3.4);
+
+    // Subtle dark volcanic sub-basin ledge extending behind the cutaway shell
+    const ledge = makeBox(ROOM_W + 7.5, 0.22, ROOM_D + 7.5, shelfMat, false);
+    ledge.position.set(-1.6, -1.05, -1.6);
+    ledge.raycast = () => {};
+    g.add(ledge);
+
+    // Instanced distant obsidian canyon crags along North-West rear horizon (1 draw call)
+    const cragCount = 26;
+    const crags = new InstancedMesh(shared.oct, rimRockMat, cragCount);
+    const dummy = new Object3D();
+    const rand = mulberry32(hashHandle(theme.kind) ^ 0x51a7);
+    for (let i = 0; i < cragCount; i++) {
+      const side = i % 2 === 0;
+      const rx = side ? (-12.5 + rand() * 25) : (-12.5 - rand() * 5.2);
+      const rz = side ? (-11.2 - rand() * 4.8) : (-10.5 + rand() * 21);
+      const sx = 1.2 + rand() * 2.4;
+      const sy = 1.4 + rand() * 3.8;
+      const sz = 1.2 + rand() * 2.2;
+      dummy.position.set(rx, -1.1 + sy * 0.36, rz);
+      dummy.rotation.set((rand() - 0.5) * 0.28, rand() * Math.PI * 2, (rand() - 0.5) * 0.28);
+      dummy.scale.set(sx, sy, sz);
+      dummy.updateMatrix();
+      crags.setMatrixAt(i, dummy.matrix);
+    }
+    crags.instanceMatrix.needsUpdate = true;
+    crags.raycast = () => {};
+    g.add(crags);
+  }
+
   function disposeGroup(grp) {
     const mats = new Set();
     grp.traverse((o) => {
@@ -557,27 +579,30 @@ function mount(frame, opts) {
     unnamedRigs = [];
   }
 
-  /** Architectural Cutaway Shell (obsidian-basalt deck + 2 cutaway North/West walls + conduits + band effects). */
+  /** Architectural Cutaway Shell (district PBR deck + fluted cutaway North/West walls + conduits + band effects). */
   function buildCutawayShell(g, theme, bands) {
+    const fTex = getFloorPbr(theme.matKind);
     const deckMat = new MeshStandardMaterial({
       color: theme.floorTint,
-      map: floorTex ? floorTex.map : null,
-      bumpMap: floorTex ? floorTex.bump : null,
-      bumpScale: 0.065,
-      roughness: 0.56,
-      metalness: 0.34,
+      map: fTex ? fTex.map : null,
+      normalMap: fTex ? fTex.normalMap : null,
+      normalScale: new Vector2(0.72, 0.72),
+      roughnessMap: fTex ? fTex.roughnessMap : null,
+      roughness: 0.74,
+      metalness: 0.38,
     });
-    const wallMat = new MeshStandardMaterial({
+    const wallMat = applyRimGlow(new MeshStandardMaterial({
       color: theme.wallTint,
       map: wallTex ? wallTex.map : null,
-      bumpMap: wallTex ? wallTex.bump : null,
-      bumpScale: 0.07,
-      roughness: 0.64,
-      metalness: 0.32,
-    });
-    const darkBasalt = new MeshStandardMaterial({ color: 0x172130, roughness: 0.78, metalness: 0.34 });
-    const collarSteel = new MeshStandardMaterial({ color: 0x314358, roughness: 0.42, metalness: 0.64 });
-    const buttressMat = new MeshStandardMaterial({ color: 0x384d64, roughness: 0.42, metalness: 0.56 });
+      normalMap: wallTex ? wallTex.normalMap : null,
+      normalScale: new Vector2(0.75, 0.75),
+      roughnessMap: wallTex ? wallTex.roughnessMap : null,
+      roughness: 0.74,
+      metalness: 0.36,
+    }), theme.accent, 0.2, 3.2);
+    const darkBasalt = new MeshStandardMaterial({ color: 0x172130, roughness: 0.76, metalness: 0.38 });
+    const collarSteel = applyRimGlow(new MeshStandardMaterial({ color: 0x314358, roughness: 0.38, metalness: 0.7 }), 0x52c8ec, 0.2, 3.2);
+    const buttressMat = applyRimGlow(new MeshStandardMaterial({ color: 0x384d64, roughness: 0.38, metalness: 0.62 }), 0x5acaf0, 0.24, 3.0);
     const brassMat = new MeshStandardMaterial({ color: 0xb6925e, roughness: 0.34, metalness: 0.74 });
     const cutCapMat = new MeshStandardMaterial({ color: 0x223042, roughness: 0.5, metalness: 0.48 });
     const coveWarm = new MeshStandardMaterial({
@@ -713,6 +738,10 @@ function mount(frame, opts) {
       lamp.position.set(cx, 0.66, cz);
       g.add(lamp);
     }
+
+    // Instanced structural fasteners & grounded exterior basalt horizon context (Pass 4B)
+    addInstancedHardware(g, brassMat);
+    buildExteriorContext(g, theme);
 
     // State-reactive Pressure Band: glowing amber recessed wall heat vents & floor warning louvers
     if (bands.pressure) {
@@ -851,17 +880,22 @@ function mount(frame, opts) {
         flame.scale.set(0.28, 0.42, 0.28);
         flame.position.set(cx + bx, 2.22, cz + bz);
         g.add(flame);
+        addLightShaft(g, cx + bx, 3.05, cz + bz, 0.62, 0.22, 1.65, 0xffaa38, 0.24);
         addHalo(g, cx + bx, 0.04, cz + bz, 2.6, 0xffa832, 0.26);
       }
-      // Vaulted gallery overhead ribs arching from North wall
+      // Vaulted gallery overhead ribs curving gracefully from North wall (TubeGeometry)
       for (const rx of [-4.2, -1.4, 1.4, 4.2]) {
         const col = makeBox(0.22, 3.8, 0.26, steel, true);
         col.position.set(rx, 1.9, -HALF_D + 0.42);
         g.add(col);
-        const arch = makeBox(0.18, 0.22, 3.2, brass, false);
-        arch.position.set(rx, 3.92, -HALF_D + 1.85);
-        arch.rotation.x = 0.22;
-        g.add(arch);
+        const archCurve = new CatmullRomCurve3([
+          new Vector3(rx, 3.45, -HALF_D + 0.42),
+          new Vector3(rx, 4.35, -HALF_D + 1.95),
+          new Vector3(rx, 4.02, -HALF_D + 3.45),
+        ]);
+        const archRib = new Mesh(new TubeGeometry(archCurve, 14, 0.095, 6, false), brass);
+        archRib.castShadow = true;
+        g.add(archRib);
       }
       // Public Charter Notice Wall on North wall
       const board = makeBox(2.5, 1.25, 0.14, darkMetal, true);
@@ -929,13 +963,16 @@ function mount(frame, opts) {
         leg.position.set(sx, 1.05, -3.85);
         g.add(leg);
       }
-      // Coolant manifold pipes running from West wall to turbine
+      // Coolant manifold pipes + draped heavy power feeder cables from West catwalk to turbine
       for (const pz of [-2.4, -0.8]) {
         const pipe = makeCyl(0.18, 0.18, 6.4, brass, false, true);
         pipe.rotation.z = Math.PI / 2;
         pipe.position.set(-4.4, 0.95, pz);
         g.add(pipe);
       }
+      addCableSpan(g, new Vector3(-HALF_W + 0.3, 3.7, -3.2), new Vector3(cx - 0.9, 3.2, cz - 0.4), 0.72, 0.08, darkMetal);
+      addCableSpan(g, new Vector3(-HALF_W + 0.3, 3.4, -1.1), new Vector3(cx - 0.9, 2.5, cz + 0.3), 0.65, 0.07, brass);
+      addLightShaft(g, cx, 2.5, cz, 1.65, 1.05, 4.4, 0xffa024, 0.22);
       addHalo(g, cx, 0.04, cz, 6.2, 0xff9a20, 0.44);
     } else if (theme.kind === "relay") {
       // Relay Quarter: sunken comms pit + rising transceiver spire + rotating dish + signal matrix wall
@@ -1000,6 +1037,20 @@ function mount(frame, opts) {
           g.add(pip);
         }
       }
+      // Draped coaxial signal cables linking consoles & North matrix wall to transceiver spire
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2 + 0.55;
+        addCableSpan(
+          g,
+          new Vector3(cx + Math.cos(a) * 1.8, 0.72, cz + Math.sin(a) * 1.8),
+          new Vector3(cx + Math.cos(a) * 0.3, 1.45, cz + Math.sin(a) * 0.3),
+          0.32,
+          0.055,
+          darkMetal,
+        );
+      }
+      addCableSpan(g, new Vector3(3.4, 3.1, -HALF_D + 0.25), new Vector3(cx + 0.28, 3.6, cz - 0.15), 0.65, 0.065, brass);
+      addLightShaft(g, cx, 3.6, cz, 1.55, 0.52, 3.6, 0x3ddcff, 0.18);
       addHalo(g, cx, 0.04, cz, 5.4, 0x3ddcff, 0.34);
     } else if (theme.kind === "archive") {
       // Archive: subterranean sunken obsidian vault + towering cyan-etched codex stacks + floating record prism + reading alcoves
@@ -1051,6 +1102,11 @@ function mount(frame, opts) {
       lamp.scale.setScalar(0.28);
       lamp.position.set(-HALF_W + 1.1, 2.85, 2.2);
       g.add(lamp);
+      // Draped luminous data conduits from outer codex monoliths to lectern + zenith skylight shaft
+      for (const [mx, mz] of [[-2.1, -5.0], [0.1, -5.2], [2.3, -5.0]]) {
+        addCableSpan(g, new Vector3(mx, 3.3, mz + 0.2), new Vector3(cx, 1.35, cz), 0.78, 0.045, darkMetal);
+      }
+      addLightShaft(g, cx, 2.7, cz, 1.35, 0.78, 4.6, 0x4ad8f8, 0.2);
       addHalo(g, cx, 0.04, cz, 5.4, 0x3ddcff, 0.34);
     } else if (theme.kind === "transit") {
       // Transit Ring: twin sweeping illuminated mag-rail gantry arches + recessed track bed + dispatch kiosk
@@ -1119,13 +1175,15 @@ function mount(frame, opts) {
       const cable = makeCyl(0.04, 0.04, 1.2, steel, false, false);
       cable.position.set(1.2, 2.8, cz);
       g.add(cable);
-      // Heavy blast baffles
+      // Heavy blast baffles + draped furnace feeder cables + warm furnace glow shaft
       for (const bx of [1.2, 2.8, 4.4]) {
         const baf = makeBox(0.32, 2.2, 1.25, steel, true);
         baf.position.set(bx, 1.1, -4.6);
         baf.rotation.x = 0.16;
         g.add(baf);
       }
+      addCableSpan(g, new Vector3(-HALF_W + 0.3, 3.5, -3.4), new Vector3(-4.2, 2.9, -3.4), 0.45, 0.09, brass);
+      addLightShaft(g, -4.2, 1.55, -2.1, 0.85, 1.45, 2.6, 0xff8820, 0.24);
       addHalo(g, cx, 0.16, cz, 7.2, 0xff8820, 0.44);
     } else if (theme.kind === "storage") {
       // Storage District: ribbed pressurized vertical cargo silos + stacked crate bays + overhead loading hoist
@@ -1268,6 +1326,9 @@ function mount(frame, opts) {
         tip.position.set(bx, 0.92, bz);
         g.add(tip);
       }
+      addCableSpan(g, new Vector3(cx + 2.2, 4.1, -HALF_D + 1.0), new Vector3(5.6, 0.3, -1.6), 0.18, 0.04, steel);
+      addCableSpan(g, new Vector3(cx - 2.2, 4.1, -HALF_D + 1.0), new Vector3(-5.8, 0.3, -1.6), 0.18, 0.04, steel);
+      addLightShaft(g, cx, 2.1, -HALF_D + 1.05, 1.65, 1.85, 4.0, 0x9b6dff, 0.18);
       addHalo(g, cx, 0.05, -HALF_D + 1.4, 5.4, 0x9b6dff, 0.34);
     }
   }
@@ -1550,34 +1611,61 @@ function mount(frame, opts) {
         tag.position.set(-0.1, 0.52, 0.37);
         eg.add(tag);
       } else if (etype === "workshop" || elabel.includes("workshop") || elabel.includes("bench")) {
-        // Artisan Workbench + Task Lamp
-        const bench = pick(makeBox(1.18, 0.66, 0.68, darkMetal, true));
+        // Artisan Workbench + Anvil + Back Tool Rack + Task Lamp Light Cone
+        const bench = pick(makeBox(1.24, 0.66, 0.7, darkMetal, true));
         bench.position.y = 0.43;
         eg.add(bench);
-        const arm = pick(makeBox(0.08, 0.72, 0.08, brass, true));
-        arm.position.set(-0.46, 1.05, -0.22);
+        const topRim = pick(makeBox(1.28, 0.06, 0.74, brass, false));
+        topRim.position.y = 0.78;
+        eg.add(topRim);
+        const anvil = pick(makeBox(0.38, 0.22, 0.24, steel, true));
+        anvil.position.set(0.24, 0.92, 0.04);
+        eg.add(anvil);
+        const rack = pick(makeBox(0.92, 0.52, 0.06, steel, true));
+        rack.position.set(0.06, 1.08, -0.32);
+        eg.add(rack);
+        const arm = pick(makeBox(0.08, 0.74, 0.08, brass, true));
+        arm.position.set(-0.48, 1.08, -0.22);
         eg.add(arm);
         const lamp = pick(makeBox(0.36, 0.08, 0.18, amberGlow, false));
-        lamp.position.set(-0.28, 1.38, -0.16);
+        lamp.position.set(-0.28, 1.42, -0.14);
         eg.add(lamp);
+        addLightShaft(eg, -0.22, 1.04, -0.08, 0.14, 0.46, 0.74, 0xffb038, 0.24);
       } else if (etype === "barter_stall" || elabel.includes("barter") || elabel.includes("stall")) {
-        // Obsidian-Amber Barter Kiosk (RFC-0140 / RFC-0144)
-        const counter = pick(makeBox(1.32, 0.72, 0.76, darkMetal, true));
+        // Stocked Obsidian-Amber Barter Kiosk (RFC-0140 / RFC-0144) with goods canisters & acid-lime trade holo
+        const counter = pick(makeBox(1.36, 0.72, 0.78, darkMetal, true));
         counter.position.y = 0.46;
         eg.add(counter);
-        const trim = pick(makeBox(1.36, 0.08, 0.8, brass, false));
+        const trim = pick(makeBox(1.4, 0.08, 0.82, brass, false));
         trim.position.y = 0.84;
         eg.add(trim);
-        const postL = pick(makeBox(0.08, 0.96, 0.08, brass, true));
-        postL.position.set(-0.56, 1.32, -0.28);
+        // Stocked goods: twin power-cell canisters + ore crate + emerald-lime open-trade ledger holo
+        for (const cx0 of [-0.42, -0.22]) {
+          const cell = pick(makeCyl(0.075, 0.075, 0.24, cyanGlow, false, false));
+          cell.position.set(cx0, 1.0, 0.12);
+          eg.add(cell);
+        }
+        const crate = pick(makeBox(0.32, 0.2, 0.24, steel, true));
+        crate.position.set(0.36, 0.98, 0.1);
+        eg.add(crate);
+        const tradeMat = new MeshStandardMaterial({ color: 0xe6ff99, emissive: 0xc6ff3d, emissiveIntensity: 1.5, roughness: 0.18 });
+        const ledger = pick(new Mesh(shared.oct, tradeMat));
+        ledger.scale.set(0.16, 0.24, 0.16);
+        ledger.position.set(0.02, 1.18, 0.02);
+        ledger.userData.spin = 0.8;
+        eg.add(ledger);
+        roomAnimProps.push(ledger);
+        const postL = pick(makeBox(0.08, 0.98, 0.08, brass, true));
+        postL.position.set(-0.58, 1.33, -0.28);
         eg.add(postL);
-        const postR = pick(makeBox(0.08, 0.96, 0.08, brass, true));
-        postR.position.set(0.56, 1.32, -0.28);
+        const postR = pick(makeBox(0.08, 0.98, 0.08, brass, true));
+        postR.position.set(0.58, 1.33, -0.28);
         eg.add(postR);
-        const canopy = pick(makeBox(1.36, 0.12, 0.74, amberGlow, false));
-        canopy.position.set(0, 1.82, -0.02);
+        const canopy = pick(makeBox(1.42, 0.12, 0.78, amberGlow, false));
+        canopy.position.set(0, 1.84, -0.02);
         canopy.rotation.x = 0.12;
         eg.add(canopy);
+        addHalo(eg, 0, 0.12, 0.08, 2.4, 0xc6ff3d, 0.2);
       } else {
         // Default Infrastructure / Annex / Charter Plinth
         const col = pick(makeBox(0.76, 0.96, 0.64, steel, true));
@@ -1605,7 +1693,7 @@ function mount(frame, opts) {
       eg.add(obj);
 
       g.add(eg);
-      entityPositions.set(normKey(ent.label), { x: ex, z: ez, label: ent.label });
+      entityPositions.set(normKey(ent.label), { x: ex, z: ez, label: ent.label, trimMat: trim.material, isSel });
     });
   }
 
@@ -1785,15 +1873,27 @@ function mount(frame, opts) {
   }
 
   /**
-   * Expressive hero-table.jpg-inspired miniature automaton rigs (4 deterministic archetypes per handle).
+   * Expressive hero-table.jpg-inspired miniature automaton rigs (6 role-matched archetypes).
    *   0: Hooded Archivist (tapered cloak + deep cowl + twin glowing eyes + floating ledger tablet)
    *   1: CRT-Headed Operator (layered industrial coat + glowing CRT monitor head + shoulder lamp)
    *   2: Lantern Custodian (armored tunic + visored helm + warm glowing lantern staff)
    *   3: Relay Surveyor (sleek recon chassis + domed optical head + dual antenna fins)
+   *   4: Civic Envoy / Founder-Speaker (ceremonial brass mantle + radiant crest halo + charter scroll)
+   *   5: Quartermaster Factor (strapped cargo harness + brass balance-lantern + rugged visored helm)
    */
+  function roleArchetype(handle) {
+    const s = normKey(handle);
+    if (s.includes("archivist")) return 0;
+    if (s.includes("custodian") || s.includes("maint")) return 2;
+    if (s.includes("surveyor")) return 3;
+    if (s.includes("founder") || s.includes("speaker")) return 4;
+    if (s.includes("quartermaster")) return 5;
+    return handle ? (hashHandle(handle) % 6) : 1;
+  }
+
   function buildAutomatonRig(handle, isFollowed) {
     const accent = agentAccent(handle);
-    const arch = handle ? (hashHandle(handle) % 4) : 0;
+    const arch = roleArchetype(handle);
     const root = new Group();
     const cloakColor = new Color(0x1e2834).lerp(new Color(accent), 0.36);
 
@@ -1825,13 +1925,13 @@ function mount(frame, opts) {
     bodyGroup.position.y = 0.09;
     root.add(bodyGroup);
 
-    const cloakMat = new MeshStandardMaterial({
+    const cloakMat = applyRimGlow(new MeshStandardMaterial({
       color: cloakColor,
       emissive: accent,
-      emissiveIntensity: isFollowed ? 0.32 : 0.16,
-      roughness: 0.42,
-      metalness: 0.38,
-    });
+      emissiveIntensity: isFollowed ? 0.3 : 0.14,
+      roughness: 0.4,
+      metalness: 0.4,
+    }), accent, isFollowed ? 0.48 : 0.32, 2.6);
     const trimMat = new MeshStandardMaterial({ color: 0x4b5f74, roughness: 0.38, metalness: 0.66 });
     const brassMat = new MeshStandardMaterial({ color: 0xb69058, roughness: 0.34, metalness: 0.74 });
     const glowMat = new MeshStandardMaterial({
@@ -1956,7 +2056,7 @@ function mount(frame, opts) {
       lantern.position.set(0, 1.52, 0.08);
       floatProp.add(lantern);
       bodyGroup.add(floatProp);
-    } else {
+    } else if (arch === 3) {
       // Archetype 3: Relay Surveyor
       const chassis = pick(new Mesh(shared.cylTaper, cloakMat));
       chassis.scale.set(0.56, 0.82, 0.54);
@@ -1989,7 +2089,92 @@ function mount(frame, opts) {
         headGroup.add(fin);
       }
       bodyGroup.add(headGroup);
+    } else if (arch === 4) {
+      // Archetype 4: Civic Envoy (Founder / Speaker) — ceremonial brass mantle + radiant crest + charter scroll
+      const robe = pick(new Mesh(shared.cylTaper, cloakMat));
+      robe.scale.set(0.68, 0.88, 0.64);
+      robe.position.y = 0.44;
+      robe.castShadow = true;
+      bodyGroup.add(robe);
+      const mantle = pick(new Mesh(shared.torus, brassMat));
+      mantle.rotation.x = Math.PI / 2;
+      mantle.scale.setScalar(0.36);
+      mantle.position.y = 0.86;
+      bodyGroup.add(mantle);
+      const sash = makeBox(0.14, 0.62, 0.04, brassMat, false);
+      sash.position.set(0, 0.48, 0.29);
+      bodyGroup.add(sash);
+
+      headGroup.position.y = 1.08;
+      const helm = pick(new Mesh(shared.sphere, trimMat));
+      helm.scale.set(0.38, 0.42, 0.38);
+      helm.position.y = 0.05;
+      helm.castShadow = true;
+      headGroup.add(helm);
+      const brow = makeBox(0.3, 0.08, 0.12, glowMat, false);
+      brow.position.set(0, 0.08, 0.16);
+      headGroup.add(brow);
+      const crest = new Mesh(shared.torusThin, brassMat);
+      crest.scale.setScalar(0.3);
+      crest.position.set(0, 0.14, -0.06);
+      headGroup.add(crest);
+      bodyGroup.add(headGroup);
+
+      // Orbiting luminous charter scroll
+      floatProp = new Group();
+      floatProp.position.set(-0.4, 0.84, 0.22);
+      floatProp.userData.baseY = 0.84;
+      const scroll = makeCyl(0.055, 0.055, 0.36, glowMat, false, false);
+      scroll.rotation.z = 0.38;
+      floatProp.add(scroll);
+      bodyGroup.add(floatProp);
+    } else {
+      // Archetype 5: Quartermaster Factor — strapped cargo rig + warm headlamp + supply canister pack
+      const coat = pick(makeBox(0.56, 0.8, 0.42, cloakMat, true));
+      coat.position.y = 0.42;
+      bodyGroup.add(coat);
+      const cargoPack = pick(makeBox(0.46, 0.56, 0.28, brassMat, true));
+      cargoPack.position.set(0, 0.58, -0.32);
+      bodyGroup.add(cargoPack);
+      const cell = makeCyl(0.06, 0.06, 0.32, glowMat, false, false);
+      cell.position.set(0.18, 0.86, -0.32);
+      bodyGroup.add(cell);
+
+      headGroup.position.y = 1.06;
+      const hood = pick(makeCyl(0.24, 0.28, 0.36, trimMat, true, true));
+      hood.position.y = 0.04;
+      headGroup.add(hood);
+      const goggle = pick(makeBox(0.34, 0.12, 0.14, glowMat, false));
+      goggle.position.set(0, 0.05, 0.16);
+      headGroup.add(goggle);
+      bodyGroup.add(headGroup);
+
+      // Hanging trade balance-lantern
+      floatProp = new Group();
+      floatProp.position.set(0.42, 0.72, 0.2);
+      floatProp.userData.baseY = 0.72;
+      const bar = makeBox(0.26, 0.035, 0.035, brassMat, false);
+      floatProp.add(bar);
+      const orb = new Mesh(shared.oct, new MeshStandardMaterial({
+        color: 0xe6ff99, emissive: 0xc6ff3d, emissiveIntensity: 1.65, roughness: 0.16,
+      }));
+      orb.scale.setScalar(0.13);
+      orb.position.set(0.11, -0.14, 0);
+      floatProp.add(orb);
+      bodyGroup.add(floatProp);
     }
+
+    // Articulated right gesture/tool arm pivot (animates during walking & active verbs)
+    const armGroup = new Group();
+    armGroup.position.set(0.32, 0.74, 0.04);
+    const upperArm = makeBox(0.11, 0.36, 0.11, trimMat, true);
+    upperArm.position.set(0, -0.15, 0.06);
+    upperArm.rotation.x = -0.35;
+    armGroup.add(upperArm);
+    const gauntlet = makeBox(0.09, 0.1, 0.12, brassMat, false);
+    gauntlet.position.set(0, -0.3, 0.15);
+    armGroup.add(gauntlet);
+    bodyGroup.add(armGroup);
 
     // RFC-0144 §5: subtle category-only equipment silhouettes (tool / weapon / rig).
     const equipGroup = new Group();
@@ -2020,7 +2205,7 @@ function mount(frame, opts) {
     equipGroup.add(toolProp, weaponProp, rigProp);
     bodyGroup.add(equipGroup);
 
-    return { root, bodyGroup, headGroup, floatProp, ringMat, accent, equipProps: { tool: toolProp, weapon: weaponProp, rig: rigProp } };
+    return { root, bodyGroup, headGroup, armGroup, floatProp, ringMat, accent, equipProps: { tool: toolProp, weapon: weaponProp, rig: rigProp } };
   }
 
   /** Build diegetic verb VFX for an acting agent (beams, weld sparks, charter sigils, scanner cones, speech arcs). */
@@ -2411,7 +2596,17 @@ function mount(frame, opts) {
       }
     });
 
-    // Second pass: orient conversational pairs toward each other & spawn verb VFX
+    // Second pass: orient conversational pairs toward each other, highlight active workstations & spawn verb VFX
+    const activeTargets = new Set();
+    for (const st of agentStates.values()) {
+      if (st.targetEnt && st.targetEnt.label) activeTargets.add(normKey(st.targetEnt.label));
+    }
+    for (const [key, ent] of entityPositions) {
+      if (!ent.trimMat) continue;
+      const busy = activeTargets.has(key);
+      ent.trimMat.color.setHex(ent.isSel ? 0xffb020 : busy ? 0x52f2ff : 0x3ddcff);
+      ent.trimMat.opacity = ent.isSel ? 0.92 : busy ? 0.78 : 0.34;
+    }
     for (const st of agentStates.values()) {
       const listener = st.speechAct && st.speechAct.listener_label
         ? agentStates.get(st.speechAct.listener_label)
@@ -2450,12 +2645,19 @@ function mount(frame, opts) {
     }
   }
 
-  function defaultView() {
+  function presetView(preset) {
     const aspect = Math.max(0.42, camera.aspect || 1.6);
     const distScale = aspect < 0.85 ? Math.min(2.15, 1.38 / aspect) : aspect < 1.15 ? 1.18 : 1.02;
     const target = new Vector3(-0.2, 1.02, -0.35);
-    const offset = new Vector3(13.2, 11.0, 14.0).multiplyScalar(distScale);
+    let offset;
+    if (preset === 2) offset = new Vector3(11.4, 5.8, 12.2).multiplyScalar(distScale); // Low dramatic tabletop
+    else if (preset === 3) offset = new Vector3(4.2, 20.5, 6.4).multiplyScalar(distScale); // High tactical
+    else offset = new Vector3(13.2, 11.0, 14.0).multiplyScalar(distScale); // 1: Classic 3/4 isometric
     return { target, position: target.clone().add(offset) };
+  }
+
+  function defaultView() {
+    return presetView(1);
   }
 
   function agentFocusView(st) {
@@ -2521,6 +2723,7 @@ function mount(frame, opts) {
       camera.position.copy(v.position);
       controls.update();
     }
+    declutterDirty = true;
     request();
   }
 
@@ -2530,13 +2733,25 @@ function mount(frame, opts) {
     frameId = requestAnimationFrame(draw);
   }
 
-  /** Screen-space decluttering so speech bubbles, agent tags, portals, entities, and trace plaques never collide. */
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const leaderSvg = typeof document.createElementNS === "function" ? document.createElementNS(SVG_NS, "svg") : null;
+  if (leaderSvg) {
+    leaderSvg.setAttribute("class", "room3d-leaders");
+    leaderSvg.setAttribute("aria-hidden", "true");
+    labelRoot.appendChild(leaderSvg);
+  }
+
+  /** Screen-space decluttering + crisp SVG leader stems when speech bubbles shift from their speaker. */
   function declutter() {
+    if (leaderSvg) while (leaderSvg.firstChild) leaderSvg.removeChild(leaderSvg.firstChild);
     const els = Array.from(
       labelRoot.querySelectorAll(".room3d-speech, .room3d-agent-label, .room3d-portal, .room3d-entity, .room3d-trace"),
     );
     els.sort((a, b) => Number(b.dataset.priority || 0) - Number(a.dataset.priority || 0));
     const fr = frame.getBoundingClientRect();
+    if (leaderSvg && fr.width > 10 && fr.height > 10) {
+      leaderSvg.setAttribute("viewBox", `0 0 ${Math.round(fr.width)} ${Math.round(fr.height)}`);
+    }
     const placed = [];
     const padX = 10;
     const padY = 8;
@@ -2625,6 +2840,29 @@ function mount(frame, opts) {
       const fbox = clear ? box : bestBox;
       if (Math.abs(fx) >= 1) el.style.marginLeft = Math.round(fx) + "px";
       if (Math.abs(fy) >= 1) el.style.marginTop = Math.round(fy) + "px";
+      if (leaderSvg && isSpeech && Math.hypot(fx, fy) > 28 && fr.width > 10) {
+        const ax = (base.left + base.right) * 0.5 - fr.left;
+        const ay = base.bottom - fr.top;
+        const bx = (fbox.left + fbox.right) * 0.5 - fr.left;
+        const by = fbox.bottom - fr.top;
+        const accent = el.style.getPropertyValue("--speech-accent") || "#3ddcff";
+        const ln = document.createElementNS(SVG_NS, "line");
+        ln.setAttribute("x1", ax.toFixed(1));
+        ln.setAttribute("y1", ay.toFixed(1));
+        ln.setAttribute("x2", bx.toFixed(1));
+        ln.setAttribute("y2", by.toFixed(1));
+        ln.setAttribute("stroke", accent);
+        ln.setAttribute("stroke-opacity", "0.52");
+        ln.setAttribute("stroke-width", "1.2");
+        ln.setAttribute("stroke-dasharray", "3 3");
+        const dot = document.createElementNS(SVG_NS, "circle");
+        dot.setAttribute("cx", ax.toFixed(1));
+        dot.setAttribute("cy", ay.toFixed(1));
+        dot.setAttribute("r", "2.6");
+        dot.setAttribute("fill", accent);
+        dot.setAttribute("fill-opacity", "0.8");
+        leaderSvg.append(ln, dot);
+      }
       placed.push(fbox);
     }
   }
@@ -2659,6 +2897,7 @@ function mount(frame, opts) {
       }
 
       // Smooth agent walking, turning, breathing & floating props
+      let anyWalking = false;
       for (const st of agentStates.values()) {
         const dx = st.tx - st.x;
         const dz = st.tz - st.z;
@@ -2666,6 +2905,7 @@ function mount(frame, opts) {
         let walking = false;
         if (dist > 0.04) {
           walking = true;
+          anyWalking = true;
           const step = Math.min(dist, dt * 2.6);
           st.x += (dx / dist) * step;
           st.z += (dz / dist) * step;
@@ -2676,16 +2916,33 @@ function mount(frame, opts) {
           st.yaw += Math.atan2(Math.sin(st.tyaw - st.yaw), Math.cos(st.tyaw - st.yaw)) * Math.min(1, dt * 5);
         }
         st.root.rotation.y = st.yaw;
+        // Stride bob + subtle forward lean & lateral roll when walking; gentle breathing + working sway when idle
         st.rig.bodyGroup.position.y = 0.09 + (walking
-          ? Math.abs(Math.sin(sec * 9.5 + st.phase)) * 0.09
-          : Math.sin(sec * 2.1 + st.phase) * 0.025);
+          ? Math.abs(Math.sin(sec * 9.5 + st.phase)) * 0.085
+          : Math.sin(sec * 2.1 + st.phase) * 0.024);
+        st.rig.bodyGroup.rotation.x = walking
+          ? 0.09
+          : (st.effAct ? Math.sin(sec * 3.8 + st.phase) * 0.04 : 0);
+        st.rig.bodyGroup.rotation.z = walking ? Math.sin(sec * 9.5 + st.phase) * 0.055 : 0;
+        if (st.rig.headGroup) {
+          st.rig.headGroup.rotation.y = walking ? 0 : Math.sin(sec * 1.15 + st.phase) * 0.14;
+        }
+        if (st.rig.armGroup) {
+          st.rig.armGroup.rotation.x = walking
+            ? Math.sin(sec * 9.5 + st.phase) * 0.42
+            : (st.effAct ? -0.45 + Math.sin(sec * 5.2 + st.phase) * 0.24 : Math.sin(sec * 1.6 + st.phase) * 0.08);
+        }
         if (st.rig.floatProp && st.rig.floatProp.userData.baseY !== undefined) {
           st.rig.floatProp.position.y = st.rig.floatProp.userData.baseY
-            + Math.sin(sec * 2.8 + st.phase) * 0.022;
+            + Math.sin(sec * 2.8 + st.phase) * 0.025;
         }
         if (followHandle === st.handle && !spectatorMoved && !tween && walking) {
           controls.target.lerp(new Vector3(st.x, 1.25, st.z), Math.min(1, dt * 4));
         }
+      }
+      if (anyWalking) {
+        shadowsDirty = true;
+        declutterDirty = true;
       }
 
       // Animate verb VFX (harvest beam motes, weld sparks, charter sigil rotation, scanner sweep)
@@ -2726,9 +2983,16 @@ function mount(frame, opts) {
     }
 
     if (controls.enableDamping) controls.update();
+    if (shadowsDirty) {
+      renderer.shadowMap.needsUpdate = true;
+      shadowsDirty = false;
+    }
     renderer.render(scene, camera);
     labels.render(scene, camera);
-    declutter();
+    if (declutterDirty || tween) {
+      declutter();
+      declutterDirty = false;
+    }
     if (busy) request();
   }
 
@@ -2788,9 +3052,12 @@ function mount(frame, opts) {
       buildEntities(roomGroup, room.entities || []);
       buildTracePlaques(roomGroup, room.traces || []);
       buildDeepTimeProps(roomGroup, room, bands);
+      shadowsDirty = true;
     }
 
     syncAgentsAndActivity(live, room);
+    shadowsDirty = true;
+    declutterDirty = true;
 
     if (!framed || roomChanged) {
       framed = true;
@@ -2837,7 +3104,18 @@ function mount(frame, opts) {
   canvas.addEventListener("pointerdown", onDown);
   canvas.addEventListener("pointerup", onUp);
   controls.addEventListener("start", () => { spectatorMoved = true; tween = null; });
-  controls.addEventListener("change", request);
+  controls.addEventListener("change", () => { declutterDirty = true; request(); });
+
+  const onKeyPreset = (ev) => {
+    const tag = ev.target && ev.target.tagName ? String(ev.target.tagName).toLowerCase() : "";
+    if (tag === "input" || tag === "textarea" || tag === "select") return;
+    if (ev.key === "1" || ev.key === "2" || ev.key === "3") {
+      spectatorMoved = false;
+      const v = presetView(Number(ev.key));
+      easeTo(v.target, v.position, 460);
+    }
+  };
+  frame.addEventListener("keydown", onKeyPreset);
 
   const resetBtn = opts.reset;
   const onReset = () => reset();
@@ -2870,13 +3148,17 @@ function mount(frame, opts) {
     if (typeof coveBounce.dispose === "function") coveBounce.dispose();
     for (const geo of Object.values(shared)) geo.dispose();
     if (haloTexture) haloTexture.dispose();
+    if (shaftTexture) shaftTexture.dispose();
     if (skyTexture) skyTexture.dispose();
-    if (floorTex) { floorTex.map.dispose(); floorTex.bump.dispose(); }
-    if (wallTex) { wallTex.map.dispose(); wallTex.bump.dispose(); }
+    for (const pbr of floorPbrCache.values()) if (pbr) pbr.dispose();
+    floorPbrCache.clear();
+    if (wallTex) wallTex.dispose();
+    if (envRig) envRig.dispose();
     controls.dispose();
     controls.stopListenToKeyEvents();
     canvas.removeEventListener("pointerdown", onDown);
     canvas.removeEventListener("pointerup", onUp);
+    frame.removeEventListener("keydown", onKeyPreset);
     canvas.removeEventListener("webglcontextlost", onContextLost);
     document.removeEventListener("visibilitychange", onVisible);
     if (resetBtn) resetBtn.removeEventListener("click", onReset);

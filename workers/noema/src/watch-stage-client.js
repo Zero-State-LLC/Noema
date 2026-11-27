@@ -6,14 +6,23 @@
  */
 import {
   ACESFilmicToneMapping, AdditiveBlending, BackSide, BoxGeometry, BufferAttribute, BufferGeometry,
-  CanvasTexture, Color, ConeGeometry, CylinderGeometry, DirectionalLight, DoubleSide, EdgesGeometry,
-  FogExp2, Group, HemisphereLight, Line, LineBasicMaterial, LineDashedMaterial, LineSegments, Mesh,
-  MeshBasicMaterial, MeshStandardMaterial, OctahedronGeometry, PCFShadowMap, PerspectiveCamera,
-  PlaneGeometry, PointLight, Points, PointsMaterial, Raycaster, RepeatWrapping, RingGeometry,
-  SRGBColorSpace, Scene, TorusGeometry, Vector2, Vector3, WebGLRenderer,
+  CanvasTexture, CatmullRomCurve3, Color, ConeGeometry, CylinderGeometry, DirectionalLight, DoubleSide,
+  EdgesGeometry, FogExp2, Group, HemisphereLight, InstancedMesh, LatheGeometry, Line, LineBasicMaterial,
+  LineDashedMaterial, LineSegments, Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D,
+  OctahedronGeometry, PCFShadowMap, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial,
+  Raycaster, RepeatWrapping, RingGeometry, SRGBColorSpace, Scene, TorusGeometry, TubeGeometry, Vector2,
+  Vector3, WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
+import {
+  applyRimGlow,
+  buildNocturnalEnvMap,
+  makeCanvas,
+  makeOverviewDeckPbr,
+  makeOverviewTerrainPbr,
+  mulberry32,
+} from "./watch-stage-craft";
 import {
   STAGE_CAMERA_EASE_MS,
   STAGE_GLOW,
@@ -77,30 +86,6 @@ function agentAccent(handle) {
   let h = 0;
   for (let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) >>> 0;
   return AGENT_COLORS[h % AGENT_COLORS.length];
-}
-
-function makeCanvas(w, h) {
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx2d = typeof canvas.getContext === "function" ? canvas.getContext("2d") : null;
-    if (!ctx2d) return null;
-    return { canvas, ctx2d };
-  } catch (e) {
-    return null;
-  }
-}
-
-/** Deterministic PRNG for procedural textures and terrain features. */
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 /**
@@ -177,175 +162,6 @@ function makeHorizonTexture() {
   const tex = new CanvasTexture(canvas);
   tex.colorSpace = SRGBColorSpace;
   return tex;
-}
-
-/** Procedural nocturnal obsidian-basalt planetary basin albedo + bump texture (512x512). */
-function makeTerrainTextures() {
-  const albedo = makeCanvas(512, 512);
-  const bump = makeCanvas(512, 512);
-  if (!albedo || !bump) return null;
-  const ctx = albedo.ctx2d;
-  const bctx = bump.ctx2d;
-
-  // Deep volcanic obsidian-basalt basin floor -> sculpted basalt contour terraces -> outer slate rim
-  const baseGrad = ctx.createRadialGradient(256, 256, 16, 256, 256, 256);
-  baseGrad.addColorStop(0, "#0D121A");
-  baseGrad.addColorStop(0.26, "#111824");
-  baseGrad.addColorStop(0.50, "#172230");
-  baseGrad.addColorStop(0.76, "#1F2D40");
-  baseGrad.addColorStop(1, "#111824");
-  ctx.fillStyle = baseGrad;
-  ctx.fillRect(0, 0, 512, 512);
-
-  bctx.fillStyle = "#808080";
-  bctx.fillRect(0, 0, 512, 512);
-
-  // Subtle cool basalt & slate mineral strata variation (zero warm ochre dirt)
-  const rand = mulberry32(9021);
-  for (let i = 0; i < 72; i++) {
-    const ang = rand() * Math.PI * 2;
-    const dist = 68 + rand() * 176;
-    const x = 256 + Math.cos(ang) * dist;
-    const y = 256 + Math.sin(ang) * dist;
-    const r = 22 + rand() * 52;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    const cool = rand() > 0.38;
-    g.addColorStop(0, cool ? "rgba(38,56,78,0.20)" : "rgba(12,18,28,0.28)");
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  }
-
-  // Sunken foundation shadow beneath the settlement basin
-  const sink = ctx.createRadialGradient(256, 256, 12, 256, 256, 66);
-  sink.addColorStop(0, "rgba(4,6,10,0.56)");
-  sink.addColorStop(0.78, "rgba(7,10,16,0.32)");
-  sink.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = sink;
-  ctx.fillRect(184, 184, 144, 144);
-
-  // Carved basalt topographic contour terraces
-  ctx.lineWidth = 1.1;
-  bctx.lineWidth = 1.5;
-  for (let r = 22; r <= 240; r += 13) {
-    const inBasin = r < 62;
-    ctx.strokeStyle = inBasin ? "rgba(46,66,88,0.22)" : "rgba(58,82,108,0.24)";
-    bctx.strokeStyle = inBasin ? "rgba(58,58,58,0.52)" : "rgba(188,188,188,0.44)";
-    ctx.beginPath();
-    bctx.beginPath();
-    for (let a = 0; a <= 72; a++) {
-      const th = (a / 72) * Math.PI * 2;
-      const wob = inBasin ? 0 : Math.sin(th * 5 + r * 0.08) * 2.8 + Math.cos(th * 3 - r * 0.05) * 2.0;
-      const px = 256 + Math.cos(th) * (r + wob);
-      const py = 256 + Math.sin(th) * (r + wob);
-      if (a === 0) { ctx.moveTo(px, py); bctx.moveTo(px, py); }
-      else { ctx.lineTo(px, py); bctx.lineTo(px, py); }
-    }
-    ctx.stroke();
-    bctx.stroke();
-  }
-
-  // Hairline architectural slate-steel radial survey lines + restrained antique-brass cardinal ticks
-  ctx.lineWidth = 0.85;
-  for (let i = 0; i < 12; i++) {
-    const th = (i / 12) * Math.PI * 2;
-    const isCardinal = i % 3 === 0;
-    ctx.strokeStyle = isCardinal ? "rgba(140,117,88,0.24)" : "rgba(52,72,96,0.16)";
-    ctx.beginPath();
-    ctx.moveTo(256 + Math.cos(th) * 20, 256 + Math.sin(th) * 20);
-    ctx.lineTo(256 + Math.cos(th) * 108, 256 + Math.sin(th) * 108);
-    ctx.stroke();
-  }
-
-  // Fine volcanic basalt micro-grain for albedo and bump relief
-  for (let i = 0; i < 4200; i++) {
-    const x = (rand() * 512) | 0;
-    const y = (rand() * 512) | 0;
-    const v = rand();
-    ctx.fillStyle = v > 0.5 ? "rgba(164,196,226,0.036)" : "rgba(0,0,0,0.09)";
-    ctx.fillRect(x, y, 2, 2);
-    const bv = (92 + v * 72) | 0;
-    bctx.fillStyle = `rgb(${bv},${bv},${bv})`;
-    bctx.fillRect(x, y, 2, 2);
-  }
-
-  const map = new CanvasTexture(albedo.canvas);
-  map.colorSpace = SRGBColorSpace;
-  const bumpMap = new CanvasTexture(bump.canvas);
-  return { map, bump: bumpMap };
-}
-
-/** Procedural brushed obsidian-slate industrial deck plate texture (256x256). */
-function makeDeckTextures() {
-  const albedo = makeCanvas(256, 256);
-  const bump = makeCanvas(256, 256);
-  if (!albedo || !bump) return null;
-  const ctx = albedo.ctx2d;
-  const bctx = bump.ctx2d;
-
-  // Neutral brushed-slate base so dark obsidian-titanium material.color tints cleanly
-  ctx.fillStyle = "#b8c4d0";
-  ctx.fillRect(0, 0, 256, 256);
-  bctx.fillStyle = "#a0a0a0";
-  bctx.fillRect(0, 0, 256, 256);
-
-  const rand = mulberry32(3141);
-  // 4x4 brushed metallic tiles with subtle per-panel tonal & bump relief
-  const step = 64;
-  for (let gy = 0; gy < 4; gy++) {
-    for (let gx = 0; gx < 4; gx++) {
-      const shade = 176 + ((rand() * 24) | 0);
-      ctx.fillStyle = `rgb(${shade},${shade + 6},${shade + 14})`;
-      ctx.fillRect(gx * step + 2, gy * step + 2, step - 4, step - 4);
-      const bShade = 148 + ((rand() * 36) | 0);
-      bctx.fillStyle = `rgb(${bShade},${bShade},${bShade})`;
-      bctx.fillRect(gx * step + 2, gy * step + 2, step - 4, step - 4);
-
-      // Corner fastener rivets
-      ctx.fillStyle = "#525e6b";
-      bctx.fillStyle = "#484848";
-      for (const [rx, ry] of [[7, 7], [step - 9, 7], [7, step - 9], [step - 9, step - 9]]) {
-        ctx.fillRect(gx * step + rx, gy * step + ry, 2.5, 2.5);
-        bctx.fillRect(gx * step + rx, gy * step + ry, 2.5, 2.5);
-      }
-    }
-  }
-
-  // Recessed panel seams
-  ctx.strokeStyle = "#485462";
-  ctx.lineWidth = 2;
-  bctx.strokeStyle = "#323232";
-  bctx.lineWidth = 2.5;
-  for (let i = 0; i <= 256; i += step) {
-    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(256, i); ctx.stroke();
-    bctx.beginPath(); bctx.moveTo(i, 0); bctx.lineTo(i, 256); bctx.stroke();
-    bctx.beginPath(); bctx.moveTo(0, i); bctx.lineTo(256, i); bctx.stroke();
-  }
-
-  // Restrained machined bevel inset (no bright grey frame)
-  ctx.strokeStyle = "#8a99a8";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(8, 8, 240, 240);
-  bctx.strokeStyle = "#d0d0d0";
-  bctx.lineWidth = 2.5;
-  bctx.strokeRect(8, 8, 240, 240);
-
-  // Fine brushed-slate micro-streaks
-  for (let i = 0; i < 420; i++) {
-    const x = rand() * 256;
-    const y = rand() * 256;
-    const len = 10 + rand() * 34;
-    ctx.fillStyle = rand() > 0.5 ? "rgba(220,238,255,0.045)" : "rgba(18,24,34,0.065)";
-    ctx.fillRect(x, y, len, 1);
-  }
-
-  const map = new CanvasTexture(albedo.canvas);
-  map.colorSpace = SRGBColorSpace;
-  map.wrapS = map.wrapT = RepeatWrapping;
-  const bumpMap = new CanvasTexture(bump.canvas);
-  bumpMap.wrapS = bumpMap.wrapT = RepeatWrapping;
-  return { map, bump: bumpMap };
 }
 
 /** Build a continuous sculpted dark-basalt terraced canyon rim ring around the basin. */
@@ -428,10 +244,11 @@ function makePlanetaryTerrain(terrainTex, skyTex, haloTexture) {
   const groundMat = new MeshStandardMaterial({
     color: terrainTex ? 0xdbe6f2 : 0x101620,
     map: terrainTex ? terrainTex.map : null,
-    bumpMap: terrainTex ? terrainTex.bump : null,
-    bumpScale: 0.36,
-    roughness: 0.88,
-    metalness: 0.14,
+    normalMap: terrainTex ? terrainTex.normalMap : null,
+    normalScale: new Vector2(0.85, 0.85),
+    roughnessMap: terrainTex ? terrainTex.roughnessMap : null,
+    roughness: 0.92,
+    metalness: 0.2,
   });
   const ground = new Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
@@ -528,22 +345,52 @@ function makePlanetaryTerrain(terrainTex, skyTex, haloTexture) {
   }
 
   // Sculpted continuous layered dark-basalt canyon rim terraces around r = 16.5..28
-  const rimInnerMat = new MeshStandardMaterial({
+  const rimInnerMat = applyRimGlow(new MeshStandardMaterial({
     color: 0x1c2738,
     emissive: 0x0d1520,
-    emissiveIntensity: 0.32,
-    roughness: 0.80,
-    metalness: 0.16,
-  });
-  const rimOuterMat = new MeshStandardMaterial({
+    emissiveIntensity: 0.28,
+    roughness: 0.78,
+    metalness: 0.22,
+  }), 0x4ca8d8, 0.24, 3.0);
+  const rimOuterMat = applyRimGlow(new MeshStandardMaterial({
     color: 0x243347,
     emissive: 0x0d1520,
-    emissiveIntensity: 0.32,
-    roughness: 0.80,
-    metalness: 0.14,
-  });
+    emissiveIntensity: 0.26,
+    roughness: 0.78,
+    metalness: 0.2,
+  }), 0x56bce8, 0.28, 3.2);
   grp.add(makeBasaltTerraceRing(16.8, 22.0, 0.72, 0.95, 0.4, rimInnerMat));
   grp.add(makeBasaltTerraceRing(21.4, 28.4, 1.45, 1.55, 2.1, rimOuterMat));
+
+  // Instanced sculpted basalt rock outcrops & rim monoliths around the canyon terraces (1 draw call!)
+  {
+    const rockCount = 96;
+    const rockGeo = new OctahedronGeometry(0.55, 0);
+    const rockMat = applyRimGlow(new MeshStandardMaterial({
+      color: 0x192434,
+      roughness: 0.82,
+      metalness: 0.24,
+    }), 0x489ec8, 0.22, 3.2);
+    const rocks = new InstancedMesh(rockGeo, rockMat, rockCount);
+    const dummy = new Object3D();
+    const rRand = mulberry32(4771);
+    for (let i = 0; i < rockCount; i++) {
+      const th = (i / rockCount) * Math.PI * 2 + (rRand() - 0.5) * 0.14;
+      const dist = 16.2 + rRand() * 9.8;
+      const sx = 0.65 + rRand() * 1.45;
+      const sy = 0.55 + rRand() * 1.9;
+      const sz = 0.65 + rRand() * 1.35;
+      dummy.position.set(Math.cos(th) * dist, 0.18 + (dist - 16.2) * 0.13 + sy * 0.12, Math.sin(th) * dist);
+      dummy.rotation.set((rRand() - 0.5) * 0.35, rRand() * Math.PI * 2, (rRand() - 0.5) * 0.35);
+      dummy.scale.set(sx, sy, sz);
+      dummy.updateMatrix();
+      rocks.setMatrixAt(i, dummy.matrix);
+    }
+    rocks.instanceMatrix.needsUpdate = true;
+    rocks.receiveShadow = true;
+    rocks.raycast = () => {};
+    grp.add(rocks);
+  }
 
   // Nocturnal midnight-slate horizon backdrop cylinder
   if (skyTex) {
@@ -605,8 +452,8 @@ function mount(frame, opts) {
   const haloTexture = makeHaloTexture();
   const beaconTexture = makeBeaconTexture();
   const skyTexture = makeHorizonTexture();
-  const terrainTex = makeTerrainTextures();
-  const deckTex = makeDeckTextures();
+  const terrainTex = makeOverviewTerrainPbr();
+  const deckTex = makeOverviewDeckPbr();
 
   // Reset GL pixel-store unpack state when remounting onto a reused <canvas>
   // (e.g. toggling Low noise off) so Three.js dummy 3D texture init never warns.
@@ -624,12 +471,19 @@ function mount(frame, opts) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearColor(0x0b0f15, 1);
   renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.32;
+  renderer.toneMappingExposure = 1.28;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
   const labels = new CSS2DRenderer({ element: labelRoot });
 
   const scene = new Scene();
+  const envRig = buildNocturnalEnvMap(renderer);
+  if (envRig) {
+    scene.environment = envRig.envMap;
+    scene.environmentIntensity = 0.92;
+  }
   scene.fog = new FogExp2(0x0b1017, 0.0068);
   const env = makePlanetaryTerrain(terrainTex, skyTexture, haloTexture);
   const environment = env.grp;
@@ -726,6 +580,9 @@ function mount(frame, opts) {
   let framed = false;
   let frameId = 0;
   let dirty = false;
+  let shadowsDirty = true;
+  let declutterDirty = true;
+  let lastWorldSig = "";
   let disposed = false;
   let hoveredSiteId = "";
   let hoveredHandle = "";
@@ -752,10 +609,22 @@ function mount(frame, opts) {
     return m;
   }
 
-  /** Sculpted miniature tabletop automaton drone echoing hero-table.jpg figures. */
-  function buildAutomaton(accent, isNamed) {
+  /** Determine deterministic role archetype cue from public handle (Founder/Quartermaster/Custodian/Archivist/Speaker/Surveyor). */
+  function overviewRoleKind(handle) {
+    const s = String(handle || "").toLowerCase();
+    if (s.includes("archivist")) return "archivist";
+    if (s.includes("custodian") || s.includes("maint")) return "custodian";
+    if (s.includes("surveyor")) return "surveyor";
+    if (s.includes("quartermaster")) return "quartermaster";
+    if (s.includes("founder") || s.includes("speaker")) return "civic";
+    return "operator";
+  }
+
+  /** Sculpted miniature tabletop automaton drone echoing hero-table.jpg figures with role silhouette cues. */
+  function buildAutomaton(accent, isNamed, handle) {
     const root = new Group();
     const mats = [];
+    const roleKind = overviewRoleKind(handle);
     const cloakColor = new Color(0x1f2731).lerp(new Color(accent), 0.34);
 
     // Subtle glowing ground halo ring under each agent
@@ -775,7 +644,7 @@ function mount(frame, opts) {
     root.add(groundRing);
 
     // Stepped tabletop pedestal disc
-    const baseMat = new MeshStandardMaterial({ color: 0x303c4a, roughness: 0.42, metalness: 0.68 });
+    const baseMat = new MeshStandardMaterial({ color: 0x303c4a, roughness: 0.38, metalness: 0.72 });
     mats.push(baseMat);
     const base = new Mesh(shared.pipBase, baseMat);
     base.position.y = 0.04;
@@ -783,14 +652,14 @@ function mount(frame, opts) {
     base.receiveShadow = true;
     root.add(base);
 
-    // Chamfered hooded chassis/cloak body
-    const bodyMat = new MeshStandardMaterial({
+    // Chamfered hooded chassis/cloak body with Fresnel rim separation
+    const bodyMat = applyRimGlow(new MeshStandardMaterial({
       color: cloakColor,
       emissive: accent,
-      emissiveIntensity: isNamed ? 0.32 : 0.12,
+      emissiveIntensity: isNamed ? 0.3 : 0.12,
       roughness: 0.38,
-      metalness: 0.4,
-    });
+      metalness: 0.42,
+    }), accent, isNamed ? 0.38 : 0.16, 2.8);
     mats.push(bodyMat);
     const body = new Mesh(shared.pip, bodyMat);
     body.position.y = 0.24;
@@ -804,7 +673,7 @@ function mount(frame, opts) {
       emissive: accent,
       emissiveIntensity: isNamed ? 1.25 : 0.4,
       roughness: 0.22,
-      metalness: 0.42,
+      metalness: 0.48,
     });
     mats.push(collarMat);
     const collar = new Mesh(shared.pipCollar, collarMat);
@@ -812,7 +681,7 @@ function mount(frame, opts) {
     collar.position.y = 0.43;
     root.add(collar);
 
-    // Hovering geometric crown/monitor head
+    // Hovering geometric head with role-matched silhouette cues matching Room View archetypes
     const head = new Group();
     head.position.y = 0.59;
     const crownMat = new MeshStandardMaterial({
@@ -820,24 +689,75 @@ function mount(frame, opts) {
       emissive: accent,
       emissiveIntensity: isNamed ? 1.45 : 0.45,
       roughness: 0.16,
-      metalness: 0.3,
+      metalness: 0.32,
     });
     mats.push(crownMat);
-    const crown = new Mesh(shared.pipHead, crownMat);
-    crown.castShadow = true;
-    head.add(crown);
-
     const visorMat = new MeshStandardMaterial({
       color: 0x101820,
       emissive: accent,
       emissiveIntensity: isNamed ? 1.8 : 0.5,
       roughness: 0.1,
-      metalness: 0.6,
+      metalness: 0.65,
     });
     mats.push(visorMat);
-    const visor = new Mesh(shared.pipVisor, visorMat);
-    visor.position.set(0, 0, 0.07);
-    head.add(visor);
+    const brassMini = new MeshStandardMaterial({ color: 0xb69058, roughness: 0.32, metalness: 0.78 });
+    mats.push(brassMini);
+
+    if (roleKind === "archivist") {
+      // Pointed cowl hood + glowing ocular visor
+      const cowl = new Mesh(shared.arrow, bodyMat);
+      cowl.scale.set(1.05, 0.72, 1.05);
+      cowl.position.y = 0.04;
+      cowl.castShadow = true;
+      head.add(cowl);
+      const visor = new Mesh(shared.pipVisor, visorMat);
+      visor.position.set(0, -0.02, 0.08);
+      head.add(visor);
+    } else if (roleKind === "operator" || roleKind === "quartermaster") {
+      // Boxy CRT monitor head (hero-table.jpg homage)
+      const crt = makeBox(0.22, 0.18, 0.18, baseMat, true);
+      head.add(crt);
+      const scr = makeBox(0.16, 0.11, 0.03, crownMat, false);
+      scr.position.set(0, 0, 0.085);
+      head.add(scr);
+      if (roleKind === "quartermaster") {
+        const pack = makeBox(0.18, 0.22, 0.12, brassMini, false);
+        pack.position.set(0, -0.22, -0.14);
+        root.add(pack);
+      }
+    } else if (roleKind === "custodian") {
+      // Helm + vertical lantern staff finial
+      const crown = new Mesh(shared.pipHead, crownMat);
+      crown.castShadow = true;
+      head.add(crown);
+      const staff = makeBox(0.03, 0.52, 0.03, brassMini, false);
+      staff.position.set(0.19, 0.34, 0.05);
+      root.add(staff);
+      const lamp = new Mesh(shared.trailDot, crownMat);
+      lamp.position.set(0.19, 0.64, 0.05);
+      root.add(lamp);
+    } else if (roleKind === "surveyor") {
+      // Domed optic head + dual swept antenna fins
+      const crown = new Mesh(shared.pipHead, crownMat);
+      crown.scale.set(0.92, 0.86, 0.92);
+      crown.castShadow = true;
+      head.add(crown);
+      for (const sx of [-0.09, 0.09]) {
+        const fin = makeBox(0.025, 0.18, 0.05, brassMini, false);
+        fin.position.set(sx, 0.11, -0.04);
+        fin.rotation.set(-0.35, 0, sx < 0 ? 0.28 : -0.28);
+        head.add(fin);
+      }
+    } else {
+      // Founder / Speaker: ceremonial brass halo crest + luminous crown
+      const crown = new Mesh(shared.pipHead, crownMat);
+      crown.castShadow = true;
+      head.add(crown);
+      const crest = new Mesh(shared.pipCollar, brassMini);
+      crest.position.set(0, 0.08, -0.04);
+      crest.scale.setScalar(1.18);
+      head.add(crest);
+    }
     root.add(head);
     root.scale.setScalar(1.14);
 
@@ -1247,6 +1167,7 @@ function mount(frame, opts) {
       camera.position.copy(v.position);
       controls.update();
     }
+    declutterDirty = true;
     request();
   }
 
@@ -1278,8 +1199,11 @@ function mount(frame, opts) {
       controls.target.lerpVectors(tween.fromTarget, tween.toTarget, k);
       camera.position.lerpVectors(tween.fromPos, tween.toPos, k);
       controls.update();
-      if (t >= 1) tween = null;
-      else busy = true;
+      if (t >= 1) {
+        const done = tween.onDone;
+        tween = null;
+        if (done) done();
+      } else busy = true;
     }
     for (const g of groups.values()) g.position.y = g.userData.baseY || 0;
     pulses = pulses.filter((p) => {
@@ -1400,9 +1324,16 @@ function mount(frame, opts) {
       if (!document.hidden && (animatedProps.length > 0 || animatedPawns.length > 0)) busy = true;
     }
     if (controls.enableDamping) controls.update();
+    if (shadowsDirty || pulses.length > 0 || travels.length > 0) {
+      renderer.shadowMap.needsUpdate = true;
+      shadowsDirty = false;
+    }
     renderer.render(scene, camera);
     labels.render(scene, camera);
-    declutter();
+    if (declutterDirty || tween || travels.length > 0) {
+      declutter();
+      declutterDirty = false;
+    }
     if (busy) request();
   }
 
@@ -1710,13 +1641,13 @@ function mount(frame, opts) {
     g.add(subBase);
 
     // Tier 2: machined dark-steel beveled collar
-    const collar = new Mesh(shared.collar, new MeshStandardMaterial({
+    const collar = new Mesh(shared.collar, applyRimGlow(new MeshStandardMaterial({
       color: 0x263342,
-      roughness: 0.48,
-      metalness: 0.62,
+      roughness: 0.42,
+      metalness: 0.68,
       transparent: partial,
       opacity: partial ? 0.52 : 1,
-    }));
+    }), 0x4bc8f0, 0.22, 3.0));
     collar.position.y = 0.08 + liftY * 0.75;
     collar.castShadow = true;
     collar.receiveShadow = true;
@@ -1729,10 +1660,11 @@ function mount(frame, opts) {
     const plateMat = new MeshStandardMaterial({
       color: plateColor,
       map: deckTex ? deckTex.map : null,
-      bumpMap: deckTex ? deckTex.bump : null,
-      bumpScale: 0.065,
-      roughness: 0.68,
-      metalness: 0.36,
+      normalMap: deckTex ? deckTex.normalMap : null,
+      normalScale: new Vector2(0.65, 0.65),
+      roughnessMap: deckTex ? deckTex.roughnessMap : null,
+      roughness: 0.72,
+      metalness: 0.44,
       emissive: new Color(0x000000),
       emissiveIntensity: 0,
       transparent: partial,
@@ -1917,7 +1849,7 @@ function mount(frame, opts) {
     for (let i = 0; i < tokenCount; i++) {
       const tok = named[i];
       const accent = agentAccent(tok ? tok.handle : "");
-      const drone = buildAutomaton(accent, !!tok);
+      const drone = buildAutomaton(accent, !!tok, tok ? tok.handle : "");
       const pip = drone.root;
       const baseY = py + 0.01;
       let xOffset = 0;
@@ -2260,16 +2192,27 @@ function mount(frame, opts) {
     controls.maxPolarAngle = lim.maxPolarAngle;
   }
 
-  function easeTo(toTarget, toPos) {
+  function easeTo(toTarget, toPos, msOverride, onDone) {
     tween = {
       start: performance.now(),
-      ms: reduce ? 0 : STAGE_CAMERA_EASE_MS,
+      ms: reduce ? 0 : (msOverride != null ? msOverride : STAGE_CAMERA_EASE_MS),
       fromTarget: controls.target.clone(),
       toTarget,
       fromPos: camera.position.clone(),
       toPos,
+      onDone: typeof onDone === "function" ? onDone : null,
     };
     request();
+  }
+
+  /** Smooth macro->micro dive-in ease toward a site plinth before opening Full-Screen Room View (Pass 4C). */
+  function diveTo(roomId, onDone) {
+    const cb = typeof onDone === "function" ? onDone : () => {};
+    const g = groups.get(roomId);
+    if (reduce || !g) { cb(); return; }
+    const toTarget = new Vector3(g.position.x, (g.userData.baseY || 0) + 0.35, g.position.z);
+    const offset = camera.position.clone().sub(controls.target).multiplyScalar(0.54);
+    easeTo(toTarget, toTarget.clone().add(offset), 260, cb);
   }
 
   function focus(roomId) {
@@ -2448,6 +2391,7 @@ function mount(frame, opts) {
     }
     if (c.tier === "MAJOR") box.el.prepend(el);
     else box.el.append(el);
+    declutterDirty = true;
     const entry = { caption: c, el, timer: 0 };
     entry.timer = setTimeout(() => {
       captions = captions.filter((x) => x !== entry);
@@ -2457,6 +2401,7 @@ function mount(frame, opts) {
         box.anchor.remove();
         if (captionBoxes.get(c.roomId) === box) captionBoxes.delete(c.roomId);
       }
+      declutterDirty = true;
       request();
     }, Math.max(0, c.holdMs));
     captions.push(entry);
@@ -2642,7 +2587,6 @@ function mount(frame, opts) {
     // D6 route travel reads the previous scene's handle sites before the rebuild.
     const prevHandleSites = handleSites;
     model = buildStageModel(live, ctx);
-    clearWorld();
     const sunkenSites = new Set();
     for (const r of model.routes) {
       const dir = String(r.direction || "").toLowerCase();
@@ -2653,51 +2597,66 @@ function mount(frame, opts) {
       const sid = String(s.id || "").toLowerCase();
       if (sid.includes("archive") || sid.includes("vault")) sunkenSites.add(s.id);
     }
-    const sunkenCoords = [];
-    const surfaceCoords = [];
-    for (const site of model.sites) {
-      const isSunken = sunkenSites.has(site.id);
-      if (isSunken) sunkenCoords.push(site);
-      else surfaceCoords.push(site);
-      const g = siteGroup(site, isSunken, model.sites);
-      groups.set(site.id, g);
-      world.add(g);
+    const worldSig = JSON.stringify({
+      sites: model.sites.map((s) => [
+        s.id, s.name, s.x, s.z, s.certainty, s.active, s.players, s.unnamed, s.more, s.traces,
+        s.selected, s.followed, s.major, s.bands.scar, s.bands.pressure, s.bands.protocol,
+        s.tokens.map((t) => t.handle + ":" + t.line),
+      ]),
+      routes: model.routes.map((r) => [r.from, r.to, r.direction, r.dashed, r.oneWay]),
+      sunken: Array.from(sunkenSites).sort(),
+    });
+    if (worldSig !== lastWorldSig) {
+      lastWorldSig = worldSig;
+      clearWorld();
+      const sunkenCoords = [];
+      const surfaceCoords = [];
+      for (const site of model.sites) {
+        const isSunken = sunkenSites.has(site.id);
+        if (isSunken) sunkenCoords.push(site);
+        else surfaceCoords.push(site);
+        const g = siteGroup(site, isSunken, model.sites);
+        groups.set(site.id, g);
+        world.add(g);
+      }
+      env.updatePits(sunkenCoords, surfaceCoords);
+      routeEntries = [];
+      for (const r of model.routes) {
+        const a = groups.get(r.from);
+        const b = groups.get(r.to);
+        if (!a || !b) continue;
+        const grp = routeLine(r, a.position, b.position);
+        world.add(grp);
+        const mats = [];
+        const seen = new Set();
+        grp.traverse((o) => {
+          if (o.material && o.material.color && o.material.userData && o.material.userData.routeGlow && !seen.has(o.material)) {
+            seen.add(o.material);
+            mats.push(o.material);
+          }
+        });
+        routeEntries.push({ from: r.from, to: r.to, mats });
+      }
+      if (!framed || Math.abs(prevRadius - model.radius) > 0.01) {
+        buildCompass(model.radius);
+        applyLimits(model.radius);
+      }
+      // A rebuild drops the old scene; give still-running MAJOR pulses their ring back.
+      for (const p of pulses) {
+        if (p.tier === "MAJOR" && !p.ring && groups.has(p.roomId)) p.ring = majorRing(p.roomId);
+      }
+      restartMoments(performance.now());
+      // Captions survive a rebuild too: re-home the ones still holding.
+      for (const [roomId, box] of captionBoxes) {
+        const g = groups.get(roomId);
+        if (g) g.add(box.obj);
+      }
+      // Travellers survive a rebuild too: re-home the ones still in flight.
+      rehomeTravels(performance.now());
+      applyHighlight();
+      shadowsDirty = true;
+      declutterDirty = true;
     }
-    env.updatePits(sunkenCoords, surfaceCoords);
-    routeEntries = [];
-    for (const r of model.routes) {
-      const a = groups.get(r.from);
-      const b = groups.get(r.to);
-      if (!a || !b) continue;
-      const grp = routeLine(r, a.position, b.position);
-      world.add(grp);
-      const mats = [];
-      const seen = new Set();
-      grp.traverse((o) => {
-        if (o.material && o.material.color && o.material.userData && o.material.userData.routeGlow && !seen.has(o.material)) {
-          seen.add(o.material);
-          mats.push(o.material);
-        }
-      });
-      routeEntries.push({ from: r.from, to: r.to, mats });
-    }
-    if (!framed || Math.abs(prevRadius - model.radius) > 0.01) {
-      buildCompass(model.radius);
-      applyLimits(model.radius);
-    }
-    // A rebuild drops the old scene; give still-running MAJOR pulses their ring back.
-    for (const p of pulses) {
-      if (p.tier === "MAJOR" && !p.ring && groups.has(p.roomId)) p.ring = majorRing(p.roomId);
-    }
-    restartMoments(performance.now());
-    // Captions survive a rebuild too: re-home the ones still holding.
-    for (const [roomId, box] of captionBoxes) {
-      const g = groups.get(roomId);
-      if (g) g.add(box.obj);
-    }
-    // Travellers survive a rebuild too: re-home the ones still in flight.
-    rehomeTravels(performance.now());
-    applyHighlight();
     // Captions read the same fresh window as pulses, before the sequence advances.
     const fresh = newStagePulses(live && live.recent_events, lastSeq, groups.keys(), {
       reduce,
@@ -2815,7 +2774,7 @@ function mount(frame, opts) {
   canvas.addEventListener("dblclick", onDblClick);
   // Any spectator camera movement suspends the director until Reset view.
   controls.addEventListener("start", () => { spectatorMoved = true; tween = null; shot = null; });
-  controls.addEventListener("change", request);
+  controls.addEventListener("change", () => { declutterDirty = true; request(); });
   const onKey = (ev) => { if (CAMERA_KEYS.has(ev.key)) { spectatorMoved = true; tween = null; shot = null; } };
   frame.addEventListener("keydown", onKey);
   const resetBtn = opts.reset;
@@ -2864,8 +2823,9 @@ function mount(frame, opts) {
     if (haloTexture) haloTexture.dispose();
     if (beaconTexture) beaconTexture.dispose();
     if (skyTexture) skyTexture.dispose();
-    if (terrainTex) { terrainTex.map.dispose(); terrainTex.bump.dispose(); }
-    if (deckTex) { deckTex.map.dispose(); deckTex.bump.dispose(); }
+    if (terrainTex) terrainTex.dispose();
+    if (deckTex) deckTex.dispose();
+    if (envRig) envRig.dispose();
     controls.dispose();
     canvas.removeEventListener("pointerdown", onDown);
     canvas.removeEventListener("pointerup", onUp);
@@ -2888,7 +2848,7 @@ function mount(frame, opts) {
     renderer.dispose();
   }
 
-  return { update, focus, reset, dispose, pause: pausePlayback, setHighlight };
+  return { update, focus, diveTo, reset, dispose, pause: pausePlayback, setHighlight };
 }
 
 window.NoemaWatchStage = { mount };

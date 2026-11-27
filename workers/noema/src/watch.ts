@@ -819,7 +819,14 @@ export function watchHtml(opts?: { mode?: string }): string {
           reset: $("watch-stage3d-reset"),
           reduce: state.reduce,
           onSelect: function(id) { if (window.NoemaPhosphorPick) window.NoemaPhosphorPick(id); },
-          onEnterRoom: function(id) { if (id) enterRoom(id, true); },
+          onEnterRoom: function(id) {
+            if (!id) return;
+            if (stage3d.api && typeof stage3d.api.diveTo === "function" && !state.reduce) {
+              stage3d.api.diveTo(id, function() { enterRoom(id, true); });
+            } else {
+              enterRoom(id, true);
+            }
+          },
           onLost: stageFallback,
         });
         paintStageFallback("");

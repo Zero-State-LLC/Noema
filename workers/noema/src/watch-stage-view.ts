@@ -85,7 +85,7 @@ export function roomOverlayHtml(): string {
         aria-label="3D Place view. Drag to orbit, scroll to zoom, Esc to return to World Overview.">
         <canvas id="watch-room-gl" aria-hidden="true"></canvas>
         <div class="room3d-labels" id="watch-room-labels" aria-hidden="true"></div>
-        <p class="room3d-help" id="watch-room-help" aria-hidden="true">Drag to turn · scroll to zoom · click agent to follow · Esc to exit</p>
+        <p class="room3d-help" id="watch-room-help" aria-hidden="true">Drag to turn · scroll to zoom · 1/2/3 camera · click agent to follow · Esc to exit</p>
         <div class="room-text-fallback" id="watch-room-text" hidden></div>
       </div>
       <aside class="room-drawer" id="watch-room-drawer" aria-label="Room activity and details">
@@ -137,7 +137,7 @@ body:has(.watch-stage[data-mode="3d"]) .wrap{width:min(88rem,calc(100% - 2*var(-
 #watch-stage3d[hidden],#watch-stage3d [hidden]{display:none!important}
 body.is-low-noise #watch-stage3d{display:none!important}
 .stage3d-frame{
-  position:relative;height:clamp(380px,calc(100vh - 340px),600px);overflow:hidden;
+  position:relative;height:clamp(420px,calc(100vh - 220px),780px);overflow:hidden;
   background:var(--void);
   border:1px solid color-mix(in srgb,var(--line-hot) 56%,var(--line));
   border-radius:var(--r-lg,12px);
@@ -426,6 +426,7 @@ body.is-room-open{overflow:hidden}
 .room-frame:focus-visible{outline:2px solid var(--color-border-focus,var(--color-state-active));outline-offset:-2px}
 .room-frame canvas{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
 .room3d-labels{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.room3d-leaders{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .room3d-help{
   position:absolute;left:.75rem;bottom:.75rem;z-index:3;margin:0;padding:.24rem .6rem;
   border:1px solid color-mix(in srgb,var(--line) 78%,transparent);border-radius:999px;
@@ -449,21 +450,23 @@ body.is-room-open{overflow:hidden}
   pointer-events:auto;cursor:pointer;max-width:11.5rem;padding:2px 8px;
   border:1px solid color-mix(in srgb,var(--line-hot) 60%,var(--line));border-radius:6px;
   background:color-mix(in srgb,var(--void) 86%,var(--panel));backdrop-filter:blur(5px);
-  box-shadow:0 4px 12px -4px rgb(0 0 0/.8);
+  box-shadow:0 4px 12px -4px rgb(0 0 0/.8);opacity:.78;
   color:var(--muted);font:500 .64rem/1.2 var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  transition:border-color .15s var(--ease),color .15s var(--ease);
+  transition:border-color .15s var(--ease),color .15s var(--ease),opacity .15s var(--ease);
 }
 .room3d-entity:hover,.room3d-entity.is-selected{
-  border-color:var(--color-state-active);color:var(--ink);
+  border-color:var(--color-state-active);color:var(--ink);opacity:1;
 }
 .room3d-trace{
   pointer-events:auto;cursor:pointer;max-width:13rem;padding:3px 8px;
   border:1px solid color-mix(in srgb,#d9c7a3 36%,var(--line));
   border-left:2px solid color-mix(in srgb,#d9c7a3 76%,var(--color-state-warning));
   border-radius:5px;background:color-mix(in srgb,var(--void) 88%,#231d14);backdrop-filter:blur(5px);
-  box-shadow:0 5px 14px -4px rgb(0 0 0/.82);
+  box-shadow:0 5px 14px -4px rgb(0 0 0/.82);opacity:.76;
   color:#e7dcc6;font:400 .63rem/1.28 var(--font-interface);text-align:left;white-space:normal;
+  transition:opacity .15s var(--ease);
 }
+.room3d-trace:hover{opacity:1}
 .room3d-agent-label{
   pointer-events:auto;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
   padding:3px 9px 3px 7px;border:1px solid color-mix(in srgb,var(--line-hot) 64%,var(--line));
