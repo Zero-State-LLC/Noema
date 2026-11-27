@@ -99,6 +99,12 @@ Put longer scripts in `codemode/.work/` (gitignored) and run
   disclosure for code context.
 - **Writes default to dry run.** Board updates are pre-authorized by the
   standing grant, but pass `dry_run=False` deliberately.
+- **Writes follow the agent state.** `run.py` reads the current state from
+  `.agents/machine.py`. Every GitHub write is mapped to a machine action
+  (`docs_board`, `pr`, `merge`, `branch`, `delete`, `prod_change`) and refused
+  unless the current state allows it. For example, nothing is written while
+  the state is `STOPPED` or `AWAITING_USER`. Unmapped writes are refused
+  outright.
 
 ## Add or refresh a server
 

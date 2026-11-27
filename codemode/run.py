@@ -14,6 +14,7 @@ configured limit is cut: filter in code and print only what you need.
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import subprocess
 import sys
@@ -53,10 +54,27 @@ exec(code, {"__name__": "__main__", "__file__": label, "__builtins__": __builtin
 """
 
 
+def agent_state() -> tuple[str, list[str]]:
+    """Current agent-machine state and its allowed actions; fail closed to read-only."""
+    try:
+        spec = importlib.util.spec_from_file_location("agent_machine", ROOT / ".agents" / "machine.py")
+        assert spec and spec.loader
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules["agent_machine"] = mod  # dataclasses resolve annotations through sys.modules
+        spec.loader.exec_module(mod)
+        return mod.allowed_actions()
+    except Exception as exc:  # noqa: BLE001
+        print(f"codemode: agent state unavailable ({exc}); writes refused", file=sys.stderr)
+        return "UNKNOWN", ["read"]
+
+
 def _child_env(box: dict) -> dict[str, str]:
     env = {k: os.environ[k] for k in box["pass_env"] + box["secret_env"] if k in os.environ}
     env["TMPDIR"] = str(WORK / "tmp")
     env["CODEMODE_WORK"] = str(WORK)
+    state, allowed = agent_state()
+    env["CODEMODE_AGENT_STATE"] = state
+    env["CODEMODE_AGENT_ALLOWED"] = ",".join(allowed)
     return env
 
 

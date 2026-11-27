@@ -55,6 +55,10 @@ def api(
     timeout: float = 120,
 ) -> Any:
     """Call the GitHub REST API. Returns parsed JSON, a flattened list when paginating, or text when raw."""
+    if method.upper() != "GET":
+        from .policy import github_action, require
+
+        require(github_action(method, path))
     params = {k: v for k, v in detokenize(params or {}).items() if v is not None}
     if params:
         path += ("&" if "?" in path else "?") + urlencode(params)
