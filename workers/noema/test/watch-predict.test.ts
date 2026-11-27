@@ -226,4 +226,130 @@ describe("network isolation", () => {
   it("leaks no bundler keepNames", () => {
     expect(predictInlineSource()).not.toContain("__name");
   });
+
+  it("preserves the selected site across live updates before Guess is clicked", () => {
+    const html = watchHtml();
+    const start = html.indexOf("const PREDICT_KEY =");
+    const end = html.indexOf("// end predictions");
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const block = html.slice(start, end);
+
+    type FakeOption = { value: string; textContent: string };
+    type FakeSelect = {
+      options: FakeOption[];
+      value: string;
+      replaceChildren: () => void;
+      append: (opt: FakeOption) => void;
+    };
+    const makeSelect = (): FakeSelect => {
+      const s: FakeSelect = {
+        options: [],
+        value: "",
+        replaceChildren() {
+          s.options = [];
+          s.value = "";
+        },
+        append(opt: FakeOption) {
+          s.options.push(opt);
+          if (s.options.length === 1 && !s.value) s.value = opt.value;
+        },
+      };
+      return s;
+    };
+    const makeControl = () => {
+      const listeners: Record<string, Array<() => void>> = {};
+      return {
+        hidden: true,
+        checked: false,
+        textContent: "",
+        addEventListener(ev: string, fn: () => void) {
+          (listeners[ev] = listeners[ev] || []).push(fn);
+        },
+        trigger(ev: string) {
+          for (const fn of listeners[ev] || []) fn();
+        },
+      };
+    };
+
+    const body = makeControl();
+    const sel = makeSelect();
+    const status = makeControl();
+    const score = makeControl();
+    const on = makeControl();
+    const go = makeControl();
+    const clear = makeControl();
+    const nodes: Record<string, unknown> = {
+      "watch-predict-body": body,
+      "watch-predict-site": sel,
+      "watch-predict-status": status,
+      "watch-predict-score": score,
+      "watch-predict-on": on,
+      "watch-predict-go": go,
+      "watch-predict-clear": clear,
+    };
+    const store: Record<string, string> = {};
+    const localStorage = {
+      getItem: (k: string) => (k in store ? store[k] : null),
+      setItem: (k: string, v: string) => { store[k] = String(v); },
+    };
+    const document = {
+      createElement: () => ({ value: "", textContent: "" }),
+    };
+    const state: { last: unknown } = { last: null };
+    const roomName = (rooms: Array<{ room_id: string; name: string }>, id: string) =>
+      (rooms || []).find((r) => r.room_id === id)?.name || "";
+
+    const harness = new Function(
+      "$",
+      "document",
+      "localStorage",
+      "state",
+      "roomName",
+      block + "; return { applyPredict, renderPredict };",
+    ) as (
+      $: (id: string) => unknown,
+      doc: unknown,
+      ls: unknown,
+      st: unknown,
+      rn: unknown,
+    ) => { applyPredict: (data: unknown) => void; renderPredict: (data: unknown) => void };
+
+    const { applyPredict } = harness((id) => nodes[id] || null, document, localStorage, state, roomName);
+    const snap = {
+      projection: "public",
+      sequence: 10,
+      rooms: [
+        { room_id: "room.a", name: "Civic Exchange" },
+        { room_id: "room.b", name: "Relay Quarter" },
+        { room_id: "room.c", name: "Foundry Corridor" },
+      ],
+      recent_events: [],
+    };
+    state.last = snap;
+    on.checked = true;
+    on.trigger("change");
+    applyPredict(snap);
+    expect(sel.value).toBe("room.a");
+
+    // Spectator selects the second site, then a live refresh arrives before clicking Guess.
+    sel.value = "room.b";
+    applyPredict({ ...snap, sequence: 11 });
+    expect(sel.value).toBe("room.b");
+
+    // Clicking Guess records the site they selected, not the first option.
+    go.trigger("click");
+    expect(JSON.parse(store[PREDICT_KEY]).guess).toBe("room.b");
+
+    // If the previously selected room is no longer in the public list, fall back cleanly.
+    applyPredict({
+      ...snap,
+      sequence: 12,
+      rooms: [
+        { room_id: "room.a", name: "Civic Exchange" },
+        { room_id: "room.c", name: "Foundry Corridor" },
+      ],
+    });
+    expect(sel.value).toBe("room.a");
+  });
 });

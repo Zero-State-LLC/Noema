@@ -578,16 +578,23 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (!body || !sel || !status || !score) return;
       body.hidden = predict.on !== true;
       const rooms = data && Array.isArray(data.rooms) ? data.rooms : [];
+      const prevSelected = String(sel.value || "");
       sel.replaceChildren();
+      let hasPrev = false;
+      let hasGuess = false;
       for (let i = 0; i < rooms.length; i++) {
         const r = rooms[i];
         if (!r || !r.room_id || !r.name) continue;
         const opt = document.createElement("option");
-        opt.value = String(r.room_id);
+        const val = String(r.room_id);
+        opt.value = val;
         opt.textContent = String(r.name);
         sel.append(opt);
+        if (val === prevSelected) hasPrev = true;
+        if (predict.guess && val === predict.guess) hasGuess = true;
       }
-      if (predict.guess) sel.value = predict.guess;
+      if (hasPrev) sel.value = prevSelected;
+      else if (hasGuess) sel.value = predict.guess;
       if (predictNote) {
         const name = roomName(rooms, predictNote.site) || predictNote.site;
         status.textContent = predictNote.kind === "hit" ? "Hit: " + name : "Miss: it was " + name;
