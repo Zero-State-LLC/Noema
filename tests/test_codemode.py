@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
 from codemode import gen_wrappers, search_tools  # noqa: E402
 from codemode.runtime import mcp, policy, privacy, shape  # noqa: E402
 from codemode.skills.ci_failure_digest.ci_failure_digest import parse_failures  # noqa: E402
+from codemode.skills.ci_watch.ci_watch import render as ci_watch_render  # noqa: E402
 
 
 @pytest.fixture()
@@ -284,3 +285,15 @@ def test_runner_sandboxes_and_tokenizes(tmp_path: Path) -> None:
         assert f"DENIED {label} True" in out, (label, proc.stdout)
     assert "WROTE work" in out
     assert json.loads((tmp_path / "work" / "vault.json").read_text())["by_value"]["EMAIL"] == {"jane.doe@acme.io": 1}
+
+
+def test_ci_watch_render() -> None:
+    rows = [
+        {"repo": "Noema", "ref": "feat/x", "pr": 9, "checks": 3, "failed": [], "running": []},
+        {"repo": "noema-client", "ref": "b", "pr": None, "checks": 1, "failed": ["test"], "running": []},
+        {"repo": "Noema-Specs", "ref": "c", "pr": 4, "checks": 0, "failed": [], "running": []},
+    ]
+    out = ci_watch_render(rows).splitlines()
+    assert out[0] == "Noema#9 feat/x: 3 checks; all green"
+    assert out[1].startswith("noema-client b: 1 checks; FAILED: test (digest: ci_failure_digest.py --repo noema-client --branch b)")
+    assert out[2] == "Noema-Specs#4 c: 0 checks; still running: no checks yet"

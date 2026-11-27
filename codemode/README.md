@@ -24,7 +24,8 @@ codemode/
 │   ├── cloudflare_api/    docs, execute, search, whoami   (MCP, generated)
 │   └── github/            11 tools: issues, PRs, checks, runs, jobs, logs, commits, comment
 ├── skills/
-│   └── ci_failure_digest/ SKILL.md + ci_failure_digest.py
+│   ├── ci_failure_digest/ why did CI fail: failing tests from 100 KB+ logs
+│   └── ci_watch/          wait for CI on repo:branch pairs or every open PR
 └── .work/                 gitignored scratch, vault and temp files
 ```
 
