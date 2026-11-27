@@ -1,5 +1,7 @@
 # Successor cutover runbook
 
+**Machine:** `python3 .agents/docs.py run SUCCESSOR_CUTOVER` walks the future gate below; it starts at the Gate F packet, which only the user can name.
+
 **Status:** BOUNDARY RECORD. This document does **not** authorize a successor cutover. LCA-5 / Gate F remains blocked until Living Civilization Alpha acceptance evidence exists.
 
 **Packet:** LCA-1 risk register row 1 in [LCA1-DELTA-AND-CUTOVER-RISK.md](LCA1-DELTA-AND-CUTOVER-RISK.md).  

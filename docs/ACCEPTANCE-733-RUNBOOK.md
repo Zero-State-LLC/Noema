@@ -1,5 +1,7 @@
 # #733 hosted-gates acceptance runbook
 
+**Machine:** `python3 .agents/docs.py run ACCEPTANCE_733` walks these phases; each live phase needs the user's own go (`step --user-said`).
+
 Runs the remaining #733 hosted gates (G1 isolation, G2 trace readback, G3 browser, R0) on a **throwaway no-route Worker** against a **separate** Supabase project. Nothing touches `noema-gateway`, `noema.guru`, the Perihelion world, or project `dezykkherxlaysxyvgbs`.
 
 ## One-time setup (operator)

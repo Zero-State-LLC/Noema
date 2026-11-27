@@ -1,5 +1,7 @@
 # Genesis runbook — first reliable hosted world
 
+**Machine:** `python3 .agents/docs.py run GENESIS_ACTIVATION` follows the production comparison below; it is human only, so every step needs the operator's own words.
+
 **Authority:** [Noema-Specs GENESIS.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/GENESIS.md)  
 **Runtime:** Cloudflare Worker `noema-gateway` + `NoemaWorldDO` + optional Supabase settlement  
 **Scope:** ONE world. Admin-only. No multi-world, no lore generation, no research spine.  

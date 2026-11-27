@@ -58,5 +58,300 @@
         "terminal": "the issue closes."
       }
     }
+  },
+  "runbooks": {
+    "ACCEPTANCE_733": {
+      "runbook": "docs/ACCEPTANCE-733-RUNBOOK.md",
+      "use_when": "Running the remaining #733 hosted gates (G1, G2, AC17, G3, R0) on a throwaway no-route Worker against a separate Supabase project.",
+      "escalate_when": "A failing check stops that phase and records `false`; exit is non-zero. Fix or report, do not hand-edit state.",
+      "never": [
+        "Never run `wrangler deploy`/`secret`/`delete` against `noema-gateway`, or use `deploy-stage0.sh` for this.",
+        "Never put the production Supabase project in `acceptance.env`.",
+        "Never paste keys or tokens in chat or on a command line; the wizard reads them hidden.",
+        "Never skip teardown; the receipt is pinned to a version id and needs no live Worker."
+      ],
+      "steps": [
+        {
+          "id": "SETUP",
+          "anchor": "bash workers/noema/scripts/acceptance-733-setup.sh --dry-run",
+          "do": "Operator: `acceptance-733-setup.sh --dry-run`, then without it. It prompts for the database password (hidden), refuses the production ref and ends with booleans only.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the operator's words that setup finished (it reads the password hidden; the agent never handles it)"
+          }
+        },
+        {
+          "id": "PLAN",
+          "anchor": "`node scripts/acceptance-733.mjs plan`",
+          "do": "From `workers/noema`: `node scripts/acceptance-733.mjs plan`. Action list; no network.",
+          "gate": {
+            "kind": "attest",
+            "prompt": "the action list looked right"
+          }
+        },
+        {
+          "id": "DEPLOY",
+          "anchor": "`node scripts/acceptance-733.mjs deploy`",
+          "do": "`deploy` on a clean git tree; note the printed `run_id`.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "each live phase needs its own go"
+          }
+        },
+        {
+          "id": "G1",
+          "anchor": "`… g1 --run <id>`",
+          "do": "`g1 --run <id>`: exit 0, `g1_isolation.passed: true`.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "each live phase needs its own go"
+          }
+        },
+        {
+          "id": "G2",
+          "anchor": "`… g2 --run <id>`",
+          "do": "`g2 --run <id>`: exit 0, `g2_s3_readback.passed: true`.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "each live phase needs its own go"
+          }
+        },
+        {
+          "id": "AC17",
+          "anchor": "`… ac17 --run <id>`",
+          "do": "`ac17 --run <id>` (required, after G2): a second Player's REPAIR replaces the maintenance plate.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "each live phase needs its own go"
+          }
+        },
+        {
+          "id": "G3",
+          "anchor": "`… g3-urls --run <id>`",
+          "do": "`g3-urls --run <id>`; the browser agent drives the URLs and saves JSON.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "each live phase needs its own go"
+          }
+        },
+        {
+          "id": "R0",
+          "anchor": "`… r0 --run <id>`",
+          "do": "`r0 --run <id>`: exit 0, room-stack fields true.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "each live phase needs its own go"
+          }
+        },
+        {
+          "id": "RECEIPT",
+          "anchor": "`… receipt --run <id> [--g3 g3.json] [--out FILE]`",
+          "do": "`receipt --run <id> [--g3 g3.json]`: redacted, `production_worker_version_control.unchanged: true`, `source_tree_clean: true`.",
+          "gate": {
+            "kind": "attest",
+            "prompt": "receipt path and all_required_passed"
+          }
+        },
+        {
+          "id": "TEARDOWN",
+          "anchor": "`… teardown --run <id>`",
+          "do": "`teardown --run <id>`; never skip it.",
+          "gate": {
+            "kind": "attest",
+            "prompt": "teardown output"
+          }
+        }
+      ]
+    },
+    "GENESIS_ACTIVATION": {
+      "runbook": "docs/GENESIS-RUNBOOK.md",
+      "human_only": true,
+      "use_when": "Production world activation by the human operator (never CI). The first world is frozen: do not reseed it.",
+      "escalate_when": "Production `genesis_id` or Cycle 0 digest does not match the approved rehearsal identity: STOP.",
+      "never": [
+        "**Do not reseed** `genesis.ef578f4ffceeccd0`.",
+        "No CI auto-activate",
+        "No force supersede in production"
+      ],
+      "numbered": {
+        "section": "## Production activation comparison (human only)"
+      },
+      "steps": [
+        {
+          "id": "LOGIN",
+          "do": "Login to **production** ADMIN.",
+          "numbered": true
+        },
+        {
+          "id": "ENTER_CANDIDATE",
+          "do": "Enter the exact final candidate.",
+          "numbered": true
+        },
+        {
+          "id": "PREVIEW",
+          "do": "Preview.",
+          "numbered": true
+        },
+        {
+          "id": "RECORD_GENESIS_ID",
+          "do": "Record production `genesis_id`.",
+          "numbered": true
+        },
+        {
+          "id": "RECORD_CYCLE0_DIGEST",
+          "do": "Record production Cycle 0 digest.",
+          "numbered": true
+        },
+        {
+          "id": "COMPARE",
+          "do": "Compare against approved rehearsal identity/digest.",
+          "numbered": true
+        },
+        {
+          "id": "MISMATCH_STOP",
+          "do": "If mismatch → **STOP**.",
+          "numbered": true,
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the operator confirms genesis_id and Cycle 0 digest match the approved rehearsal; on a mismatch, escalate instead"
+          }
+        },
+        {
+          "id": "APPROVE",
+          "do": "Human operator approves (never CI).",
+          "numbered": true,
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the human operator's own approval (never CI)",
+            "must_match": "(?i)\\bapprov"
+          }
+        },
+        {
+          "id": "ACTIVATE",
+          "do": "ACTIVATE with `confirm: true` only (no `force` in production).",
+          "numbered": true,
+          "irreversible": true,
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the operator's own words that they activated; Genesis config is immutable after activation"
+          }
+        },
+        {
+          "id": "VERIFY_SETTLEMENT",
+          "do": "Verify settlement `digest_match`.",
+          "numbered": true
+        },
+        {
+          "id": "HUMAN_SMOKE",
+          "do": "Human Player smoke.",
+          "numbered": true
+        },
+        {
+          "id": "AGENT_SMOKE",
+          "do": "Agent Player smoke.",
+          "numbered": true
+        },
+        {
+          "id": "WATCH_SMOKE",
+          "do": "WATCH smoke.",
+          "numbered": true
+        },
+        {
+          "id": "RECORD_RECEIPT",
+          "do": "Record first-world activation receipt.",
+          "numbered": true
+        }
+      ]
+    },
+    "SUCCESSOR_CUTOVER": {
+      "runbook": "docs/SUCCESSOR-CUTOVER-RUNBOOK.md",
+      "use_when": "A Gate F packet proposes a successor cutover. The runbook is a boundary record; it does not authorize one.",
+      "escalate_when": "Any of the six required items is missing, or a step would cross a hard ban.",
+      "never": [
+        "Do not PLAY `world-01`.",
+        "Do not reseed `genesis.ef578f4ffceeccd0`.",
+        "Do not `force:true` activate, including prior PLAY `world.perihelion-reach-2`.",
+        "Do not point `wrangler.toml` `DEFAULT_WORLD_ID` at `world-01`.",
+        "Do not treat Admin Recover of the frozen DO as a PLAY cutover."
+      ],
+      "numbered": {
+        "section": "## Future cutover gate (do not run yet)"
+      },
+      "steps": [
+        {
+          "id": "GATE_F_PACKET",
+          "anchor": "## Future cutover gate (do not run yet)",
+          "do": "A Gate F packet authorizes this successor; this runbook does not. LCA-5 / Gate F stays blocked until Living Civilization Alpha acceptance evidence exists.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the user's words naming the Gate F packet",
+            "must_match": "(?i)gate f"
+          }
+        },
+        {
+          "id": "FROZEN_WORLD_OUT_OF_SCOPE",
+          "do": "Frozen first world (`world-01` / `genesis.ef578f4ffceeccd0`) as out of scope, unchanged.",
+          "numbered": true,
+          "gate": {
+            "kind": "attest",
+            "prompt": "where this is named in the Gate F packet"
+          }
+        },
+        {
+          "id": "CANDIDATE_AND_PIN_PR",
+          "do": "The candidate Worker commit, live `/version` id, and pin PR (no silent pin rewrite; no bare `wrangler deploy`).",
+          "numbered": true,
+          "gate": {
+            "kind": "attest",
+            "prompt": "where this is named in the Gate F packet"
+          }
+        },
+        {
+          "id": "ISOLATED_ABA_REHEARSAL",
+          "do": "Isolated A-B-A rollback rehearsal against a dedicated workers.dev Worker — never against `noema.guru`.",
+          "numbered": true,
+          "gate": {
+            "kind": "attest",
+            "prompt": "where this is named in the Gate F packet"
+          }
+        },
+        {
+          "id": "OLDER_WORLD_DO_EVIDENCE",
+          "do": "Older-world Durable Object load evidence for the candidate (sanitized fixture / migrate path).",
+          "numbered": true,
+          "gate": {
+            "kind": "attest",
+            "prompt": "where this is named in the Gate F packet"
+          }
+        },
+        {
+          "id": "SEAL_BOUND_ADMISSION_UNCHANGED",
+          "do": "Seal, room bound, and RFC-0120 agents-only admission unchanged.",
+          "numbered": true,
+          "gate": {
+            "kind": "attest",
+            "prompt": "where this is named in the Gate F packet"
+          }
+        },
+        {
+          "id": "DISPATCH_AUTHORITY_AND_ROUTES",
+          "do": "Who can `workflow_dispatch` production deploy, and that production routes stay on reach-3 until the explicit DEFAULT_WORLD_ID change in that packet.",
+          "numbered": true,
+          "gate": {
+            "kind": "attest",
+            "prompt": "where this is named in the Gate F packet"
+          }
+        },
+        {
+          "id": "DECISION",
+          "anchor": "Passing LCA-4 permits the decision. It does not force deployment.",
+          "do": "Passing LCA-4 permits the decision. It does not force deployment; a deploy still goes through AWAITING_USER → DEPLOY_APPROVED.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the user's decision"
+          }
+        }
+      ]
+    }
   }
 }

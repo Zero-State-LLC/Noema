@@ -168,3 +168,47 @@ def test_gate_entries_and_mirror_drift(tmp_path: Path, monkeypatch: pytest.Monke
     procs = {"play": {"stop": ["INCIDENT", "SEAL_MISMATCH"]}}
     errs = dm._mirror_errors(procs, {"file": "SKILL.md", "section": "## Stop", "mentions": "play.stop"})
     assert errs == ["SKILL.md ## Stop: does not mention 'SEAL_MISMATCH' (play.stop)"]
+
+
+# runbook machines -----------------------------------------------------------
+
+
+@pytest.fixture()
+def runbooks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(dm, "_run_path", lambda: tmp_path / "procedure.json")
+    return json.loads((ROOT / ".agents" / "procedures.json").read_text())
+
+
+def test_733_live_phases_need_the_users_go(runbooks) -> None:
+    dm.run_cmd(runbooks, ["run", "ACCEPTANCE_733"])
+    with pytest.raises(dm.DocsError, match="user's own words"):
+        dm.run_cmd(runbooks, ["step", "--evidence", "I ran setup myself"])  # operator step
+    dm.run_cmd(runbooks, ["step", "--user-said", "setup done, booleans all true"])
+    dm.run_cmd(runbooks, ["step", "--evidence", "plan lists deploy, g1, g2, ac17, g3, r0"])
+    with pytest.raises(dm.DocsError, match="own go"):
+        dm.run_cmd(runbooks, ["step", "--evidence", "deployed"])
+    assert "Step 4/10 G1" in dm.run_cmd(runbooks, ["step", "--user-said", "go for deploy"])
+
+
+def test_genesis_is_human_only_and_activation_is_irreversible(runbooks) -> None:
+    rb = runbooks["runbooks"]["GENESIS_ACTIVATION"]
+    assert all(dm.step_gate(rb, i)["kind"] == "user_yes" for i in range(len(rb["steps"])))
+    dm.run_cmd(runbooks, ["run", "GENESIS_ACTIVATION"])
+    for _ in range(7):
+        dm.run_cmd(runbooks, ["step", "--user-said", "done"])
+    with pytest.raises(dm.DocsError, match="must match"):
+        dm.run_cmd(runbooks, ["step", "--user-said", "looks fine"])  # APPROVE needs an approval
+    assert "IRREVERSIBLE" in dm.run_cmd(runbooks, ["step", "--user-said", "I approve this activation"])
+
+
+def test_runbook_drift_is_caught(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    rb = json.loads((ROOT / ".agents" / "procedures.json").read_text())["runbooks"]
+    (tmp_path / "docs").mkdir()
+    text = (ROOT / "docs" / "SUCCESSOR-CUTOVER-RUNBOOK.md").read_text()
+    (tmp_path / "docs" / "SUCCESSOR-CUTOVER-RUNBOOK.md").write_text(
+        text.replace("- Do not PLAY `world-01`.\n", "").replace("4. Older-world", "4. Newer-world")
+    )
+    monkeypatch.setattr(dm, "ROOT", tmp_path)
+    errs = dm._runbook_errors("SUCCESSOR_CUTOVER", rb["SUCCESSOR_CUTOVER"])
+    assert any("never line 'Do not PLAY `world-01`.'" in e for e in errs)
+    assert any("numbered steps" in e for e in errs)
