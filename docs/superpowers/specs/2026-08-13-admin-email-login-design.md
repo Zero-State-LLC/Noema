@@ -1,6 +1,6 @@
 # Admin email magic-link login
 
-**Status:** approved — ready to implement
+**Status:** implemented (plan [done](../plans/2026-08-13-admin-email-login.md), reconciled 2026-11-26 with #734). Was: approved — ready to implement
 
 **Date:** 2026-08-13  
 **Host:** `https://noema.guru`  

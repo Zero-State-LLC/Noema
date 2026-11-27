@@ -1,6 +1,6 @@
 # Tenant tester agent — play then debug
 
-**Status:** approved for spec  
+**Status:** implemented (plan [done](../plans/2026-08-17-tenant-tester-agent.md), reconciled 2026-11-26 with #734). Was: approved for spec  
 **Date:** 2026-08-17  
 **Does not activate, reseed, or force-supersede Genesis.**  
 **Admin ≠ Player.** The tester never mints `typ: admin-access`.  

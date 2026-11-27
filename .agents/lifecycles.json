@@ -1,0 +1,178 @@
+{
+  "format": "noema-lifecycles/1",
+  "_note": "Document lifecycles. CI checks states and, against main, that status changes move forward.",
+  "kinds": {
+    "adr": {
+      "title": "ADR",
+      "files": "docs/adr/[0-9]*.md",
+      "declared": "proposed → accepted → deprecated / superseded by ADR-NNNN; Status is optional and a bare ADR records an accepted decision (domain-modeling ADR-FORMAT.md)",
+      "status": [
+        "^status:\\s*(.+)$",
+        "^\\s*[-*]?\\s*\\*\\*Status:?\\*\\*:?\\s*(.+)$"
+      ],
+      "default": "accepted",
+      "states": [
+        "proposed",
+        "accepted",
+        "deprecated",
+        "superseded"
+      ],
+      "aliases": {
+        "proposed": [
+          "proposed"
+        ],
+        "accepted": [
+          "accepted"
+        ],
+        "deprecated": [
+          "deprecated"
+        ],
+        "superseded": [
+          "superseded"
+        ]
+      },
+      "next": {
+        "proposed": [
+          "accepted",
+          "superseded"
+        ],
+        "accepted": [
+          "deprecated",
+          "superseded"
+        ],
+        "deprecated": [
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "links": {
+        "superseded": {
+          "pattern": "ADR-(\\d+)",
+          "file_prefix": "{:04d}-"
+        }
+      }
+    },
+    "sp_plan": {
+      "title": "Superpowers plan",
+      "files": "docs/superpowers/plans/*.md",
+      "declared": "planned → done / partially superseded / superseded; the blockquote status is authoritative over the checkboxes (#734 reconciliation)",
+      "status": [
+        "^\\s*>?\\s*\\*\\*Status:\\s*([^*]+?)\\*\\*"
+      ],
+      "default": "planned",
+      "states": [
+        "planned",
+        "partially superseded",
+        "superseded",
+        "done"
+      ],
+      "aliases": {
+        "planned": [
+          "planned"
+        ],
+        "partially superseded": [
+          "partially superseded"
+        ],
+        "superseded": [
+          "superseded"
+        ],
+        "done": [
+          "done"
+        ]
+      },
+      "next": {
+        "planned": [
+          "done",
+          "partially superseded",
+          "superseded"
+        ],
+        "partially superseded": [
+          "superseded",
+          "done"
+        ],
+        "done": [
+          "superseded"
+        ],
+        "superseded": []
+      },
+      "requires": [
+        {
+          "field": "(?:\\.\\./|docs/superpowers/)?specs/(\\d{4}-\\d{2}-\\d{2}-[\\w.-]+\\.md)",
+          "kind": "sp_spec",
+          "when": [
+            "done"
+          ],
+          "min_state": "implemented"
+        },
+        {
+          "field": "(?:\\.\\./|docs/superpowers/)?specs/(\\d{4}-\\d{2}-\\d{2}-[\\w.-]+\\.md)",
+          "kind": "sp_spec",
+          "when": [
+            "superseded"
+          ],
+          "min_state": "superseded"
+        }
+      ]
+    },
+    "sp_spec": {
+      "title": "Superpowers design spec",
+      "files": "docs/superpowers/specs/*.md",
+      "exclude": [
+        "docs/superpowers/specs/2026-08-17-hosted-ws-tenant-routing.md",
+        "docs/superpowers/specs/2026-08-17-llm-agent-transport-v1.md",
+        "docs/superpowers/specs/2026-08-17-llm-agent-integration-v0.1.md"
+      ],
+      "_scope": "Excluded: two specs carry no Status line and one says 'executable work package'; none is linked from a plan.",
+      "declared": "review → approved → implementing → implemented → superseded; a plan's Done or Superseded must show in its spec (the plans expected specs to track implementation)",
+      "status": [
+        "^\\*\\*Status:\\*\\*\\s*(.+?)\\s*$"
+      ],
+      "states": [
+        "review",
+        "approved",
+        "implementing",
+        "implemented",
+        "superseded"
+      ],
+      "aliases": {
+        "review": [
+          "review"
+        ],
+        "approved": [
+          "approved"
+        ],
+        "implementing": [
+          "implementing",
+          "planning"
+        ],
+        "implemented": [
+          "implemented"
+        ],
+        "superseded": [
+          "superseded"
+        ]
+      },
+      "next": {
+        "review": [
+          "approved",
+          "implementing",
+          "implemented",
+          "superseded"
+        ],
+        "approved": [
+          "implementing",
+          "implemented",
+          "superseded"
+        ],
+        "implementing": [
+          "implemented",
+          "superseded"
+        ],
+        "implemented": [
+          "superseded"
+        ],
+        "superseded": []
+      }
+    }
+  }
+}

@@ -30,3 +30,6 @@ node_modules/
 .ignore
 graft/.cache/
 supabase/.temp/
+
+# Code-mode scratch: PII vault, temp files, ad-hoc scripts
+codemode/.work/

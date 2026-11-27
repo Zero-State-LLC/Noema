@@ -33,6 +33,12 @@ jobs:
       run: python -m pip install -e '.[dev]'
     - name: Check AGENTS.md contract
       run: python3 scripts/check_agents_md.py
+    - name: Check document machines (status changes must move forward)
+      run: |
+        set -euo pipefail
+        SINCE=""
+        if git fetch --quiet --depth=1 origin main; then SINCE="--since FETCH_HEAD"; fi
+        python3 .agents/docs.py check $SINCE
     - name: Check out pinned Noema-Specs beside the workspace
       # Python conformance tests also consume sibling Specs artifacts.
       run: |

@@ -1,5 +1,7 @@
 # Operator smoke — Perihelion Reach (no activate)
 
+**Machine:** `python3 .agents/docs.py run OPERATOR_SMOKE` walks this smoke; operator and live-world steps need the user's own words.
+
 **Authority:** live PLAY is already activated (`spec-compat.json` `hosted_live`). This is a read-and-enter check, not a Genesis run.  
 **Do not** activate, force-supersede, or reseed.
 

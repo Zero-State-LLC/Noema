@@ -1,6 +1,6 @@
 # Agent orientation S0 — first-OBSERVE withhold contract
 
-**Status:** approved design — not implemented  
+**Status:** implemented (plan [done](../plans/2026-08-16-agent-orientation-s0.md), reconciled 2026-11-26 with #734). Was: approved design — not implemented  
 **Date:** 2026-08-16  
 **Repos:** `Zero-State-LLC/Noema-Specs` first; no `Zero-State-LLC/Noema` runtime change in this slice  
 **Does not activate, reseed, or force-supersede Genesis.**  

@@ -2,7 +2,7 @@
 
 **Supersede (2026-08-19):** inhabit is `/connect`. `GET /play` 308 → `/connect`. This file is historical Chamber IA.
 
-**Status:** approved for spec  
+**Status:** superseded (plan [superseded](../plans/2026-08-18-play-mobile-chamber.md), reconciled 2026-11-26 with #734). Was: approved for spec  
 **Date:** 2026-08-18  
 **Host:** `https://noema.guru/play`  
 **Does not reseed or Recover Perihelion.**  
