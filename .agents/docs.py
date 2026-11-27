@@ -523,7 +523,9 @@ def lifecycle_violations(lc: dict[str, Any], since: str | None = None) -> list[d
                     out.append({"key": f"{ref}:not_in_index", "detail": f"missing from {kind['index']['file']}"})
                 else:
                     istate = normalize(index[fname], kind)
-                    if state and istate and istate != state:
+                    if istate is None:
+                        out.append({"key": f"{ref}:unknown_index_status", "detail": f"index status {index[fname][:80]!r} is not a {kind['title']} state ({', '.join(kind['states'])})"})
+                    elif state and istate != state:
                         out.append({"key": f"{ref}:index_mismatch", "detail": f"file says {state}, index says {istate}"})
             need = kind.get("links", {}).get(state or "")
             if need and raw:

@@ -318,3 +318,16 @@ def test_since_applies_default_and_index_fallback_on_historical_states(tmp_path:
     keys = [v["key"] for v in dm.lifecycle_violations(lc, since="HEAD")]
     assert "adr:0001-bare.md:backward:accepted->proposed" in keys
     assert "rfc:RFC-0001-base.md:backward:Accepted->Draft" in keys
+
+
+def test_unknown_index_status_is_reported(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "rfcs").mkdir(parents=True)
+    (tmp_path / "rfcs" / "RFC-0001-a.md").write_text("# RFC 1\n\nStatus: Accepted\n")
+    (tmp_path / "rfcs" / "README.md").write_text("| RFC | Status |\n| --- | --- |\n| [RFC-0001](RFC-0001-a.md) | INVALID |\n")
+    monkeypatch.setattr(dm, "ROOT", tmp_path)
+    kind = {"title": "RFC", "files": "rfcs/RFC-[0-9]*.md", "status": ["^status:\\s*(.+)$"],
+            "states": ["Draft", "Accepted"], "aliases": {"Draft": ["draft"], "Accepted": ["accepted"]},
+            "next": {"Draft": ["Accepted"], "Accepted": []},
+            "index": {"file": "rfcs/README.md", "row": "^\\|\\s*\\[RFC-\\d+\\]\\((?P<file>[^)]+)\\)\\s*\\|\\s*(?P<status>[^|]+?)\\s*\\|"}}
+    keys = [v["key"] for v in dm.lifecycle_violations({"kinds": {"rfc": kind}})]
+    assert keys == ["rfc:RFC-0001-a.md:unknown_index_status"]
