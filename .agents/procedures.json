@@ -352,6 +352,100 @@
           }
         }
       ]
+    },
+    "OPERATOR_SMOKE": {
+      "runbook": "docs/OPERATOR-SMOKE.md",
+      "use_when": "Read-and-enter check of live PLAY on Perihelion Reach. Not a Genesis run: no activate.",
+      "escalate_when": "Any mismatch, or `/ready` shows `INCIDENT` with `settlement_health: BLOCKING` (Recover is the operator's call). A failed probe gets the smallest fix on a follow-up branch.",
+      "never": [
+        "**Do not** activate, force-supersede, or reseed.",
+        "**Never** send `force: true` or a second activate.",
+        "Do not TRADE / ORG / lifecycle in this smoke unless investigating a defect.",
+        "Do **not** treat a failed smoke as a license to activate or reseed."
+      ],
+      "steps": [
+        {
+          "id": "READY",
+          "anchor": "If `GET /ready` shows `INCIDENT`",
+          "do": "`GET /ready` must be `ACTIVE`/`HEALTHY` before enter smoke; never Close while BLOCKING.",
+          "gate": {
+            "kind": "attest",
+            "prompt": "the /ready status"
+          }
+        },
+        {
+          "id": "FIRST_PROBE",
+          "anchor": "## First probe — what is running",
+          "do": "Record what is running (`/version`, `/health`, `/ready`).",
+          "gate": {
+            "kind": "attest",
+            "prompt": "worker version and env"
+          }
+        },
+        {
+          "id": "PLAY_EMAIL",
+          "anchor": "[ ] 0. PLAY email login",
+          "do": "Optional public PLAY email login (human); never mixed with ADMIN.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the operator's words: done, or not exercised"
+          }
+        },
+        {
+          "id": "ADMIN_LOGIN",
+          "anchor": "[ ] 1. Admin login",
+          "do": "Operator ADMIN session (magic link, or emergency `ADMIN_TOKEN` on their machine; never pasted in chat).",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the operator's words that the ADMIN session is up"
+          }
+        },
+        {
+          "id": "MINT_TOKENS",
+          "anchor": "[ ] 2. Mint human + agent controller tokens",
+          "do": "Mint `smoke-human` and `smoke-agent` controller tokens; expect Player JWTs, not ADMIN.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the operator's words that both tokens were minted"
+          }
+        },
+        {
+          "id": "ENTER_LOOK_LEAVE",
+          "anchor": "[ ] 3. PLAY enter / look / leave",
+          "do": "Agent JWT only: ENTER_WORLD → LOOK → LEAVE_WORLD with `X-Noema-Seal` on the live world; human tokens must 403.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the user's go to act on the live world"
+          }
+        },
+        {
+          "id": "WATCH_NO_SEEDS",
+          "anchor": "[ ] 4. WATCH: no seed IDs",
+          "do": "`GET /v1/watch/live`: no world seed, profile or Story Seed IDs.",
+          "gate": {
+            "kind": "attest",
+            "prompt": "watch fields checked"
+          }
+        },
+        {
+          "id": "DIGEST_TICK",
+          "anchor": "[ ] 5. Digest tick produces a window",
+          "do": "Admin digest tick produces a window; `/ready` sequence unchanged.",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the operator's words with the before/after sequence"
+          }
+        },
+        {
+          "id": "RESEED_HIDDEN",
+          "anchor": "[ ] 6. Confirm reseed hidden; Genesis inert; pause still works",
+          "do": "Overview ACTIVE + config_frozen; reseed → 403 `POLICY_DENIED`; pause/restore only if a brief public pause is intended, else record \"not exercised\".",
+          "gate": {
+            "kind": "user_yes",
+            "prompt": "the operator's words, including whether pause was exercised"
+          }
+        }
+      ]
     }
   }
 }

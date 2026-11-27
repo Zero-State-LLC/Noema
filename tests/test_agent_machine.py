@@ -212,3 +212,10 @@ def test_runbook_drift_is_caught(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     errs = dm._runbook_errors("SUCCESSOR_CUTOVER", rb["SUCCESSOR_CUTOVER"])
     assert any("never line 'Do not PLAY `world-01`.'" in e for e in errs)
     assert any("numbered steps" in e for e in errs)
+
+
+def test_operator_smoke_admin_and_live_steps_need_the_user(runbooks) -> None:
+    rb = runbooks["runbooks"]["OPERATOR_SMOKE"]
+    gated = {st["id"] for i, st in enumerate(rb["steps"]) if dm.step_gate(rb, i)["kind"] == "user_yes"}
+    assert {"ADMIN_LOGIN", "MINT_TOKENS", "ENTER_LOOK_LEAVE", "DIGEST_TICK", "RESEED_HIDDEN"} <= gated
+    assert {"READY", "FIRST_PROBE", "WATCH_NO_SEEDS"}.isdisjoint(gated)  # read-only probes
