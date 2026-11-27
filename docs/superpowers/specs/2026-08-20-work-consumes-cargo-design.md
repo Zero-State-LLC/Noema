@@ -1,6 +1,6 @@
 # Work consumes cargo
 
-**Status:** approved — planning  
+**Status:** implemented (plan [done](../plans/2026-08-20-work-consumes-cargo.md), reconciled 2026-11-26 with #734). Was: approved — planning  
 **Date:** 2026-08-20  
 **Host:** `https://noema.guru` (Worker `NoemaWorldDO`, isolated `test.hosted-canonical.*`)  
 **Does not reseed or Recover Perihelion.**  

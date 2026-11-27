@@ -1,6 +1,6 @@
 # Hosted multiplayer contention — first-accepted harvest, mail to coordinate
 
-**Status:** approved design — not implemented  
+**Status:** implemented (plan [done](../plans/2026-08-17-hosted-multiplayer-contention.md), reconciled 2026-11-26 with #734). Was: approved design — not implemented  
 **Date:** 2026-08-17  
 **Repos:** `Zero-State-LLC/Noema-Specs` pin first (RFC + slice); then `Zero-State-LLC/Noema` runtime ships A then B  
 **Does not activate, reseed, or force-supersede Genesis** (`genesis.ef578f4ffceeccd0`).  

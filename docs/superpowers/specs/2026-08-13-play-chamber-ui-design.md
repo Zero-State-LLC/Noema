@@ -1,6 +1,6 @@
 # PLAY Chamber — full-viewport terminal workspace
 
-**Status:** approved — implementing  
+**Status:** superseded (plan [superseded](../plans/2026-08-13-play-chamber-ui.md), reconciled 2026-11-26 with #734). Was: approved — implementing  
 **Date:** 2026-08-13  
 **Host:** `https://noema.guru`  
 **Does not activate, reseed, or force-supersede Genesis.**  

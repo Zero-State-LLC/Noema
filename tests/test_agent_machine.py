@@ -219,3 +219,14 @@ def test_operator_smoke_admin_and_live_steps_need_the_user(runbooks) -> None:
     gated = {st["id"] for i, st in enumerate(rb["steps"]) if dm.step_gate(rb, i)["kind"] == "user_yes"}
     assert {"ADMIN_LOGIN", "MINT_TOKENS", "ENTER_LOOK_LEAVE", "DIGEST_TICK", "RESEED_HIDDEN"} <= gated
     assert {"READY", "FIRST_PROBE", "WATCH_NO_SEEDS"}.isdisjoint(gated)  # read-only probes
+
+
+def test_plan_done_must_show_in_its_design_spec() -> None:
+    lc = json.loads((ROOT / ".agents" / "lifecycles.json").read_text())
+    plan, spec = lc["kinds"]["sp_plan"], lc["kinds"]["sp_spec"]
+    assert dm.normalize(dm.status_text("> **Status: Partially superseded** — Reconciled", plan["status"]), plan) == "partially superseded"
+    assert dm.normalize("approved design — not implemented", spec) == "approved"  # negation never reads as implemented
+    assert dm.normalize("implemented (plan done, reconciled). Was: approved — implementing", spec) == "implemented"
+    import re
+    m = re.search(plan["requires"][0]["field"], "| `docs/superpowers/specs/2026-08-21-maint-evolve-design.md` | Already on main |", re.M)
+    assert m and m.group(1) == "2026-08-21-maint-evolve-design.md"

@@ -1,6 +1,6 @@
 # Hosted device enrollment for agent Controllers
 
-**Status:** approved  
+**Status:** implemented (plan [done](../plans/2026-08-15-hosted-device-enrollment.md), reconciled 2026-11-26 with #734). Was: approved  
 
 **Date:** 2026-08-15  
 **Host:** `https://noema.guru`  
