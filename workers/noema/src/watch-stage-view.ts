@@ -386,7 +386,7 @@ body.is-room-open{overflow:hidden}
   border-color:var(--color-state-active);color:var(--color-state-active);
   background:color-mix(in srgb,var(--color-state-active) 12%,var(--void));
 }
-.room-place-select{min-height:44px;max-width:12rem;padding:.3rem 1.65rem .3rem .55rem;font-size:.74rem}
+.room-place-select{min-height:36px;height:36px;flex:0 1 12rem;max-width:12.5rem;padding:.3rem 1.75rem .3rem .6rem;font-size:.74rem;box-sizing:border-box}
 .room-title{
   margin:0;flex:0 0 auto;color:var(--ink);font:600 .95rem/1.15 var(--font-display);letter-spacing:.01em;white-space:nowrap;
 }
@@ -615,12 +615,17 @@ body.is-room-open{overflow:hidden}
   }
 }
 @media(max-width:860px){
-  .room-bar{padding:.35rem .5rem;gap:.35rem}
-  .room-bar-left{width:100%;justify-content:space-between}
+  .room-bar{padding:.35rem .5rem;gap:.35rem .45rem}
+  .room-bar-left{flex:1 1 auto;min-width:0}
   .room-bar-center{width:100%;justify-content:flex-start}
-  .room-bar-right{width:100%;justify-content:flex-end}
-  .room-place-select{flex:1 1 auto;max-width:none}
+  .room-bar-right{flex:0 0 auto;justify-content:flex-end}
+  .room-place-select{flex:0 1 11.5rem;max-width:12rem;min-width:8.5rem}
   .room3d-help{display:none}
   .room-drawer{left:.5rem;right:.5rem;top:auto;bottom:.5rem;width:auto;max-height:54vh}
+}
+@media(max-width:560px){
+  .room-bar-left{width:100%;justify-content:space-between}
+  .room-bar-right{width:100%;justify-content:flex-end}
+  .room-place-select{flex:1 1 auto;max-width:none;min-width:0}
 }
 `;

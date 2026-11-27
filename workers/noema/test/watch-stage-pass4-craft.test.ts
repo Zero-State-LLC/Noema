@@ -77,3 +77,20 @@ describe("WATCH Pass 4C: dive-in continuity, SVG leader stems, camera presets, a
     }
   });
 });
+
+describe("WATCH Pass 4D: shaft feathering, edge-clamped labels, and compact Room bar", () => {
+  it("tapers volumetric shaft alpha to 0 at both top and bottom ends", () => {
+    const shaftFn = roomSrc.slice(
+      roomSrc.indexOf("function makeShaftTexture"),
+      roomSrc.indexOf("function addLightShaft"),
+    );
+    expect(shaftFn).toContain('addColorStop(0, "rgba(255,255,255,0)")');
+    expect(shaftFn).toContain('addColorStop(1, "rgba(255,255,255,0)")');
+  });
+
+  it("clamps non-overlapping room labels inside the stage frame and keeps Room bar compact down to 560px", () => {
+    expect(roomSrc).toContain("let [ox, oy] = clamp(base, 0, 0, maxShift);");
+    expect(viewSrc).toContain("@media(max-width:560px)");
+    expect(viewSrc).toContain(".room-place-select{min-height:36px;height:36px;");
+  });
+});
