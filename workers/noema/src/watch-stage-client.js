@@ -81,11 +81,54 @@ function palette() {
 }
 
 const AGENT_COLORS = [0x3ddcff, 0xffb020, 0x52e5a8, 0xb68cff, 0xff6b8b, 0x70b8ff];
+const VERB_RING_COLORS = { harvest: 0x3ddcff, weld: 0xffb020, charter: 0x52e5a8, message: 0xd4b68a };
 function agentAccent(handle) {
   if (!handle) return 0xc9ac82;
   let h = 0;
   for (let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) >>> 0;
   return AGENT_COLORS[h % AGENT_COLORS.length];
+}
+
+function macroVerbKind(ev) {
+  if (!ev) return "";
+  const pid = String(ev.projection_id || ev.kind || ev.type || "").toLowerCase();
+  const verb = String(ev.verb || ev.action || "").toLowerCase();
+  if (ev.speech_text || pid.includes("message") || pid.includes("speech") || verb === "message" || verb === "say") {
+    return "message";
+  }
+  if (verb === "harvest" || verb === "commit_supply" || verb === "production" || verb === "recharge" || pid.includes("harvest")) {
+    return "harvest";
+  }
+  if (verb === "build" || verb === "repair" || verb === "restore" || verb === "repurpose" || verb === "remediate" || pid.includes("build") || pid.includes("repair")) {
+    return "weld";
+  }
+  if (verb === "trade" || verb === "contest" || verb === "vest" || verb === "org" || verb === "commemorate" || verb === "contract" || pid.includes("trade") || pid.includes("charter")) {
+    return "charter";
+  }
+  return "";
+}
+
+/** Extract recent public macro activity (speaking sites + latest actor deed class) from live.recent_events. */
+function extractMacroActivity(live) {
+  const speakingSites = new Set();
+  const actorActivity = new Map();
+  const events = Array.isArray(live && live.recent_events) ? live.recent_events : [];
+  const slice = events.slice(-16);
+  for (let i = slice.length - 1; i >= 0; i--) {
+    const ev = slice[i];
+    if (!ev) continue;
+    const vk = macroVerbKind(ev);
+    if (!vk) continue;
+    const rid = String(ev.room_id || ev.place_id || "");
+    if (vk === "message" && rid) speakingSites.add(rid);
+    const actor = String(ev.actor_label || ev.actor || ev.handle || "");
+    if (actor && !actorActivity.has(actor)) {
+      actorActivity.set(actor, { verbKind: vk, isSpeech: vk === "message" });
+    }
+  }
+  const sig = Array.from(speakingSites).sort().join(",") + ";"
+    + Array.from(actorActivity.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([h, a]) => h + ":" + a.verbKind).join(",");
+  return { speakingSites, actorActivity, sig };
 }
 
 /**
@@ -584,6 +627,7 @@ function mount(frame, opts) {
   let shadowsDirty = true;
   let declutterDirty = true;
   let lastWorldSig = "";
+  let lastTopoSig = "";
   let disposed = false;
   let hoveredSiteId = "";
   let hoveredHandle = "";
@@ -762,7 +806,7 @@ function mount(frame, opts) {
     root.add(head);
     root.scale.setScalar(1.14);
 
-    return { root, head, bodyMat, ringMat, glowMats: [bodyMat, collarMat, crownMat, visorMat], mats };
+    return { root, head, groundRing, bodyMat, ringMat, glowMats: [bodyMat, collarMat, crownMat, visorMat], mats };
   }
 
   /** Build bespoke miniature architectural landmarks for each of the 10 Chamber rooms. */
@@ -1096,6 +1140,7 @@ function mount(frame, opts) {
       slit.position.set(0, py + 0.02, -0.68);
       g.add(slit);
     }
+    return g;
   }
 
   /** Create a fading luminous comet-wake trail behind a travelling drone. */
@@ -1319,8 +1364,12 @@ function mount(frame, opts) {
         prop.rotation.y = sec * (prop.userData.spin || 0.7);
       }
       for (const pawn of animatedPawns) {
-        pawn.position.y = pawn.userData.baseY + Math.sin(sec * 2.2 + (pawn.userData.phase || 0)) * 0.05;
+        const ph = pawn.userData.phase || 0;
+        pawn.position.y = pawn.userData.baseY + Math.sin(sec * 2.2 + ph) * 0.05;
         if (pawn.userData.head) pawn.userData.head.rotation.y = sec * 1.25;
+        if (pawn.userData.verbRing) {
+          pawn.userData.verbRing.scale.setScalar(pawn.userData.verbActive ? (1.06 + Math.sin(sec * 3.8 + ph) * 0.14) : 1);
+        }
       }
       if (!document.hidden && (animatedProps.length > 0 || animatedPawns.length > 0)) busy = true;
     }
@@ -1385,12 +1434,11 @@ function mount(frame, opts) {
       if (base.width <= 0 || base.height <= 0) continue;
       const isName = el.classList.contains("stage3d-nameplate");
       const maxShift = isName ? 112 : 76;
-      let ox = 0;
-      let oy = 0;
-      let box = { left: base.left, right: base.right, top: base.top, bottom: base.bottom };
+      let [ox, oy] = clampOffset(base, 0, 0, maxShift);
+      let box = { left: base.left + ox, right: base.right + ox, top: base.top + oy, bottom: base.bottom + oy };
       let clear = !placed.some((p) => overlaps(box, p));
-      let bestOx = 0;
-      let bestOy = 0;
+      let bestOx = ox;
+      let bestOy = oy;
       let bestBox = box;
       let bestScore = Infinity;
 
@@ -1461,24 +1509,30 @@ function mount(frame, opts) {
     }
   }
 
-  function label(site, allSites) {
-    const el = document.createElement("div");
-    el.className = "stage3d-label";
-    el.dataset.siteId = site.id;
+  function updateSiteLabel(el, site, speaking) {
     const states = [];
     if (site.active) states.push("active");
     if (site.selected) states.push("selected");
     if (site.followed) states.push("followed");
     if (site.major) states.push("major");
     if (site.certainty === "partial" || site.certainty === "unknown") states.push("partial");
+    if (speaking) states.push("speaking");
     el.setAttribute("data-state", states.join(" "));
     el.dataset.priority = String(
-      (site.selected ? 40 : 0) + (site.followed ? 32 : 0) + (site.major ? 16 : 0) + (site.active ? 8 : 0) + (site.players > 0 ? 4 : 0),
+      (site.selected ? 40 : 0) + (site.followed ? 32 : 0) + (site.major ? 16 : 0) + (site.active ? 8 : 0) + (speaking ? 6 : 0) + (site.players > 0 ? 4 : 0),
     );
     el.title = site.name;
+    el.replaceChildren();
     const name = document.createElement("span");
     name.textContent = site.name;
     el.append(name);
+    if (speaking) {
+      const sp = document.createElement("span");
+      sp.className = "stage3d-speech-pip";
+      sp.textContent = "···";
+      sp.title = "Recent public dialogue";
+      el.append(sp);
+    }
     if (site.handles.length) {
       const h = document.createElement("span");
       h.className = "stage3d-handles";
@@ -1510,6 +1564,13 @@ function mount(frame, opts) {
       s.textContent = tag;
       el.append(s);
     }
+  }
+
+  function label(site, allSites, speaking) {
+    const el = document.createElement("div");
+    el.className = "stage3d-label";
+    el.dataset.siteId = site.id;
+    updateSiteLabel(el, site, speaking);
     el.addEventListener("click", (ev) => { ev.stopPropagation(); onSelect(site.id); });
     el.addEventListener("dblclick", (ev) => { ev.stopPropagation(); onEnterRoom(site.id); });
     const obj = new CSS2DObject(el);
@@ -1599,7 +1660,243 @@ function mount(frame, opts) {
     }
   }
 
-  function siteGroup(site, isSunken, allSites) {
+  function disposeTokenEntry(layer, tok) {
+    if (!tok) return;
+    for (let i = travels.length - 1; i >= 0; i--) {
+      if (travels[i].destMesh === tok.mesh) {
+        disposeTravelVisuals(travels[i]);
+        travels.splice(i, 1);
+      }
+    }
+    if (tok.mesh && tok.mesh.parent) tok.mesh.parent.remove(tok.mesh);
+    if (tok.nameplate) {
+      if (tok.nameplate.element && tok.nameplate.element.parentNode) tok.nameplate.element.remove();
+      if (tok.nameplate.parent) tok.nameplate.parent.remove(tok.nameplate);
+    }
+    if (tok.mats) for (const m of tok.mats) if (m && typeof m.dispose === "function") m.dispose();
+  }
+
+  function rebuildAnimatedPawns() {
+    animatedPawns = [];
+    for (const g of groups.values()) {
+      const refs = g.userData.shellRefs;
+      if (!refs) continue;
+      if (g.userData.tokens) {
+        for (const tok of g.userData.tokens.values()) {
+          if (tok && tok.mesh) animatedPawns.push(tok.mesh);
+        }
+      }
+      if (refs.unnamedList) {
+        for (const u of refs.unnamedList) {
+          if (u && u.mesh) animatedPawns.push(u.mesh);
+        }
+      }
+    }
+  }
+
+  function tokenSlotCoords(i, tokenCount) {
+    let xOffset = 0;
+    let zOffset = 0.34;
+    let row = 0;
+    if (tokenCount === 1) {
+      xOffset = 0;
+      zOffset = 0.34;
+    } else if (tokenCount === 2) {
+      xOffset = i === 0 ? -0.68 : 0.68;
+      zOffset = i === 0 ? 0.28 : 0.48;
+    } else if (tokenCount === 3) {
+      xOffset = (i - 1) * 0.72;
+      zOffset = i === 1 ? 0.56 : 0.24;
+    } else {
+      const col = i % 3;
+      row = Math.floor(i / 3);
+      const rowCount = Math.min(3, tokenCount - row * 3);
+      xOffset = (col - (rowCount - 1) * 0.5) * 0.72;
+      zOffset = row === 0 ? 0.22 : 0.72;
+    }
+    return { xOffset, zOffset, row };
+  }
+
+  /** Incrementally reconcile automaton pawns, nameplates, verb rings, and +more pill on a site without rebuilding its plinth. */
+  function syncSiteTokens(g, site, activity) {
+    const refs = g.userData.shellRefs;
+    const layer = refs.tokenLayer;
+    const py = 0.32;
+    const baseY = py + 0.01;
+    const named = site.tokens.slice(0, 6);
+    const tokenCount = named.length + site.unnamed;
+    const prevMap = g.userData.tokens instanceof Map ? g.userData.tokens : new Map();
+    const nextMap = new Map();
+    const keepHandles = new Set(named.map((t) => t.handle));
+
+    for (const [h, oldTok] of prevMap) {
+      if (!keepHandles.has(h)) disposeTokenEntry(layer, oldTok);
+    }
+
+    for (let i = 0; i < named.length; i++) {
+      const tok = named[i];
+      const accent = agentAccent(tok.handle);
+      const { xOffset, zOffset, row } = tokenSlotCoords(i, tokenCount);
+      const act = activity && activity.actorActivity ? activity.actorActivity.get(tok.handle) : null;
+      const ringColor = act && VERB_RING_COLORS[act.verbKind] ? VERB_RING_COLORS[act.verbKind] : accent;
+      const ringOpacity = act ? 0.94 : 0.8;
+
+      let entry = prevMap.get(tok.handle);
+      if (!entry) {
+        const drone = buildAutomaton(accent, true, tok.handle);
+        const pip = drone.root;
+        pip.userData.handle = tok.handle;
+        pip.userData.head = drone.head;
+        pip.userData.verbRing = drone.groundRing;
+        layer.add(pip);
+
+        const npel = document.createElement("div");
+        npel.className = "stage3d-nameplate";
+        npel.dataset.siteId = site.id;
+        npel.dataset.handle = tok.handle;
+        const dot = document.createElement("span");
+        dot.className = "stage3d-dot";
+        dot.style.background = "#" + accent.toString(16).padStart(6, "0");
+        const handleSpan = document.createElement("span");
+        handleSpan.textContent = tok.handle;
+        const spPip = document.createElement("span");
+        spPip.className = "stage3d-speech-pip";
+        spPip.textContent = "···";
+        spPip.hidden = true;
+        npel.append(dot, handleSpan, spPip);
+        const nameplate = new CSS2DObject(npel);
+        layer.add(nameplate);
+
+        entry = {
+          mesh: pip,
+          nameplate,
+          speechPip: spPip,
+          ringMat: drone.ringMat,
+          glowMats: drone.glowMats,
+          mats: drone.mats,
+          baseEmissives: drone.glowMats.map((m) => m.emissiveIntensity),
+          baseRingOpacity: ringOpacity,
+        };
+      }
+      entry.mesh.position.set(xOffset, baseY, zOffset);
+      entry.mesh.userData.baseY = baseY;
+      entry.mesh.userData.phase = i * 1.15;
+      entry.mesh.userData.verbActive = !!act;
+      entry.ringMat.color.setHex(ringColor);
+      entry.baseRingOpacity = ringOpacity;
+      entry.ringMat.opacity = ringOpacity;
+      if (entry.speechPip) entry.speechPip.hidden = !(act && act.isSpeech);
+      if (entry.nameplate && entry.nameplate.element) {
+        entry.nameplate.element.dataset.priority = String(i < 4 ? 26 - i : 2);
+      }
+      let npX = xOffset;
+      let npY = baseY + 1.24;
+      if (tokenCount === 1) {
+        npX += site.x >= 0 ? 0.42 : -0.42;
+      } else if (tokenCount === 2) {
+        npX = i === 0 ? xOffset - 0.22 : xOffset + 0.22;
+        npY = baseY + (i === 0 ? 1.04 : 1.32);
+      } else {
+        npX = xOffset * 1.15;
+        npY = baseY + 1.04 + (i % 3) * 0.28 + row * 0.22;
+      }
+      entry.nameplate.position.set(npX, npY, zOffset - 0.08);
+      nextMap.set(tok.handle, entry);
+    }
+    g.userData.tokens = nextMap;
+
+    // Reconcile unnamed agent tokens
+    const unnamedList = refs.unnamedList || [];
+    while (unnamedList.length > site.unnamed) {
+      disposeTokenEntry(layer, unnamedList.pop());
+    }
+    for (let u = 0; u < site.unnamed; u++) {
+      const idx = named.length + u;
+      const { xOffset, zOffset } = tokenSlotCoords(idx, tokenCount);
+      if (!unnamedList[u]) {
+        const drone = buildAutomaton(agentAccent(""), false, "");
+        drone.root.userData.head = drone.head;
+        drone.root.userData.verbRing = drone.groundRing;
+        layer.add(drone.root);
+        unnamedList[u] = { mesh: drone.root, mats: drone.mats };
+      }
+      unnamedList[u].mesh.position.set(xOffset, baseY, zOffset);
+      unnamedList[u].mesh.userData.baseY = baseY;
+      unnamedList[u].mesh.userData.phase = idx * 1.15;
+    }
+    refs.unnamedList = unnamedList;
+
+    // Reconcile +more overflow chip
+    if (site.more > 0) {
+      if (!refs.moreObj) {
+        const moreEl = document.createElement("div");
+        moreEl.className = "stage3d-more";
+        const moreObj = new CSS2DObject(moreEl);
+        moreObj.position.set(0.95, py + 0.35, 0.95);
+        layer.add(moreObj);
+        refs.moreObj = moreObj;
+      }
+      refs.moreObj.element.textContent = "+" + site.more;
+    } else if (refs.moreObj) {
+      if (refs.moreObj.element && refs.moreObj.element.parentNode) refs.moreObj.element.remove();
+      if (refs.moreObj.parent) refs.moreObj.parent.remove(refs.moreObj);
+      refs.moreObj = null;
+    }
+  }
+
+  /** Reconcile dynamic visual state on an existing Overview site group in place (zero clearWorld churn). */
+  function syncSiteDynamic(g, site, activity) {
+    const refs = g.userData.shellRefs;
+    if (!refs) return;
+    const liftY = site.selected ? 0.14 : 0;
+    refs.subBase.position.y = -0.02 + liftY * 0.4;
+    refs.collar.position.y = 0.08 + liftY * 0.75;
+    refs.deckGroup.position.y = liftY;
+
+    const plateColor = (site.selected ? C.selected : site.active ? C.raised : C.plate).clone();
+    if (site.bands.pressure) plateColor.lerp(C.warning, PRESSURE_MIX[site.bands.pressure]);
+    refs.plateMat.color.copy(plateColor);
+
+    const edgeColor = site.major ? C.warning : site.selected ? C.ink : site.active || site.followed ? C.active : C.edge;
+    const baseTrimEmissive = site.major ? 1.25 : site.active || site.followed ? 0.92 : site.selected ? 0.82 : 0.05;
+    refs.trimMat.color.copy(edgeColor);
+    refs.trimMat.emissive.copy(edgeColor);
+    refs.trimMat.emissiveIntensity = baseTrimEmissive;
+
+    if (refs.outlineRing) {
+      refs.outlineRing.visible = !!(site.followed || site.major);
+      refs.outlineRing.material.color.copy(site.major ? C.warning : C.active);
+    }
+
+    const glow = stageGlowLevel(site);
+    const glowColor = site.major ? C.warning : (site.followed || site.active ? C.active : C.social);
+    if (refs.haloMesh) {
+      refs.haloMesh.visible = glow > 0;
+      refs.haloMesh.material.color.copy(glowColor);
+      refs.haloMesh.material.opacity = Math.min(0.62, glow * 1.08);
+    }
+    if (refs.beaconMesh) {
+      const showBeacon = glow > 0 && !!(site.major || site.followed || site.active);
+      refs.beaconMesh.visible = showBeacon;
+      refs.beaconMesh.material.color.copy(glowColor);
+      refs.beaconMesh.material.opacity = site.major ? 0.30 : site.followed ? 0.22 : 0.12;
+    }
+
+    const speaking = !!(activity && activity.speakingSites && activity.speakingSites.has(site.id));
+    updateSiteLabel(refs.labelEl, site, speaking);
+    syncSiteTokens(g, site, activity);
+
+    g.userData.highlightRefs = {
+      trimMat: refs.trimMat,
+      plateMat: refs.plateMat,
+      baseTrimEmissive,
+      baseEdgeHex: edgeColor.getHex(),
+      isMajor: !!site.major,
+      labelEl: refs.labelEl,
+    };
+  }
+
+  function siteGroup(site, isSunken, allSites, activity) {
     const g = new Group();
     g.userData.siteId = site.id;
     const baseElev = isSunken ? SUNKEN_Y : 0;
@@ -1655,6 +1952,11 @@ function mount(frame, opts) {
     setSitePick(collar, site.id);
     g.add(collar);
 
+    // Elevatable deck assembly (lifts smoothly as one unit when site is selected)
+    const deckGroup = new Group();
+    deckGroup.position.y = liftY;
+    g.add(deckGroup);
+
     // Tier 3: weathered obsidian-titanium deck slab (#212C39 quiet, #273444 active, #304052 selected)
     const plateColor = (site.selected ? C.selected : site.active ? C.raised : C.plate).clone();
     if (site.bands.pressure) plateColor.lerp(C.warning, PRESSURE_MIX[site.bands.pressure]);
@@ -1672,11 +1974,11 @@ function mount(frame, opts) {
       opacity: partial ? 0.58 : 1,
     });
     const plate = new Mesh(shared.plate, plateMat);
-    plate.position.y = 0.21 + liftY;
+    plate.position.y = 0.21;
     plate.castShadow = true;
     plate.receiveShadow = true;
     setSitePick(plate, site.id);
-    g.add(plate);
+    deckGroup.add(plate);
 
     // Forged-steel outer curb + thin recessed surgical inner telemetry channel
     const halfP = PLATE / 2;
@@ -1687,16 +1989,16 @@ function mount(frame, opts) {
       transparent: partial,
       opacity: partial ? 0.52 : 1,
     });
-    const curbY = plate.position.y + 0.092;
+    const curbY = 0.21 + 0.092;
     for (const dz of [-halfP, halfP]) {
       const bar = new Mesh(shared.curbX, curbMat);
       bar.position.set(0, curbY, dz);
-      g.add(bar);
+      deckGroup.add(bar);
     }
     for (const dx of [-halfP, halfP]) {
       const bar = new Mesh(shared.curbZ, curbMat);
       bar.position.set(dx, curbY, 0);
-      g.add(bar);
+      deckGroup.add(bar);
     }
 
     const edgeColor = site.major ? C.warning : site.selected ? C.ink : site.active || site.followed ? C.active : C.edge;
@@ -1710,24 +2012,24 @@ function mount(frame, opts) {
       transparent: partial,
       opacity: partial ? 0.55 : 1,
     });
-    const trimY = plate.position.y + 0.105;
+    const trimY = 0.21 + 0.105;
     const inset = halfP - 0.075;
     for (const dz of [-inset, inset]) {
       const bar = new Mesh(shared.trimX, trimMat);
       bar.position.set(0, trimY, dz);
-      g.add(bar);
+      deckGroup.add(bar);
     }
     for (const dx of [-inset, inset]) {
       const bar = new Mesh(shared.trimZ, trimMat);
       bar.position.set(dx, trimY, 0);
-      g.add(bar);
+      deckGroup.add(bar);
     }
     const cleatMat = new MeshStandardMaterial({ color: 0x1c2530, roughness: 0.44, metalness: 0.72 });
     for (const [cx, cz] of [[-halfP, -halfP], [halfP, -halfP], [-halfP, halfP], [halfP, halfP]]) {
       const cleat = new Mesh(shared.cornerPost, cleatMat);
-      cleat.position.set(cx, plate.position.y + 0.075, cz);
+      cleat.position.set(cx, 0.21 + 0.075, cz);
       cleat.castShadow = true;
-      g.add(cleat);
+      deckGroup.add(cleat);
     }
 
     // Pressure band craft: glowing amber heat-vent slits along plinth front & side walls
@@ -1740,11 +2042,11 @@ function mount(frame, opts) {
       for (let v = 0; v < ventCount; v++) {
         const off = (v - (ventCount - 1) * 0.5) * 0.42;
         const frontVent = makeBox(0.24, 0.042, 0.024, ventMat, false);
-        frontVent.position.set(off, plate.position.y - 0.01, halfP + 0.008);
-        g.add(frontVent);
+        frontVent.position.set(off, 0.20, halfP + 0.008);
+        deckGroup.add(frontVent);
         const sideVent = makeBox(0.024, 0.042, 0.24, ventMat, false);
-        sideVent.position.set(halfP + 0.008, plate.position.y - 0.01, off);
-        g.add(sideVent);
+        sideVent.position.set(halfP + 0.008, 0.20, off);
+        deckGroup.add(sideVent);
       }
     }
 
@@ -1756,23 +2058,24 @@ function mount(frame, opts) {
       );
       edges.position.copy(plate.position);
       edges.computeLineDistances();
-      g.add(edges);
+      deckGroup.add(edges);
     }
 
-    if (site.followed || site.major) {
-      const ring = new LineSegments(
-        new EdgesGeometry(shared.ring),
-        new LineBasicMaterial({ color: site.major ? C.warning : C.active }),
-      );
-      ring.position.y = 0.01;
-      g.add(ring);
-    }
+    const outlineRing = new LineSegments(
+      new EdgesGeometry(shared.ring),
+      new LineBasicMaterial({ color: site.major ? C.warning : C.active }),
+    );
+    outlineRing.position.y = 0.01;
+    outlineRing.visible = !!(site.followed || site.major);
+    g.add(outlineRing);
 
     // D6 static glow: soft velvety additive halo + restrained volumetric beacon on active/followed/MAJOR sites
     const glow = stageGlowLevel(site);
-    if (glow > 0 && haloTexture) {
-      const glowColor = site.major ? C.warning : (site.followed || site.active ? C.active : C.social);
-      const halo = new Mesh(shared.halo, new MeshBasicMaterial({
+    const glowColor = site.major ? C.warning : (site.followed || site.active ? C.active : C.social);
+    let haloMesh = null;
+    let beaconMesh = null;
+    if (haloTexture) {
+      haloMesh = new Mesh(shared.halo, new MeshBasicMaterial({
         map: haloTexture,
         color: glowColor,
         transparent: true,
@@ -1780,28 +2083,29 @@ function mount(frame, opts) {
         blending: AdditiveBlending,
         depthWrite: false,
       }));
-      halo.rotation.x = -Math.PI / 2;
-      halo.position.y = -0.07;
-      halo.scale.set(STAGE_GLOW.SIZE * 1.18, STAGE_GLOW.SIZE * 1.18, 1);
-      halo.userData.glow = true;
-      halo.renderOrder = -1;
-      halo.raycast = () => {};
-      g.add(halo);
-
-      if (beaconTexture && (site.major || site.followed || site.active)) {
-        const beacon = new Mesh(shared.beacon, new MeshBasicMaterial({
-          map: beaconTexture,
-          color: glowColor,
-          transparent: true,
-          opacity: site.major ? 0.30 : site.followed ? 0.22 : 0.12,
-          blending: AdditiveBlending,
-          depthWrite: false,
-          side: DoubleSide,
-        }));
-        beacon.position.y = plate.position.y + 0.72;
-        beacon.raycast = () => {};
-        g.add(beacon);
-      }
+      haloMesh.rotation.x = -Math.PI / 2;
+      haloMesh.position.y = -0.07;
+      haloMesh.scale.set(STAGE_GLOW.SIZE * 1.18, STAGE_GLOW.SIZE * 1.18, 1);
+      haloMesh.userData.glow = true;
+      haloMesh.renderOrder = -1;
+      haloMesh.visible = glow > 0;
+      haloMesh.raycast = () => {};
+      g.add(haloMesh);
+    }
+    if (beaconTexture) {
+      beaconMesh = new Mesh(shared.beacon, new MeshBasicMaterial({
+        map: beaconTexture,
+        color: glowColor,
+        transparent: true,
+        opacity: site.major ? 0.30 : site.followed ? 0.22 : 0.12,
+        blending: AdditiveBlending,
+        depthWrite: false,
+        side: DoubleSide,
+      }));
+      beaconMesh.position.y = 0.21 + 0.72;
+      beaconMesh.visible = glow > 0 && !!(site.major || site.followed || site.active);
+      beaconMesh.raycast = () => {};
+      deckGroup.add(beaconMesh);
     }
 
     // Scar residue craft: dashed violet outline + subtle violet crystalline fracture shards on plinth corner
@@ -1814,9 +2118,9 @@ function mount(frame, opts) {
           transparent: true, opacity: scarOp,
         }),
       );
-      scar.position.y = plate.position.y + 0.13;
+      scar.position.y = 0.21 + 0.13;
       scar.computeLineDistances();
-      g.add(scar);
+      deckGroup.add(scar);
 
       const shardMat = new MeshStandardMaterial({
         color: 0xc9aeff,
@@ -1832,108 +2136,50 @@ function mount(frame, opts) {
       ];
       for (const [sx, sy, sz, scx, scy, scz, rx, ry, rz] of shardSpecs) {
         const shard = new Mesh(shared.trace, shardMat);
-        shard.position.set(sx, plate.position.y + sy, sz);
+        shard.position.set(sx, 0.21 + sy, sz);
         shard.scale.set(scx, scy * (0.75 + scarOp * 0.35), scz);
         shard.rotation.set(rx, ry, rz);
-        g.add(shard);
+        deckGroup.add(shard);
       }
     }
 
     // Room-specific miniature architectural landmark
-    const py = plate.position.y + 0.11;
-    addRoomLandmark(g, site, py);
+    const py = 0.32;
+    addRoomLandmark(deckGroup, site, py);
 
-    // Sculpted miniature tabletop automaton drones fanned cleanly across the front plaza
-    const named = site.tokens.slice(0, 6);
-    const tokenCount = named.length + site.unnamed;
-    const tokenMap = new Map();
-    for (let i = 0; i < tokenCount; i++) {
-      const tok = named[i];
-      const accent = agentAccent(tok ? tok.handle : "");
-      const drone = buildAutomaton(accent, !!tok, tok ? tok.handle : "");
-      const pip = drone.root;
-      const baseY = py + 0.01;
-      let xOffset = 0;
-      let zOffset = 0.34;
-      let row = 0;
-      if (tokenCount === 1) {
-        xOffset = 0;
-        zOffset = 0.34;
-      } else if (tokenCount === 2) {
-        xOffset = i === 0 ? -0.68 : 0.68;
-        zOffset = i === 0 ? 0.28 : 0.48;
-      } else if (tokenCount === 3) {
-        xOffset = (i - 1) * 0.72;
-        zOffset = i === 1 ? 0.56 : 0.24;
-      } else {
-        const col = i % 3;
-        row = Math.floor(i / 3);
-        const rowCount = Math.min(3, tokenCount - row * 3);
-        xOffset = (col - (rowCount - 1) * 0.5) * 0.72;
-        zOffset = row === 0 ? 0.22 : 0.72;
-      }
-      pip.position.set(xOffset, baseY, zOffset);
-      pip.userData.baseY = baseY;
-      pip.userData.phase = i * 1.15;
-      pip.userData.head = drone.head;
-      g.add(pip);
-      animatedPawns.push(pip);
-      if (tok) {
-        pip.userData.handle = tok.handle;
-        const npel = document.createElement("div");
-        npel.className = "stage3d-nameplate";
-        npel.dataset.priority = String(i < 4 ? 26 - i : 2);
-        npel.dataset.siteId = site.id;
-        npel.dataset.handle = tok.handle;
-        const dot = document.createElement("span");
-        dot.className = "stage3d-dot";
-        dot.style.background = "#" + accent.toString(16).padStart(6, "0");
-        const handleSpan = document.createElement("span");
-        handleSpan.textContent = tok.handle;
-        npel.append(dot, handleSpan);
-        const nameplate = new CSS2DObject(npel);
-        // Fan & tightly stagger co-located nameplates so every handle stays anchored to its site
-        let npX = pip.position.x;
-        let npY = baseY + 1.24;
-        if (tokenCount === 1) {
-          npX += site.x >= 0 ? 0.42 : -0.42;
-        } else if (tokenCount === 2) {
-          npX = i === 0 ? pip.position.x - 0.22 : pip.position.x + 0.22;
-          npY = baseY + (i === 0 ? 1.04 : 1.32);
-        } else {
-          npX = pip.position.x * 1.15;
-          npY = baseY + 1.04 + (i % 3) * 0.28 + row * 0.22;
-        }
-        nameplate.position.set(npX, npY, pip.position.z - 0.08);
-        g.add(nameplate);
-        tokenMap.set(tok.handle, {
-          mesh: pip,
-          nameplate,
-          ringMat: drone.ringMat,
-          glowMats: drone.glowMats,
-          baseEmissives: drone.glowMats.map((m) => m.emissiveIntensity),
-          baseRingOpacity: drone.ringMat.opacity,
-        });
-      }
-    }
-    g.userData.tokens = tokenMap;
-    if (site.more > 0) {
-      const moreEl = document.createElement("div");
-      moreEl.className = "stage3d-more";
-      moreEl.textContent = "+" + site.more;
-      const moreObj = new CSS2DObject(moreEl);
-      moreObj.position.set(0.95, py + 0.35, 0.95);
-      g.add(moreObj);
-    }
     if (site.traces > 0) {
       const mark = new Mesh(shared.trace, new MeshStandardMaterial({
         color: C.machine, emissive: C.machine, emissiveIntensity: 0.72, roughness: 0.26,
       }));
       mark.position.set(PLATE / 2 - 0.3, py + 0.14, PLATE / 2 - 0.3);
-      g.add(mark);
+      deckGroup.add(mark);
     }
-    const lbl = label(site, allSites);
+
+    const tokenLayer = new Group();
+    deckGroup.add(tokenLayer);
+
+    const speaking = !!(activity && activity.speakingSites && activity.speakingSites.has(site.id));
+    const lbl = label(site, allSites, speaking);
     g.add(lbl.obj);
+
+    g.userData.tokens = new Map();
+    g.userData.shellRefs = {
+      subBase,
+      collar,
+      deckGroup,
+      plateMat,
+      trimMat,
+      outlineRing,
+      haloMesh,
+      beaconMesh,
+      labelEl: lbl.el,
+      labelObj: lbl.obj,
+      moreObj: null,
+      tokenLayer,
+      unnamedList: [],
+    };
+    syncSiteTokens(g, site, activity);
+
     g.userData.highlightRefs = {
       trimMat,
       plateMat,
@@ -2613,62 +2859,80 @@ function mount(frame, opts) {
       const sid = String(s.id || "").toLowerCase();
       if (sid.includes("archive") || sid.includes("vault")) sunkenSites.add(s.id);
     }
-    const worldSig = JSON.stringify({
+    const activity = extractMacroActivity(live);
+    const topoSig = JSON.stringify({
       sites: model.sites.map((s) => [
-        s.id, s.name, s.x, s.z, s.certainty, s.active, s.players, s.unnamed, s.more, s.traces,
-        s.selected, s.followed, s.major, s.bands.scar, s.bands.pressure, s.bands.protocol,
-        s.handles, s.tokens.map((t) => t.handle + ":" + t.line),
+        s.id, s.x, s.z, s.certainty, s.bands.scar, s.bands.pressure, s.traces > 0, sunkenSites.has(s.id),
       ]),
       routes: model.routes.map((r) => [r.from, r.to, r.direction, r.dashed, r.oneWay]),
-      sunken: Array.from(sunkenSites).sort(),
+    });
+    const worldSig = JSON.stringify({
+      topoSig,
+      activity: activity.sig,
+      sites: model.sites.map((s) => [
+        s.id, s.name, s.active, s.players, s.unnamed, s.more,
+        s.selected, s.followed, s.major, s.bands.protocol,
+        s.handles, s.tokens.map((t) => t.handle + ":" + t.line),
+      ]),
     });
     if (worldSig !== lastWorldSig) {
       lastWorldSig = worldSig;
-      clearWorld();
-      const sunkenCoords = [];
-      const surfaceCoords = [];
-      for (const site of model.sites) {
-        const isSunken = sunkenSites.has(site.id);
-        if (isSunken) sunkenCoords.push(site);
-        else surfaceCoords.push(site);
-        const g = siteGroup(site, isSunken, model.sites);
-        groups.set(site.id, g);
-        world.add(g);
+      if (topoSig !== lastTopoSig) {
+        lastTopoSig = topoSig;
+        clearWorld();
+        const sunkenCoords = [];
+        const surfaceCoords = [];
+        for (const site of model.sites) {
+          const isSunken = sunkenSites.has(site.id);
+          if (isSunken) sunkenCoords.push(site);
+          else surfaceCoords.push(site);
+          const g = siteGroup(site, isSunken, model.sites, activity);
+          groups.set(site.id, g);
+          world.add(g);
+        }
+        rebuildAnimatedPawns();
+        env.updatePits(sunkenCoords, surfaceCoords);
+        routeEntries = [];
+        for (const r of model.routes) {
+          const a = groups.get(r.from);
+          const b = groups.get(r.to);
+          if (!a || !b) continue;
+          const grp = routeLine(r, a.position, b.position);
+          world.add(grp);
+          const mats = [];
+          const seen = new Set();
+          grp.traverse((o) => {
+            if (o.material && o.material.color && o.material.userData && o.material.userData.routeGlow && !seen.has(o.material)) {
+              seen.add(o.material);
+              mats.push(o.material);
+            }
+          });
+          routeEntries.push({ from: r.from, to: r.to, mats });
+        }
+        if (!framed || Math.abs(prevRadius - model.radius) > 0.01) {
+          buildCompass(model.radius);
+          applyLimits(model.radius);
+        }
+        // A rebuild drops the old scene; give still-running MAJOR pulses their ring back.
+        for (const p of pulses) {
+          if (p.tier === "MAJOR" && !p.ring && groups.has(p.roomId)) p.ring = majorRing(p.roomId);
+        }
+        restartMoments(performance.now());
+        // Captions survive a rebuild too: re-home the ones still holding.
+        for (const [roomId, box] of captionBoxes) {
+          const g = groups.get(roomId);
+          if (g) g.add(box.obj);
+        }
+        // Travellers survive a rebuild too: re-home the ones still in flight.
+        rehomeTravels(performance.now());
+      } else {
+        // Pass 5B: zero-rebuild in-place reconciliation when topology is unchanged
+        for (const site of model.sites) {
+          const g = groups.get(site.id);
+          if (g) syncSiteDynamic(g, site, activity);
+        }
+        rebuildAnimatedPawns();
       }
-      env.updatePits(sunkenCoords, surfaceCoords);
-      routeEntries = [];
-      for (const r of model.routes) {
-        const a = groups.get(r.from);
-        const b = groups.get(r.to);
-        if (!a || !b) continue;
-        const grp = routeLine(r, a.position, b.position);
-        world.add(grp);
-        const mats = [];
-        const seen = new Set();
-        grp.traverse((o) => {
-          if (o.material && o.material.color && o.material.userData && o.material.userData.routeGlow && !seen.has(o.material)) {
-            seen.add(o.material);
-            mats.push(o.material);
-          }
-        });
-        routeEntries.push({ from: r.from, to: r.to, mats });
-      }
-      if (!framed || Math.abs(prevRadius - model.radius) > 0.01) {
-        buildCompass(model.radius);
-        applyLimits(model.radius);
-      }
-      // A rebuild drops the old scene; give still-running MAJOR pulses their ring back.
-      for (const p of pulses) {
-        if (p.tier === "MAJOR" && !p.ring && groups.has(p.roomId)) p.ring = majorRing(p.roomId);
-      }
-      restartMoments(performance.now());
-      // Captions survive a rebuild too: re-home the ones still holding.
-      for (const [roomId, box] of captionBoxes) {
-        const g = groups.get(roomId);
-        if (g) g.add(box.obj);
-      }
-      // Travellers survive a rebuild too: re-home the ones still in flight.
-      rehomeTravels(performance.now());
       applyHighlight();
       shadowsDirty = true;
       declutterDirty = true;
