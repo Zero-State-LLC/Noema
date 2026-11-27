@@ -529,7 +529,7 @@ body.is-room-open{overflow:hidden}
 .room-frame[data-label-mode="clean"] .room3d-trace,
 .room-frame[data-label-mode="clean"] .room3d-portal,
 .room-frame[data-label-mode="clean"] .room3d-agent-label{
-  opacity:0;pointer-events:none;
+  opacity:0;visibility:hidden;pointer-events:none;
 }
 .room3d-agent-label{
   pointer-events:auto;cursor:pointer;display:inline-flex;align-items:center;gap:5px;

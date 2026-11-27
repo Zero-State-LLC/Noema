@@ -26,6 +26,7 @@ describe("WATCH Pass 5A: Room View label hierarchy, clickable presets, and Lathe
     expect(viewSrc).toContain('data-cam-preset="3"');
     expect(viewSrc).toContain(".room-stage-pill{\n  cursor:pointer;min-height:44px;");
     expect(viewSrc).toContain("::picker-icon{display:none}");
+    expect(viewSrc).toContain("opacity:0;visibility:hidden;pointer-events:none;");
   });
 
   it("wires setLabelMode, setCameraPreset, L shortcut, and active workstation tagging without localStorage writes", () => {
