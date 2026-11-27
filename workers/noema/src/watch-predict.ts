@@ -64,17 +64,27 @@ export function resolvePrediction(
   state: PredictState,
   events: unknown[],
   publicRoomIds: string[],
+  retainedPulses?: string[],
 ): { state: PredictState; outcome: "" | "hit" | "miss"; site: string } {
   if (!state || state.on !== true || !state.guess) return { state: state, outcome: "", site: "" };
   const list = Array.isArray(events) ? events : [];
   const ids = Array.isArray(publicRoomIds) ? publicRoomIds : [];
+  const pulses = Array.isArray(retainedPulses) ? retainedPulses : [];
   const after = typeof state.after === "number" && isFinite(state.after) ? state.after : 0;
   let best = -1;
   let site = "";
   for (let i = 0; i < list.length; i++) {
     const raw = list[i];
     if (!raw || typeof raw !== "object") continue;
-    const ev = raw as { sequence?: unknown; room_id?: unknown };
+    const ev = raw as {
+      sequence?: unknown;
+      room_id?: unknown;
+      projection_id?: unknown;
+      occurred_at?: unknown;
+      line?: unknown;
+    };
+    if (ev.projection_id === "public_pulse") continue;
+    if (typeof ev.occurred_at !== "number" && typeof ev.line === "string" && pulses.indexOf(ev.line) >= 0) continue;
     const seq = ev.sequence;
     const room = ev.room_id;
     if (typeof seq !== "number" || !isFinite(seq)) continue;

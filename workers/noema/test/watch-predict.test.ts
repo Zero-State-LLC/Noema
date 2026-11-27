@@ -125,6 +125,35 @@ describe("resolvePrediction", () => {
     expect(res.outcome).toBe("miss");
     expect(res.state.after).toBe(7);
   });
+
+  it("does not score retained public pulses re-stamped onto later snapshots", () => {
+    const st = base({ guess: "room.a", after: 10 });
+    const retained = resolvePrediction(
+      st,
+      [
+        { sequence: 11, room_id: "room.a", projection_id: "organization", line: "An institution acted." },
+        { sequence: 11, room_id: "room.b", projection_id: "public_pulse", line: "Standing public pulse." },
+      ],
+      ["room.a", "room.b"],
+      ["An institution acted."],
+    );
+    expect(retained.outcome).toBe("");
+    expect(retained.state).toBe(st);
+
+    // A genuine ledger event with occurred_at resolves normally.
+    const real = resolvePrediction(
+      st,
+      [
+        { sequence: 12, room_id: "room.a", projection_id: "organization", line: "An institution acted." },
+        { sequence: 12, room_id: "room.b", projection_id: "repair", occurred_at: 1700000000, line: "Rivet repaired Relay." },
+      ],
+      ["room.a", "room.b"],
+      ["An institution acted."],
+    );
+    expect(real.outcome).toBe("miss");
+    expect(real.site).toBe("room.b");
+    expect(real.state.after).toBe(12);
+  });
 });
 
 describe("placeGuess", () => {

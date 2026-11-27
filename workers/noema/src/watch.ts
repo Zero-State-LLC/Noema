@@ -607,7 +607,8 @@ export function watchHtml(opts?: { mode?: string }): string {
     }
     function applyPredict(data) {
       const events = data && Array.isArray(data.recent_events) ? data.recent_events : [];
-      const solved = resolvePrediction(predict, events, publicPredictRoomIds(data));
+      const pulses = data && Array.isArray(data.public_pulses) ? data.public_pulses : [];
+      const solved = resolvePrediction(predict, events, publicPredictRoomIds(data), pulses);
       if (solved.outcome) {
         predict = solved.state;
         predictNote = { kind: solved.outcome, site: solved.site };
