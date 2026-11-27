@@ -107,7 +107,8 @@ describe("GC1-S7 world path", () => {
       recognition_unit: `e.${i}`,
     }));
     w.players[a.player_id].practice = applyPracticeCredits(emptyPractice(), units, 0);
-    w.cycle = LATENT_AFTER_CYCLES;
+    // RFC-0144 §1.1: active focused tracks become LATENT after 18 idle cycles (vs 12 unfocused).
+    w.cycle = 18;
     const latentLook = await run(w, b, "LOOK");
     expect(
       latentLook.observation?.players_here?.find((p) => p.player_id === a.player_id)?.public_focus_lines,

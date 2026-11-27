@@ -1048,6 +1048,35 @@ export default {
         return cors(json(data, doRes.status));
       }
 
+      if (request.method === "POST" && path === "/v1/operator/player/public-activity") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const body = (await request.json().catch(() => ({}))) as {
+          player_id?: unknown;
+          public_activity?: unknown;
+          world_id?: string;
+        };
+        const playerId = typeof body.player_id === "string" ? body.player_id.trim() : "";
+        if (!playerId || typeof body.public_activity !== "boolean") {
+          return cors(err("INVALID_REQUEST", "player_id and boolean public_activity required", 400));
+        }
+        const target = resolveAdminOperatorWorldId(body.world_id, env);
+        if (!target.ok) return cors(err(target.code, target.message, 400));
+        const id = env.WORLD_DO.idFromName(target.do_name);
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/operator/player/public-activity", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-noema-world-id": target.do_name },
+          body: JSON.stringify({
+            player_id: playerId,
+            public_activity: Boolean(body.public_activity),
+            admin_session_id: admin.session_id,
+          }),
+        });
+        const payload = (await res.json()) as Record<string, unknown>;
+        return cors(json({ ...payload, operator_session: admin.session_id }, res.status));
+      }
+
       // Isolated hosted canonical verification. Not a PLAY command path.
       if (request.method === "POST" && path === "/v1/operator/test-world/command") {
         const principal = await resolvePrincipal(request, env);

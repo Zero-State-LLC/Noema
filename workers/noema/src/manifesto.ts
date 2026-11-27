@@ -17,25 +17,27 @@ const EXTRA = `
 .toc ol{margin:0;padding:0;list-style:none;counter-reset:toc}
 .toc li{counter-increment:toc;margin:0}
 .toc a{
-  display:grid;grid-template-columns:2rem 1fr;align-items:baseline;padding:.25rem 0;
+  display:grid;grid-template-columns:2rem 1fr;align-items:baseline;padding:.28rem 0 .28rem .65rem;
+  border-left:2px solid transparent;
   color:var(--faint);text-decoration:none;font:500 .875rem/1.25rem var(--font-body);
-  transition:color .2s var(--ease);
+  transition:color .2s var(--ease),border-color .2s var(--ease);
 }
 .toc a::before{content:counter(toc,decimal-leading-zero);color:var(--line-hot);font:500 .75rem/1rem var(--font-mono);transition:color .2s var(--ease)}
 .toc a:hover,.toc a[aria-current]{color:var(--ink)}
+.toc a[aria-current]{border-left-color:var(--color-state-active)}
 .toc a[aria-current]::before{color:var(--color-state-active)}
-.toc-meta{margin:1.5rem 0 0;color:var(--faint);font:.75rem/1rem var(--font-mono)}
+.toc-meta{margin:1.5rem 0 0;padding-left:.75rem;color:var(--faint);font:.75rem/1rem var(--font-mono)}
 .manifesto{min-width:0;margin:0;counter-reset:sec}
 .manifesto h1{max-width:16ch}
 .manifesto .lede{margin:0 0 2rem;color:var(--ink);font-size:1.25rem;line-height:1.75rem}
 .manifesto h2{
   counter-increment:sec;scroll-margin-top:6rem;
-  margin:4rem 0 1.5rem;padding:3rem 0 0;max-width:none;border-top:1px solid var(--line);
+  margin:4rem 0 1.5rem;padding:3rem 0 0;max-width:none;border-top:1px solid color-mix(in srgb,var(--line-hot) 45%,var(--line));
   font:600 clamp(1.5rem,1.2rem + 1.2vw,1.875rem)/1.2 var(--font-display);letter-spacing:-.02em;
 }
 .manifesto h2::before{
   content:counter(sec,decimal-leading-zero);display:block;margin:0 0 .75rem;
-  color:var(--faint);font:500 .75rem/1rem var(--font-mono);letter-spacing:.12em;
+  color:color-mix(in srgb,var(--color-state-active) 50%,var(--faint));font:500 .75rem/1rem var(--font-mono);letter-spacing:.12em;
 }
 .manifesto p{margin:1rem 0;color:color-mix(in srgb,var(--ink) 88%,var(--faint));font-size:1.125rem;line-height:1.75rem;max-width:65ch}
 .manifesto ul{margin:1rem 0 1.5rem;padding:0;list-style:none;max-width:65ch}
@@ -47,11 +49,22 @@ const EXTRA = `
 }
 .manifesto .pull::before{content:"";display:block;width:2rem;height:2px;margin:0 0 1rem;background:var(--line-hot)}
 .manifesto .pull.thesis{font-size:clamp(1.5rem,1.1rem + 1.6vw,2.25rem);line-height:1.2}
+.manifesto .pull.thesis::before{background:color-mix(in srgb,var(--color-state-active) 55%,var(--line-hot))}
 .manifesto .claim{
-  margin:2rem 0;padding:1.5rem;border:1px solid var(--line);border-radius:var(--r-xl);
-  background:var(--panel);color:var(--ink);font:500 1rem/1.75rem var(--font-body);
+  margin:2rem 0;padding:1.5rem;
+  border:1px solid color-mix(in srgb,var(--line-hot) 52%,var(--line));
+  border-left:2px solid color-mix(in srgb,var(--color-state-active) 52%,var(--line));
+  border-radius:var(--r-xl);
+  background:color-mix(in srgb,var(--panel) 84%,var(--void));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 7%,transparent),0 20px 44px -28px rgb(0 0 0/.84);
+  color:var(--ink);font:500 1rem/1.75rem var(--font-body);
 }
-.letter-end{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin:4rem 0 0;padding:2rem}
+.letter-end{
+  display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin:4rem 0 0;padding:2rem;
+  border-color:color-mix(in srgb,var(--line-hot) 56%,var(--line));
+  background:color-mix(in srgb,var(--panel) 84%,var(--void));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 8%,transparent),0 24px 52px -30px rgb(0 0 0/.86);
+}
 .letter-end .end-k{margin:0 0 .75rem;color:var(--faint);font:600 .75rem/1rem var(--font-display);letter-spacing:.24em;text-transform:uppercase}
 .letter-end p{margin:0 0 1.5rem;font-size:1rem;line-height:1.5rem}
 .letter-end .btn-row{margin:0}

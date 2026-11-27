@@ -12,9 +12,16 @@ import worker from "../src/index";
 import { WATCH_LIVE_PIN } from "../src/watch-live";
 import { watchHtml } from "../src/watch";
 import { createHash } from "node:crypto";
-import { STAGE_FALLBACK_LINE, STAGE_GZIP_BUDGET, STAGE_LOW_NOISE_LINE } from "../src/watch-stage-model";
-import { STAGE_SRC } from "../src/watch-stage-view";
-import { STAGE_VERSION } from "../src/watch-stage-version";
+import {
+  STAGE_FALLBACK_LINE,
+  STAGE_GZIP_BUDGET,
+  STAGE_LOW_NOISE_LINE,
+  STAGE_OVERVIEW_GZIP_BUDGET,
+  STAGE_ROOM_GZIP_BUDGET,
+  STAGE_VENDOR_GZIP_BUDGET,
+} from "../src/watch-stage-model";
+import { ROOM_STAGE_SRC, STAGE_SRC, VENDOR_SRC } from "../src/watch-stage-view";
+import { ROOM_STAGE_VERSION, STAGE_VERSION, VENDOR_VERSION } from "../src/watch-stage-version";
 import { parseWatchMode, watchModeInlineSource } from "../src/watch-mode";
 import type { Env } from "../src/types";
 
@@ -496,26 +503,39 @@ describe("driven WATCH client with the 3D stage", () => {
   });
 });
 
-describe("the stage chunk is built from source, budgeted, and ships the Three.js license", () => {
-  it("is one chunk within the D5 budget with the MIT license and notice banner", () => {
-    for (const f of ["watch-stage.js", "THREE-LICENSE.txt"]) {
+describe("the stage chunks are built from source, budgeted, and ship the Three.js license", () => {
+  it("keeps all three D5 chunks within gzip budgets with the MIT license and notice banners", () => {
+    for (const f of ["three-vendor.js", "watch-stage.js", "watch-room-stage.js", "THREE-LICENSE.txt"]) {
       expect(existsSync(join(ASSETS, f)), f).toBe(true);
     }
     for (const gone of ["watch-fluid.js", "watch-fluid-map.js"]) {
       expect(existsSync(join(ASSETS, gone)), gone).toBe(false);
     }
     expect(readFileSync(join(ASSETS, "THREE-LICENSE.txt"), "utf8")).toContain("The MIT License");
+    const vendor = readFileSync(join(ASSETS, "three-vendor.js"));
     const chunk = readFileSync(join(ASSETS, "watch-stage.js"));
+    const room = readFileSync(join(ASSETS, "watch-room-stage.js"));
     expect(chunk.toString("utf8").startsWith("/*! NOEMA WATCH Chamber stage. Bundles three.js (MIT")).toBe(true);
     expect(chunk.toString("utf8")).toContain("NoemaWatchStage");
-    expect(gzipSync(chunk, { level: 9 }).length).toBeLessThanOrEqual(STAGE_GZIP_BUDGET);
+    expect(room.toString("utf8")).toContain("NoemaWatchRoomStage");
+    expect(gzipSync(vendor, { level: 9 }).length).toBeLessThanOrEqual(STAGE_VENDOR_GZIP_BUDGET);
+    expect(gzipSync(chunk, { level: 9 }).length).toBeLessThanOrEqual(STAGE_OVERVIEW_GZIP_BUDGET);
+    expect(gzipSync(room, { level: 9 }).length).toBeLessThanOrEqual(STAGE_ROOM_GZIP_BUDGET);
+    expect(STAGE_GZIP_BUDGET).toBe(160 * 1024);
   });
 
-  it("loads the chunk by a content-hash version, so a deploy never serves a stale chunk", () => {
-    const chunk = readFileSync(join(ASSETS, "watch-stage.js"));
-    const hash = createHash("sha256").update(chunk).digest("hex").slice(0, 12);
-    expect(STAGE_VERSION).toBe(hash);
-    expect(STAGE_SRC).toBe(`/assets/watch-stage.js?v=${hash}`);
-    expect(watchHtml()).toContain(JSON.stringify(STAGE_SRC));
+  it("loads each chunk by its content-hash version, so a deploy never serves a stale chunk", () => {
+    const vendorHash = createHash("sha256").update(readFileSync(join(ASSETS, "three-vendor.js"))).digest("hex").slice(0, 12);
+    const stageHash = createHash("sha256").update(readFileSync(join(ASSETS, "watch-stage.js"))).digest("hex").slice(0, 12);
+    const roomHash = createHash("sha256").update(readFileSync(join(ASSETS, "watch-room-stage.js"))).digest("hex").slice(0, 12);
+    expect(VENDOR_VERSION).toBe(vendorHash);
+    expect(STAGE_VERSION).toBe(stageHash);
+    expect(ROOM_STAGE_VERSION).toBe(roomHash);
+    expect(VENDOR_SRC).toBe(`/assets/three-vendor.js?v=${vendorHash}`);
+    expect(STAGE_SRC).toBe(`/assets/watch-stage.js?v=${stageHash}`);
+    expect(ROOM_STAGE_SRC).toBe(`/assets/watch-room-stage.js?v=${roomHash}`);
+    const html = watchHtml();
+    expect(html).toContain(JSON.stringify(STAGE_SRC));
+    expect(html).toContain(JSON.stringify(ROOM_STAGE_SRC));
   });
 });

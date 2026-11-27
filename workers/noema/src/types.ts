@@ -164,7 +164,7 @@ export interface ObservationAffordance {
   /** GC1-S8. Structured REPAIR overhaul. Omitted for standard repair. */
   extent?: "overhaul";
   /** GC1-S7. Structured FOCUS track. Omitted when `clear` is set. */
-  track?: "explorer" | "surveyor" | "broker" | "engineer";
+  track?: "explorer" | "surveyor" | "broker" | "engineer" | "archivist" | "herald" | "artificer";
   /** GC1-S7. Structured FOCUS clear. */
   clear?: boolean;
   /** GC2. Structured BUILD.CONSTRUCT class. */
@@ -217,6 +217,26 @@ export interface ObservationAffordance {
   emergency_scope_id?: string;
   successors?: string[];
   rule_id?: string;
+  /** RFC-0139: portable items, crafting, refining, equipment. */
+  recipe_id?: string;
+  item_id?: string;
+  slot?: string;
+  material?: string;
+  grade?: string;
+  /** RFC-0140: storefront barter phases & listings. */
+  phase?: string;
+  stall_id?: string;
+  listing_id?: string;
+  listing_kind?: string;
+  swap_id?: string;
+  /** RFC-0142..0144: convert, crime sanction, stewardship, contracts. */
+  convert_mode?: "power" | "compute";
+  residue_id?: string;
+  detection_id?: string;
+  steward_id?: string;
+  steward_office_id?: string;
+  target_material?: string;
+  target_item_archetype?: string;
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;
@@ -345,6 +365,67 @@ export interface Observation {
   inherited_lines?: string[];
   /** GC8-S1 self-only worn holdings. Never put on WATCH. */
   lot_lines?: string[];
+  /** RFC-0139: carried portable items, equipped slots, and regional material sub-lots. */
+  inventory?: Array<{
+    item_id: string;
+    archetype_id: string;
+    label: string;
+    category: string;
+    equip_slot?: string;
+    equipped_slot?: string;
+    quality: string;
+    condition: number;
+    max_condition: number;
+    bulk: number;
+    equipped_bulk: number;
+    forged_cycle: number;
+  }>;
+  equipment?: Partial<
+    Record<
+      "TOOL_SLOT" | "WEAPON_SLOT" | "RIG_SLOT",
+      {
+        item_id: string;
+        archetype_id: string;
+        label: string;
+        condition: number;
+        max_condition: number;
+        quality: string;
+      }
+    >
+  >;
+  material_lots?: Array<{
+    material: string;
+    grade: string;
+    amount: number;
+    origin_room_id?: string;
+  }>;
+  /** RFC-0140: open barter_stall listings in the current room. */
+  shop_listings?: Array<{
+    listing_id: string;
+    stall_id: string;
+    owner_id: string;
+    listing_kind: string;
+    offer_asset: unknown;
+    ask_asset: unknown;
+    fills_remaining: number;
+    max_fills: number;
+  }>;
+  /** RFC-0138/0144: open civic contracts in the current room. */
+  open_contracts?: Array<{
+    contract_id: string;
+    org_id: string;
+    room_id: string;
+    kind: string;
+    target_entity_id?: string;
+    target_material?: string;
+    target_item_archetype?: string;
+    target_count?: number;
+    reward_resource: string;
+    reward_amount: number;
+    expires_cycle: number;
+  }>;
+  /** RFC-0142: deterministic provenance of non-baseline unlocked affordances. */
+  unlocked_affordances?: Array<{ operation: string; unlocked_by: string }>;
   /** GC3-S0 self-only trade-memory lines. Never put on WATCH or players_here. */
   social_memory_lines?: string[];
   /** GC9-S0 site custom lines for the current room. Never put on WATCH. */
@@ -389,19 +470,18 @@ export interface Observation {
     cannot: string[];
     suggested_cmds: string[];
     line: string;
+    local_clearing_tape?: Array<{
+      cycle: number;
+      room_id: string;
+      stall_id: string;
+      listing_kind: string;
+      offer_summary: string;
+      ask_summary: string;
+    }>;
   }>;
 }
 
 export type { ActionSignal, SignalGrounding } from "./signal";
-
-/** P3: Lightweight per-agent belief state (expectations, policy prefs). */
-export interface BeliefState {
-  expected_regen?: number;
-  org_threshold?: number;
-  preferred_actions?: string[];
-  counterparty_reliability?: Record<string, number>;
-  signaling_style?: "grounded-first" | "compact" | "verbose";
-}
 
 /** P3: Heterogeneous agent role profiles (production bias, risk). */
 export type AgentRole = "salvager" | "trader" | "archivist" | "maintainer" | "generalist";

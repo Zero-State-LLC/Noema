@@ -4,10 +4,15 @@
  */
 
 import { isHiddenRoom } from "./construction";
-import { isPresentNow, type PresencePlayer } from "./ops";
+import { ensureCulture, siteMarks, traditionStatus, type CultureState, type TraditionStatus } from "./culture";
+import { isPresentNow, isPublicActivityPlayer, type PresencePlayer } from "./ops";
 import { publicTitleLine, type PracticeState } from "./practice";
 import { publicFocusLine, type FocusState } from "./focus";
 import { watchPublicDescriptorLines, type SocialEvent } from "./social-memory";
+import { pressureBand, scarBand } from "./watch-map";
+import { roomMarketBand, type BarterStallState } from "./shops";
+import { roomCrimeBand, type CrimeDetectionRecord, type CrimeResidue } from "./crime";
+import { equippedCategoriesForWatch, type PortableItem } from "./items";
 import {
   glyphForEntity,
   glyphForExit,
@@ -41,6 +46,26 @@ export type WatchEvent = {
   actor_label?: string;
   /** §4.A.1 / Gate D C5: server-derived public consequence; omitted when unprovable. */
   consequence?: string;
+  /** RFC-0134: lowercase canonical presentation verb token. */
+  verb?: string;
+  /** RFC-0134: public entity label resolved strictly from publicEntities (never raw entity_id). */
+  target_label?: string;
+};
+
+export type WatchRoomActivityKind = "deed" | "speech" | "posture";
+
+export type WatchRoomActivity = {
+  sequence: number;
+  cycle: number;
+  occurred_at?: number;
+  tier: WatchTier;
+  verb: string;
+  actor_label?: string;
+  target_label?: string;
+  listener_label?: string;
+  line: string;
+  speech?: string;
+  kind: WatchRoomActivityKind;
 };
 
 export type WatchSourceEvent = {
@@ -772,6 +797,169 @@ function publicPlayerLabel(p: WatchPlayerIn, rooms?: Iterable<OccupantRoomRef>):
   return publicOccupantLabel(p, rooms);
 }
 
+const INTERNAL_ID_RE = /\b(?:player|room|entity|ctrl|event|controller|device|org|sess)\.[a-z0-9._-]+/i;
+const RESERVED_SYSTEM_PLAYER_RE = /^player\.(?:reach-maint|tester|system-)/i;
+
+export function containsInternalId(text: string | undefined | null): boolean {
+  if (!text) return false;
+  return INTERNAL_ID_RE.test(text);
+}
+
+function sanitizePublicLabel(raw: string | undefined | null): string | undefined {
+  const cleaned = String(raw || "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned || containsInternalId(cleaned)) return undefined;
+  return cleaned.slice(0, 64);
+}
+
+function sanitizePublicSpeech(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const cleaned = raw
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned || containsInternalId(cleaned)) return undefined;
+  return cleaned.slice(0, 180);
+}
+
+export function verbForEvent(ev: WatchSourceEvent, projectionId?: string | null): string {
+  const eventType = String(ev.event_type || "").toUpperCase();
+  const payload = ev.payload || {};
+  const op = String(payload.operation || "").toUpperCase();
+  switch (eventType) {
+    case "MOVE":
+    case "AGENT_ENTERED_WORLD":
+    case "AGENT_LEFT_WORLD":
+      return "move";
+    case "LOOK":
+    case "OBSERVE":
+    case "OBSERVATION_GENERATED":
+      return "look";
+    case "INSPECT":
+    case "DISCOVERY":
+      return "inspect";
+    case "WAIT":
+      return "wait";
+    case "MESSAGE":
+    case "MESSAGE_DELIVERED":
+      return "message";
+    case "TRADE_PROPOSED":
+    case "TRADE_ACCEPTED":
+    case "TRADE_REJECTED":
+    case "TRADE_CANCELLED":
+    case "MARKET_SHIFT":
+    case "AGREEMENT_FORMED":
+    case "AGREEMENT_BROKEN":
+      return "trade";
+    case "CONTEST_DECLARED":
+    case "CONTEST_RESOLVED":
+      return "contest";
+    case "ORG_CREATE":
+    case "ORG_MEMBER_ADD":
+    case "ORG_MEMBER_REMOVE":
+    case "ORG_RESPONSE":
+    case "ACCESS_CHANGED":
+      return "org";
+    case "INFRASTRUCTURE_DISRUPTED":
+    case "COMMUNICATION_DISRUPTED":
+    case "SHORTAGE":
+    case "WORLD_PRESSURE":
+    case "FRONTIER_PRESSURE":
+    case "CRIME_DETECTED":
+      return "disruption";
+    case "RESOURCE_TRANSFER": {
+      if (
+        (typeof payload.transfer_id === "string" && payload.transfer_id.startsWith("supply.")) ||
+        payload.kind === "supply" ||
+        op === "SUPPLY" ||
+        op === "COMMIT_SUPPLY"
+      ) {
+        return "commit_supply";
+      }
+      if (projectionIdForEvent("RESOURCE_TRANSFER", payload) === "harvest") return "harvest";
+      if (typeof payload.trade_id === "string" && payload.trade_id) return "trade";
+      return "production";
+    }
+    case "ENTITY_CREATE":
+      return "build";
+    case "ENTITY_DESTROY":
+      return "abandon";
+    case "ENTITY_UPDATE": {
+      if (isRepairUpdate(ev)) return "repair";
+      if (op === "RESTORE") return "restore";
+      if (op === "VEST") return "vest";
+      if (op === "PROMOTE") return "promote";
+      if (op === "REPURPOSE") return "repurpose";
+      if (op === "ABANDON" || payload.unclaimed === true) return "abandon";
+      if (op === "CONSTRUCT" || op === "BUILD" || payload.in_progress === true) return "build";
+      if (op === "PRODUCTION") return "production";
+      if (op === "HARVEST") return "harvest";
+      if (
+        payload.band === "failed" ||
+        payload.status === "failed" ||
+        projectionId === "infrastructure" ||
+        projectionId === "infrastructure_disrupted"
+      ) {
+        return "disruption";
+      }
+      return "production";
+    }
+    default: {
+      if (projectionId === "agent_move") return "move";
+      if (projectionId === "harvest") return "harvest";
+      if (projectionId === "trade" || projectionId === "market_shift" || projectionId === "agreement_formed" || projectionId === "agreement_broken") return "trade";
+      if (projectionId === "organization" || projectionId === "organization_response") return "org";
+      if (projectionId === "contest_declared" || projectionId === "contest_resolved") return "contest";
+      if (projectionId === "message_notice" || projectionId === "conflicting_reports") return "message";
+      if (
+        projectionId === "infrastructure" ||
+        projectionId === "infrastructure_disrupted" ||
+        projectionId === "communication_disrupted" ||
+        projectionId === "shortage" ||
+        projectionId === "world_pressure" ||
+        projectionId === "frontier_pressure" ||
+        projectionId === "crime_detected"
+      ) {
+        return "disruption";
+      }
+      return "production";
+    }
+  }
+}
+
+function resolvePublicTargetLabel(
+  ev: WatchSourceEvent,
+  publicRooms: Record<string, WatchRoomIn>,
+  publicRoomId?: string,
+): string | undefined {
+  const payload = ev.payload || {};
+  const scopeId = entityScopeId(payload);
+  if (scopeId) {
+    const home = entityHome(scopeId, publicRooms);
+    if (home) return sanitizePublicLabel(home.label);
+    return undefined;
+  }
+  if (typeof payload.target_entity_id === "string" && payload.target_entity_id) {
+    const home = entityHome(payload.target_entity_id, publicRooms);
+    if (home) return sanitizePublicLabel(home.label);
+    return undefined;
+  }
+  const candidate =
+    (typeof payload.target_label === "string" && payload.target_label.trim()) ||
+    (typeof payload.label === "string" && payload.label.trim()) ||
+    "";
+  if (candidate && publicRoomId && publicRooms[publicRoomId]) {
+    const needle = candidate.toLowerCase();
+    const hit = (publicRooms[publicRoomId].entities || []).find(
+      (e) => e.hidden !== true && String(e.label || "").trim().toLowerCase() === needle,
+    );
+    if (hit) return sanitizePublicLabel(hit.label);
+  }
+  return undefined;
+}
+
 function sourceToWatchEvent(
   ev: WatchSourceEvent,
   publicRooms: Record<string, WatchRoomIn>,
@@ -815,6 +1003,9 @@ function sourceToWatchEvent(
         ? publicOccupantLabel({ handle: typeof ev.payload?.last_repair_handle === "string" ? ev.payload.last_repair_handle : "" }, roomRefs)
         : null);
   const consequence = consequenceForEvent(located, publicRooms);
+  const verb = verbForEvent(located, projectionId);
+  // RFC-0132 pins RESTORE/VEST/PROMOTE recent_events items free of entity labels/class names.
+  const targetLabel = rfc0132Act ? undefined : resolvePublicTargetLabel(located, publicRooms, publicRoomId);
   return {
     sequence: ev.sequence,
     cycle: ev.cycle ?? 0,
@@ -826,6 +1017,8 @@ function sourceToWatchEvent(
     occurred_at: typeof ev.at === "number" ? ev.at : undefined,
     ...(actor ? { actor_label: actor } : {}),
     ...(consequence ? { consequence } : {}),
+    ...(verb ? { verb } : {}),
+    ...(targetLabel ? { target_label: targetLabel } : {}),
   };
 }
 
@@ -895,6 +1088,636 @@ function pulseToWatchEvent(
   };
 }
 
+function hasHiddenRoomReference(
+  payload: Record<string, unknown> | undefined,
+  publicRooms: Record<string, WatchRoomIn>,
+): boolean {
+  const direct = payloadRoomId(payload);
+  if (direct && !publicRooms[direct] && direct.startsWith("room.")) return true;
+  const named = typeof payload?.room_name === "string" ? payload.room_name.trim() : "";
+  if (named && !(direct && publicRooms[direct]) && !publicRoomMatchingName(named, publicRooms)) {
+    return true;
+  }
+  return false;
+}
+
+type MessageMeta = {
+  sender_id?: string;
+  recipient_id?: string;
+  text?: string;
+};
+
+type RoomActivityEntry = {
+  room_id: string;
+  message_id?: string;
+  item: WatchRoomActivity;
+};
+
+function buildRoomActivityMap(
+  events: WatchSourceEvent[],
+  publicRooms: Record<string, WatchRoomIn>,
+  allPlayers: WatchPlayerIn[],
+  livePlayers: WatchPlayerIn[],
+): Map<string, WatchRoomActivity[]> {
+  const roomRefs = Object.values(publicRooms);
+  const playerById = new Map<string, WatchPlayerIn>();
+  const playerByHandle = new Map<string, WatchPlayerIn>();
+  for (const p of allPlayers) {
+    if (p.player_id) playerById.set(p.player_id, p);
+    const h = String(p.handle || "").trim().toLowerCase();
+    if (h) playerByHandle.set(h, p);
+  }
+
+  const resolvePlayer = (id?: string, handle?: string): WatchPlayerIn | undefined => {
+    if (id && playerById.has(id)) return playerById.get(id);
+    const h = String(handle || "").trim().toLowerCase();
+    if (h && playerByHandle.has(h)) return playerByHandle.get(h);
+    return undefined;
+  };
+
+  const isSenderResident = (ev: WatchSourceEvent, senderId?: string, senderPlayer?: WatchPlayerIn): boolean => {
+    if (senderPlayer) return isPublicActivityPlayer(senderPlayer.player_id, senderPlayer);
+    const raw = String(ev.handle || senderId || "").replace(/^player\./i, "");
+    return /^reach-maint/i.test(raw);
+  };
+
+  const isRecipientResident = (recId?: string, recHandle?: string): boolean => {
+    const rec = resolvePlayer(recId, recHandle);
+    if (!rec) return false;
+    return isPublicActivityPlayer(rec.player_id, rec);
+  };
+
+  // Merge MESSAGE / MESSAGE_DELIVERED metadata sharing the same message_id.
+  const messageById = new Map<string, MessageMeta>();
+  for (const ev of events) {
+    const t = String(ev.event_type || "").toUpperCase();
+    if (t !== "MESSAGE" && t !== "MESSAGE_DELIVERED") continue;
+    const p = ev.payload || {};
+    const mid = typeof p.message_id === "string" && p.message_id ? p.message_id : undefined;
+    if (!mid) continue;
+    const cur = messageById.get(mid) || {};
+    if (!cur.sender_id) {
+      cur.sender_id = (typeof p.sender_id === "string" && p.sender_id) || ev.player_id;
+    }
+    if (!cur.recipient_id) {
+      cur.recipient_id =
+        (typeof p.to_player_id === "string" && p.to_player_id) ||
+        (typeof p.recipient_id === "string" && p.recipient_id) ||
+        undefined;
+    }
+    if (!cur.text) {
+      const raw = p.text ?? p.body ?? p.message;
+      if (typeof raw === "string") cur.text = raw;
+    }
+    messageById.set(mid, cur);
+  }
+
+  const resolvePublicRoomForEvent = (
+    ev: WatchSourceEvent,
+    fallbackPlayer?: WatchPlayerIn,
+  ): string | undefined => {
+    const payload = ev.payload || {};
+    if (hasHiddenRoomReference(payload, publicRooms)) return undefined;
+    const direct = payloadRoomId(payload);
+    if (direct && publicRooms[direct]) return direct;
+    const named = typeof payload.room_name === "string" ? payload.room_name : undefined;
+    if (named && named.trim()) {
+      const hit = publicRoomMatchingName(named, publicRooms);
+      if (hit?.room_id && publicRooms[hit.room_id]) return hit.room_id;
+    }
+    const scopeId =
+      entityScopeId(payload) ||
+      (typeof payload.target_entity_id === "string" ? payload.target_entity_id : undefined);
+    if (scopeId) {
+      const home = entityHome(scopeId, publicRooms);
+      return home?.room.room_id;
+    }
+    if (fallbackPlayer?.room_id && publicRooms[fallbackPlayer.room_id]) {
+      return fallbackPlayer.room_id;
+    }
+    return undefined;
+  };
+
+  const isSafeActivity = (item: WatchRoomActivity): boolean => {
+    if (!item.line || containsInternalId(item.line)) return false;
+    if (item.target_label && containsInternalId(item.target_label)) return false;
+    if (item.actor_label && containsInternalId(item.actor_label)) return false;
+    if (item.listener_label && containsInternalId(item.listener_label)) return false;
+    if (item.speech && containsInternalId(item.speech)) return false;
+    return true;
+  };
+
+  const rawEntries: RoomActivityEntry[] = [];
+
+  for (const ev of events) {
+    const eventType = String(ev.event_type || "").toUpperCase();
+    const payload = ev.payload || {};
+    const op = String(payload.operation || "").toUpperCase();
+    const occurredAt = typeof ev.at === "number" ? ev.at : undefined;
+    const cycle = ev.cycle ?? 0;
+
+    // Hidden room / hidden entity gate applies universally, even for resident agents.
+    if (hasHiddenRoomReference(payload, publicRooms)) continue;
+    const scopeId =
+      entityScopeId(payload) ||
+      (typeof payload.target_entity_id === "string" ? payload.target_entity_id : undefined);
+    if (scopeId && !entityHome(scopeId, publicRooms)) continue;
+
+    const senderId = (typeof payload.sender_id === "string" && payload.sender_id) || ev.player_id;
+    const senderPlayer = resolvePlayer(senderId, ev.handle);
+    const senderResident = isSenderResident(ev, senderId, senderPlayer);
+
+    // 1. MESSAGE / MESSAGE_DELIVERED (resident-to-resident or resident room broadcast speech).
+    if (eventType === "MESSAGE" || eventType === "MESSAGE_DELIVERED") {
+      const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
+      if (!roomId || !publicRooms[roomId]) continue;
+      const mid = typeof payload.message_id === "string" && payload.message_id ? payload.message_id : undefined;
+      const merged = mid ? messageById.get(mid) : undefined;
+      const effSenderId = (typeof payload.sender_id === "string" && payload.sender_id) || merged?.sender_id || ev.player_id;
+      const effSenderPlayer = resolvePlayer(effSenderId, ev.handle);
+      const effSenderResident = isSenderResident(ev, effSenderId, effSenderPlayer);
+
+      const recipients: Array<{ id?: string; handle?: string }> = [];
+      if (Array.isArray(payload.recipient_ids) && payload.recipient_ids.length > 0) {
+        for (const r of payload.recipient_ids) {
+          if (typeof r === "string" && r.trim()) recipients.push({ id: r.trim() });
+        }
+      } else {
+        const recId =
+          (typeof payload.to_player_id === "string" && payload.to_player_id.trim()) ||
+          (typeof payload.recipient_id === "string" && payload.recipient_id.trim()) ||
+          merged?.recipient_id;
+        const recHandle =
+          (typeof payload.to_handle === "string" && payload.to_handle.trim()) ||
+          (typeof payload.listener_label === "string" && payload.listener_label.trim()) ||
+          undefined;
+        if (recId || recHandle) recipients.push({ id: recId, handle: recHandle });
+      }
+
+      const surface = String(payload.surface || "").toUpperCase();
+      const isRoomBroadcast =
+        recipients.length === 0 &&
+        surface !== "CHANNEL" &&
+        (payload.broadcast === true ||
+          payload.scope === "room" ||
+          payload.channel === "room" ||
+          surface === "SHOUT" ||
+          surface === "BOARD" ||
+          surface === "NOTICE" ||
+          surface === "TRADE_NOTICE" ||
+          surface === "ROOM" ||
+          surface === "ROOM_BROADCAST");
+
+      const allRecipientsResident =
+        recipients.length > 0 && recipients.every((r) => isRecipientResident(r.id, r.handle));
+      const allowSpeech = effSenderResident && (isRoomBroadcast || allRecipientsResident);
+
+      if (allowSpeech) {
+        const actorLabel = publicOccupantLabel(
+          { handle: effSenderPlayer?.handle || ev.handle, player_id: effSenderId },
+          roomRefs,
+        );
+        if (!actorLabel) continue;
+        const firstRec = recipients[0] ? resolvePlayer(recipients[0].id, recipients[0].handle) : undefined;
+        const listenerLabel = firstRec
+          ? publicOccupantLabel({ handle: firstRec.handle, player_id: firstRec.player_id }, roomRefs) || undefined
+          : undefined;
+        const rawText = payload.text ?? payload.body ?? payload.message ?? merged?.text;
+        const speech = sanitizePublicSpeech(rawText);
+        const site = publicRooms[roomId].name;
+        const line = speech
+          ? (listenerLabel ? `${actorLabel} to ${listenerLabel}: ${speech}` : `${actorLabel}: ${speech}`)
+          : (listenerLabel ? `${actorLabel} spoke with ${listenerLabel}` : `${actorLabel} spoke at ${site}`);
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NORMAL",
+          verb: "message",
+          actor_label: actorLabel,
+          ...(listenerLabel ? { listener_label: listenerLabel } : {}),
+          line,
+          ...(speech ? { speech } : {}),
+          kind: "speech",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, message_id: mid, item });
+        continue;
+      }
+
+      // Fail-closed privacy boundary for external DMs and resident<->external DMs:
+      // MESSAGE stays completely silent; MESSAGE_DELIVERED only keeps the redacted deed notice.
+      if (eventType === "MESSAGE") continue;
+      const we = sourceToWatchEvent(ev, publicRooms, livePlayers);
+      if (we && we.room_id && publicRooms[we.room_id]) {
+        const item: WatchRoomActivity = {
+          sequence: we.sequence,
+          cycle: we.cycle,
+          ...(we.occurred_at !== undefined ? { occurred_at: we.occurred_at } : {}),
+          tier: we.tier,
+          verb: "message",
+          ...(we.actor_label ? { actor_label: we.actor_label } : {}),
+          line: we.line,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: we.room_id, message_id: mid, item });
+      }
+      continue;
+    }
+
+    // 2. Resident posture acts: LOOK / OBSERVE / INSPECT / WAIT (never on global recent_events).
+    if (eventType === "LOOK" || eventType === "OBSERVE" || eventType === "INSPECT" || eventType === "WAIT") {
+      if (!senderResident) continue;
+      const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
+      if (!roomId || !publicRooms[roomId]) continue;
+      const actorLabel = publicOccupantLabel(
+        { handle: senderPlayer?.handle || ev.handle, player_id: senderId },
+        roomRefs,
+      );
+      if (!actorLabel) continue;
+      const roomTitle = publicRooms[roomId].name;
+      const targetLabel = eventType === "INSPECT" ? resolvePublicTargetLabel(ev, publicRooms, roomId) : undefined;
+      const verb = eventType === "INSPECT" ? "inspect" : eventType === "WAIT" ? "wait" : "look";
+      const line =
+        eventType === "INSPECT"
+          ? (targetLabel ? `${actorLabel} inspected ${targetLabel}` : `${actorLabel} surveyed ${roomTitle}`)
+          : eventType === "WAIT"
+            ? `${actorLabel} held watch in ${roomTitle}`
+            : `${actorLabel} surveyed ${roomTitle}`;
+      const item: WatchRoomActivity = {
+        sequence: ev.sequence,
+        cycle,
+        ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+        tier: "NORMAL",
+        verb,
+        actor_label: actorLabel,
+        ...(targetLabel ? { target_label: targetLabel } : {}),
+        line,
+        kind: "posture",
+      };
+      if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+      continue;
+    }
+
+    // 3. Public-room work lifecycle acts (ENTITY_CREATE, in_progress construction/repair, REPURPOSE, ABANDON).
+    if (eventType === "ENTITY_CREATE") {
+      if (op === "COMMEMORATE") {
+        const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
+        if (!roomId || !publicRooms[roomId]) continue;
+        const targetLabel = sanitizePublicLabel(typeof payload.label === "string" ? payload.label : undefined);
+        const actorLabel = publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined;
+        const site = publicRooms[roomId].name;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NOTABLE",
+          verb: "commemorate",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          ...(targetLabel ? { target_label: targetLabel } : {}),
+          line: actorLabel && targetLabel
+            ? `${actorLabel} raised ${targetLabel} at ${site}`
+            : `A memorial was raised at ${site}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+        continue;
+      }
+      if (String(payload.entity_type || "").toUpperCase() === "OBJECT") {
+        const props = (payload.properties && typeof payload.properties === "object"
+          ? payload.properties
+          : {}) as Record<string, unknown>;
+        const originRoom = typeof props.origin_room_id === "string" ? props.origin_room_id : undefined;
+        const roomId = originRoom && publicRooms[originRoom] ? originRoom : resolvePublicRoomForEvent(ev, senderPlayer);
+        if (!roomId || !publicRooms[roomId]) continue;
+        const actorLabel = publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined;
+        const site = publicRooms[roomId].name;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NORMAL",
+          verb: "craft",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          line: actorLabel ? `${actorLabel} fabricated gear at ${site}` : `Equipment fabricated at ${site}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+        continue;
+      }
+      const home = entityHome(scopeId, publicRooms);
+      if (!home) continue;
+      const targetLabel = sanitizePublicLabel(home.label);
+      const actorLabel = publicOccupantLabel(ev, roomRefs) || undefined;
+      const item: WatchRoomActivity = {
+        sequence: ev.sequence,
+        cycle,
+        ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+        tier: "NORMAL",
+        verb: "build",
+        ...(actorLabel ? { actor_label: actorLabel } : {}),
+        ...(targetLabel ? { target_label: targetLabel } : {}),
+        line: targetLabel
+          ? `Work began on ${targetLabel} at ${home.room.name}`
+          : `Construction underway at ${home.room.name}`,
+        kind: "deed",
+      };
+      if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
+      continue;
+    }
+
+    if (eventType === "CRIME_DETECTED") {
+      if (String(payload.visibility || "").toUpperCase() !== "PUBLIC") continue;
+      const roomId = typeof payload.room_id === "string" && publicRooms[payload.room_id] ? payload.room_id : undefined;
+      if (!roomId) continue;
+      const site = publicRooms[roomId].name;
+      const method = String(payload.detection_method || "").toUpperCase();
+      const verb = method === "INVESTIGATION" ? "investigate" : "sanction";
+      const item: WatchRoomActivity = {
+        sequence: ev.sequence,
+        cycle,
+        ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+        tier: "NOTABLE",
+        verb,
+        line:
+          verb === "investigate"
+            ? `Forensic inquiry logged an incident at ${site}`
+            : `Public sensors flagged an incident at ${site}`,
+        kind: "deed",
+      };
+      if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+      continue;
+    }
+
+    if (eventType === "ENTITY_UPDATE") {
+      // Keep closed RFC-0132/RFC-0126 private-tie / hidden-topology / duplicate operations closed.
+      if (
+        op === "SHARE" ||
+        op === "CONNECT" ||
+        op === "CONSENT" ||
+        op === "CONSENSUS" ||
+        op === "RULE" ||
+        op === "HARVEST" ||
+        op === "ATTEST" ||
+        op === "INFORMATION_CONTEST" ||
+        op === "PRESENCE_PRESSURE"
+      ) {
+        continue;
+      }
+      if (payload.in_progress === true || op === "CONSTRUCT" || op === "BUILD") {
+        const home = entityHome(scopeId, publicRooms);
+        if (!home) continue;
+        const targetLabel = sanitizePublicLabel(home.label);
+        const actorLabel = publicOccupantLabel(ev, roomRefs) || undefined;
+        const repairing = isRepairUpdate(ev);
+        const verb = repairing ? "repair" : "build";
+        const line = repairing
+          ? (actorLabel && targetLabel
+            ? `${actorLabel} worked on ${targetLabel}`
+            : `Repair underway at ${home.room.name}`)
+          : (targetLabel
+            ? `Work began on ${targetLabel} at ${home.room.name}`
+            : `Construction underway at ${home.room.name}`);
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NORMAL",
+          verb,
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          ...(targetLabel ? { target_label: targetLabel } : {}),
+          line,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
+        continue;
+      }
+      if (op === "RECHARGE") {
+        const home = entityHome(scopeId, publicRooms);
+        if (!home) continue;
+        const targetLabel = sanitizePublicLabel(home.label);
+        const actorLabel = senderResident
+          ? (publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined)
+          : undefined;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NORMAL",
+          verb: "recharge",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          ...(targetLabel ? { target_label: targetLabel } : {}),
+          line: actorLabel && targetLabel
+            ? `${actorLabel} recharged at ${targetLabel}`
+            : `Power was drawn at ${home.room.name}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
+        continue;
+      }
+      if (op === "REMEDIATE") {
+        const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
+        if (!roomId || !publicRooms[roomId]) continue;
+        const actorLabel = senderResident
+          ? (publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined)
+          : undefined;
+        const site = publicRooms[roomId].name;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NOTABLE",
+          verb: "remediate",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          line: actorLabel ? `${actorLabel} remediated a scar at ${site}` : `Ecological remediation occurred at ${site}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+        continue;
+      }
+      if (op === "BUILD_CONTRIBUTE") {
+        const home = entityHome(scopeId, publicRooms);
+        if (!home) continue;
+        const targetLabel = sanitizePublicLabel(home.label);
+        const actorLabel = publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NORMAL",
+          verb: "build",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          ...(targetLabel ? { target_label: targetLabel } : {}),
+          line: actorLabel && targetLabel
+            ? `${actorLabel} contributed to ${targetLabel} at ${home.room.name}`
+            : `Collaborative build progressed at ${home.room.name}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
+        continue;
+      }
+      if (op === "REPURPOSE") {
+        const home = entityHome(scopeId, publicRooms);
+        if (!home) continue;
+        const targetLabel = sanitizePublicLabel(home.label);
+        const actorLabel = publicOccupantLabel(ev, roomRefs) || undefined;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NORMAL",
+          verb: "repurpose",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          ...(targetLabel ? { target_label: targetLabel } : {}),
+          line: `A public work was repurposed at ${home.room.name}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
+        continue;
+      }
+      if (op === "ABANDON" || payload.unclaimed === true) {
+        const home = entityHome(scopeId, publicRooms);
+        if (!home) continue;
+        const targetLabel = sanitizePublicLabel(home.label);
+        const actorLabel = publicOccupantLabel(ev, roomRefs) || undefined;
+        const item: WatchRoomActivity = {
+          sequence: ev.sequence,
+          cycle,
+          ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+          tier: "NORMAL",
+          verb: "abandon",
+          ...(actorLabel ? { actor_label: actorLabel } : {}),
+          ...(targetLabel ? { target_label: targetLabel } : {}),
+          line: `A public work was abandoned at ${home.room.name}`,
+          kind: "deed",
+        };
+        if (isSafeActivity(item)) rawEntries.push({ room_id: home.room.room_id, item });
+        continue;
+      }
+    }
+
+    // RFC-0138 WS06 civic contract fulfillment.
+    if (eventType === "RESOURCE_TRANSFER" && payload.kind === "contract") {
+      const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
+      if (!roomId || !publicRooms[roomId]) continue;
+      const actorLabel = publicOccupantLabel({ handle: senderPlayer?.handle || ev.handle, player_id: senderId }, roomRefs) || undefined;
+      const site = publicRooms[roomId].name;
+      const item: WatchRoomActivity = {
+        sequence: ev.sequence,
+        cycle,
+        ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+        tier: "NOTABLE",
+        verb: "contract",
+        ...(actorLabel ? { actor_label: actorLabel } : {}),
+        line: actorLabel ? `${actorLabel} fulfilled a civic contract at ${site}` : `A civic contract was fulfilled at ${site}`,
+        kind: "deed",
+      };
+      if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+      continue;
+    }
+
+    // Resident COMMIT_SUPPLY / supply.* transfer.
+    if (
+      eventType === "RESOURCE_TRANSFER" &&
+      senderResident &&
+      ((typeof payload.transfer_id === "string" && payload.transfer_id.startsWith("supply.")) ||
+        payload.kind === "supply" ||
+        op === "SUPPLY" ||
+        op === "COMMIT_SUPPLY")
+    ) {
+      const roomId = resolvePublicRoomForEvent(ev, senderPlayer);
+      if (!roomId || !publicRooms[roomId]) continue;
+      const actorLabel = publicOccupantLabel(
+        { handle: senderPlayer?.handle || ev.handle, player_id: senderId },
+        roomRefs,
+      ) || undefined;
+      const targetLabel = resolvePublicTargetLabel(ev, publicRooms, roomId);
+      const site = publicRooms[roomId].name;
+      const item: WatchRoomActivity = {
+        sequence: ev.sequence,
+        cycle,
+        ...(occurredAt !== undefined ? { occurred_at: occurredAt } : {}),
+        tier: "NORMAL",
+        verb: "commit_supply",
+        ...(actorLabel ? { actor_label: actorLabel } : {}),
+        ...(targetLabel ? { target_label: targetLabel } : {}),
+        line: actorLabel ? `${actorLabel} committed supplies at ${site}` : `Supplies committed at ${site}`,
+        kind: "deed",
+      };
+      if (isSafeActivity(item)) rawEntries.push({ room_id: roomId, item });
+      continue;
+    }
+
+    // 4. Every standard public WatchEvent located in a public room.
+    const we = sourceToWatchEvent(ev, publicRooms, livePlayers);
+    if (!we) continue;
+    const locatedRoomId =
+      (we.room_id && publicRooms[we.room_id] ? we.room_id : undefined) ||
+      (!scopeId && senderResident && senderPlayer?.room_id && publicRooms[senderPlayer.room_id]
+        ? senderPlayer.room_id
+        : undefined);
+    if (!locatedRoomId) continue;
+    const targetLabel = we.target_label || resolvePublicTargetLabel(ev, publicRooms, locatedRoomId);
+    const item: WatchRoomActivity = {
+      sequence: we.sequence,
+      cycle: we.cycle,
+      ...(we.occurred_at !== undefined ? { occurred_at: we.occurred_at } : {}),
+      tier: we.tier,
+      verb: we.verb || verbForEvent(ev, we.projection_id),
+      ...(we.actor_label ? { actor_label: we.actor_label } : {}),
+      ...(targetLabel ? { target_label: targetLabel } : {}),
+      line: we.line,
+      kind: "deed",
+    };
+    if (isSafeActivity(item)) rawEntries.push({ room_id: locatedRoomId, item });
+  }
+
+  // Deduplicate MESSAGE + MESSAGE_DELIVERED sharing the same message_id (prefer speech / richer entry).
+  type OrderedRoomActivityEntry = RoomActivityEntry & { order: number };
+  const byRoom = new Map<string, OrderedRoomActivityEntry[]>();
+  for (let idx = 0; idx < rawEntries.length; idx++) {
+    const entry: OrderedRoomActivityEntry = { ...rawEntries[idx], order: idx };
+    const list = byRoom.get(entry.room_id) || [];
+    if (entry.message_id) {
+      const prevIdx = list.findIndex((x) => x.message_id === entry.message_id);
+      if (prevIdx >= 0) {
+        const prev = list[prevIdx];
+        const preferNew =
+          (entry.item.kind === "speech" && prev.item.kind !== "speech") ||
+          (entry.item.kind === prev.item.kind &&
+            (Boolean(entry.item.speech) && !prev.item.speech
+              ? true
+              : entry.item.sequence > prev.item.sequence ||
+                (entry.item.sequence === prev.item.sequence && entry.order > prev.order)));
+        if (preferNew) list[prevIdx] = entry;
+        continue;
+      }
+    }
+    list.push(entry);
+    byRoom.set(entry.room_id, list);
+  }
+
+  const out = new Map<string, WatchRoomActivity[]>();
+  for (const [roomId, list] of byRoom.entries()) {
+    const sorted = list
+      .slice()
+      .sort((a, b) => {
+        const sq = b.item.sequence - a.item.sequence;
+        if (sq) return sq;
+        const at = (b.item.occurred_at ?? -1) - (a.item.occurred_at ?? -1);
+        if (at) return at;
+        const ord = b.order - a.order;
+        if (ord) return ord;
+        const vb = a.item.verb.localeCompare(b.item.verb);
+        if (vb) return vb;
+        return a.item.line.localeCompare(b.item.line);
+      })
+      .map((x) => x.item)
+      .slice(0, 16);
+    if (sorted.length) out.set(roomId, sorted);
+  }
+  return out;
+}
+
 export function buildWatchLive(input: {
   world_id: string;
   cycle: number;
@@ -911,10 +1734,28 @@ export function buildWatchLive(input: {
   rumor?: LaterTraceRumor;
   organizations?: LaterTraceOrg[];
   // Raw records must pass the public visibility gate below.
-  reconstructions?: Array<{ fidelity?: number; controllers?: number; visibility?: string }>;
+  reconstructions?: Array<{
+    fidelity?: number;
+    controllers?: number;
+    visibility?: string;
+    subject_ref?: string;
+    claim?: string;
+    epistemic?: string;
+    author_id?: string;
+  }>;
   // Optional preprojected public values, never unfiltered reconstruction state.
   reconstruction_fidelity?: number;
   controllers?: number;
+  /** RFC-0136: band-redacted Deep Time & Culture inputs (filtered strictly to public rooms). */
+  scars?: Array<{ room_id?: string; strength: number; visibility: string; domain: string; fossilized?: boolean }>;
+  harvest_pressure?: Record<string, number>;
+  lore_attractors?: Array<{ room_id?: string; label: string; weight: number; basin: string }>;
+  culture?: CultureState | null;
+  /** RFC-0144 §5: band-redacted market, crime, and equipped-category inputs (public rooms only). */
+  stalls?: Record<string, BarterStallState>;
+  crime_residues?: CrimeResidue[];
+  crime_detections?: CrimeDetectionRecord[];
+  items?: Record<string, PortableItem>;
 }): Record<string, unknown> {
   const now = input.now ?? Date.now();
   const freshness = input.freshness || "live";
@@ -965,6 +1806,53 @@ export function buildWatchLive(input: {
   const reconstruction_fidelity = input.reconstruction_fidelity ?? publicReconstruction?.fidelity ?? 0;
   const controllers = input.controllers ?? publicReconstruction?.controllers ?? 1;
 
+  const roomActivityByRoom = buildRoomActivityMap(
+    input.events || [],
+    publicRooms,
+    input.players || [],
+    live,
+  );
+
+  const publicScarsByRoom = new Map<string, { strength: number; fossilized: boolean }>();
+  for (const s of input.scars || []) {
+    if (!s || s.visibility !== "public" || !s.room_id || !publicRooms[s.room_id]) continue;
+    if (!(s.strength >= 0.05)) continue;
+    const prev = publicScarsByRoom.get(s.room_id) || { strength: 0, fossilized: false };
+    publicScarsByRoom.set(s.room_id, {
+      strength: prev.strength + s.strength,
+      fossilized: prev.fossilized || s.fossilized === true,
+    });
+  }
+  const topLoreByRoom = new Map<string, { label: string; weight: number; state: "forming" | "crystallized" }>();
+  for (const a of input.lore_attractors || []) {
+    if (!a || !a.room_id || !publicRooms[a.room_id]) continue;
+    const label = sanitizePublicLabel(a.label);
+    if (!label) continue;
+    const state = String(a.basin || "").toLowerCase() === "crystallized" || a.weight >= 0.8 ? "crystallized" : "forming";
+    const prev = topLoreByRoom.get(a.room_id);
+    if (!prev || a.weight > prev.weight) {
+      topLoreByRoom.set(a.room_id, { label: label.slice(0, 48), weight: a.weight, state });
+    }
+  }
+  const cultureSnap = input.culture ? ensureCulture(input.culture) : null;
+  const publicCultureRecons = (input.reconstructions || [])
+    .filter((r) => r.visibility?.toUpperCase() === "PUBLIC" && r.subject_ref)
+    .map((r) => ({
+      subject_ref: String(r.subject_ref),
+      visibility: "PUBLIC",
+      claim: r.claim,
+      epistemic: r.epistemic,
+      author_id: r.author_id,
+    }));
+  const TRADITION_RANK: Record<TraditionStatus, number> = {
+    UNKNOWN: 0,
+    PRACTICING: 1,
+    DORMANT: 2,
+    CUSTOM: 3,
+    TRADITION: 4,
+    REVIVED: 5,
+  };
+
   const roomRefs = Object.values(publicRooms);
   const roomsOut = Object.values(publicRooms).map((r) => {
     const here = byRoom.get(r.room_id) || [];
@@ -993,7 +1881,8 @@ export function buildWatchLive(input: {
         }),
       }),
     );
-    const recentHere = candidates.some((ev) => ev.room_id === r.room_id);
+    const roomActivity = roomActivityByRoom.get(r.room_id) || [];
+    const recentHere = candidates.some((ev) => ev.room_id === r.room_id) || roomActivity.length > 0;
     const row: Record<string, unknown> = {
       room_id: r.room_id,
       name: r.name,
@@ -1014,6 +1903,7 @@ export function buildWatchLive(input: {
     };
     if (traces.length) row.traces = traces;
     if (labels.length) row.public_player_labels = labels;
+    if (roomActivity.length) row.room_activity = roomActivity;
     const titles = here
       .map((p) => publicTitleLine(publicPlayerLabel(p, roomRefs), p.practice, input.cycle, p.player_id))
       .filter((line): line is string => Boolean(line));
@@ -1022,6 +1912,59 @@ export function buildWatchLive(input: {
       .map((p) => publicFocusLine(publicPlayerLabel(p, roomRefs), p.focus, p.practice, input.cycle, p.player_id))
       .filter((line): line is string => Boolean(line));
     if (focuses.length) row.public_focus_lines = focuses;
+    // RFC-0136: band-redacted Deep Time & Culture per-room state (never raw scalars or hidden rooms).
+    const scarInfo = publicScarsByRoom.get(r.room_id);
+    const sBand = scarInfo ? scarBand(scarInfo.strength) : null;
+    if (sBand) {
+      row.scar_band = sBand;
+      if (scarInfo?.fossilized) row.scar_fossilized = true;
+    }
+    const pBand = pressureBand(input.harvest_pressure?.[r.room_id] || 0);
+    if (pBand) row.pressure_band = pBand;
+    const loreInfo = topLoreByRoom.get(r.room_id);
+    if (loreInfo) {
+      row.lore_state = loreInfo.state;
+      row.lore_label = loreInfo.label;
+    }
+    if (cultureSnap) {
+      let bestStatus: TraditionStatus = "UNKNOWN";
+      let inherited = false;
+      let schism = false;
+      for (const e of publicEntities) {
+        const site = cultureSnap.sites[e.entity_id];
+        if (!site) continue;
+        const forSite = publicCultureRecons.filter((rc) => rc.subject_ref === e.entity_id);
+        const st = traditionStatus(site, input.cycle, forSite);
+        if (TRADITION_RANK[st] > TRADITION_RANK[bestStatus]) bestStatus = st;
+        const marks = siteMarks(site, st, forSite);
+        if (marks.inherited) inherited = true;
+        if (marks.schism) schism = true;
+      }
+      if (bestStatus === "CUSTOM" || bestStatus === "TRADITION" || bestStatus === "DORMANT" || bestStatus === "REVIVED") {
+        row.tradition_status = bestStatus;
+        if (inherited) row.tradition_inherited = true;
+        if (schism) row.tradition_schism = true;
+      }
+    }
+    // RFC-0144 §5: strictly optional, band-redacted market/crime indicators & occupant equipment categories.
+    const mBand = roomMarketBand(
+      input.stalls,
+      publicEntities as Array<{ entity_id: string; infra_type?: string; condition?: number; in_progress?: boolean; scar?: boolean }>,
+    );
+    if (mBand) row.market_band = mBand;
+    const cBand = roomCrimeBand(r.room_id, input.crime_residues, input.crime_detections, input.cycle);
+    if (cBand) row.crime_band = cBand;
+    if (input.items && here.length) {
+      const occs = here
+        .map((p) => {
+          const label = publicPlayerLabel(p, roomRefs);
+          if (!label) return null;
+          const equipped_categories = equippedCategoriesForWatch(input.items, p.player_id);
+          return equipped_categories.length ? { label, equipped_categories } : null;
+        })
+        .filter((x): x is { label: string; equipped_categories: Array<"tool" | "weapon" | "rig"> } => Boolean(x));
+      if (occs.length) row.occupants = occs;
+    }
     return row;
   });
 
@@ -1050,20 +1993,42 @@ export function buildWatchLive(input: {
       latestActionByActor.set(ev.actor_label, ev);
     }
   }
+  const latestActivityByActor = new Map<string, WatchRoomActivity>();
+  for (const acts of roomActivityByRoom.values()) {
+    for (const act of acts) {
+      if (!act.actor_label) continue;
+      const prev = latestActivityByActor.get(act.actor_label);
+      if (!prev || act.sequence > prev.sequence) {
+        latestActivityByActor.set(act.actor_label, act);
+      }
+    }
+  }
   const agents = live.flatMap((p) => {
     if (!p.room_id || !publicRooms[p.room_id]) return [];
     const label = publicPlayerLabel(p, roomRefs);
     if (!label) return [];
     const rid = p.room_id;
+    const isPublic = isPublicActivityPlayer(p.player_id, p);
     const lastEv = latestActionByActor.get(label);
+    const lastAct = latestActivityByActor.get(label);
+    const useAct = isPublic && lastAct && (!lastEv || lastAct.sequence >= lastEv.sequence);
+    const lastVerb = useAct ? lastAct.verb : (lastEv?.verb || lastAct?.verb);
+    const lastTargetLabel = useAct
+      ? (lastAct.target_label || lastEv?.target_label)
+      : (lastEv?.target_label || lastAct?.target_label);
+    const equippedCats = input.items ? equippedCategoriesForWatch(input.items, p.player_id) : [];
     return [
       {
         label,
         room_id: rid,
         room_name: publicRooms[rid]?.name || rid,
-        last_action: lastEv?.line || null,
-        last_action_at: lastEv?.occurred_at ?? null,
+        last_action: useAct ? lastAct.line : (lastEv?.line || null),
+        last_action_at: useAct ? (lastAct.occurred_at ?? lastEv?.occurred_at ?? null) : (lastEv?.occurred_at ?? null),
         active: true,
+        public_activity: isPublic,
+        ...(lastVerb ? { last_verb: lastVerb } : {}),
+        ...(lastTargetLabel ? { last_target_label: lastTargetLabel } : {}),
+        ...(equippedCats.length ? { equipped_categories: equippedCats } : {}),
       },
     ];
   });
@@ -1134,6 +2099,9 @@ export function buildWatchNarrative(opts: {
     },
   };
 }
+
+/** Alias for buildWatchLive used by RFC-0134 Room View projection callers. */
+export const projectWatchLive = buildWatchLive;
 
 /** Causal edges require an explicit payload relation. Sequence adjacency is not a cause. */
 export function explicitWatchCause(payload?: Record<string, unknown> | null): string | null {

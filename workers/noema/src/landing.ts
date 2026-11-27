@@ -11,6 +11,7 @@ const DOOR_CSS = `
  * Left-weighted copy on the table still, one cyan control (Watch), live Now card at right.
  * design-system: site/design.md
  */
+body.hero-bleed{position:relative}
 body.hero-bleed .top{
   position:absolute;inset:0 0 auto 0;width:100%;flex-wrap:nowrap;
   padding:1.5rem var(--pad) 3rem;
@@ -37,7 +38,7 @@ body.hero-bleed .foot{
 }
 .hero-copy{
   position:relative;z-index:1;width:min(80rem,calc(100% - 2*var(--pad)));min-width:0;
-  margin:0 auto;padding:8rem 0 6rem;
+  margin:0 auto;padding:7.5rem 0 6.5rem;
   display:grid;grid-template-columns:minmax(0,1fr) minmax(18rem,23rem);gap:3rem 4rem;align-items:end;
 }
 /* #771: the copy sits on its own scrim so worst-case photo pixels keep text >= 4.5:1.
@@ -95,31 +96,43 @@ body.hero-bleed .foot{
 #play-continue[hidden]{display:none!important}
 .hero-quiet{margin:1.25rem 0 0}
 .home-now-card{
-  position:relative;min-width:0;margin:0;padding:1.25rem 1.25rem 1rem;
-  border:1px solid color-mix(in srgb,var(--ink) 14%,transparent);border-radius:var(--r-xl);
-  background:color-mix(in srgb,var(--panel) 92%,transparent);
-  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 6%,transparent),0 32px 64px -32px rgb(0 0 0/.75);
+  position:relative;min-width:0;margin:0;padding:1.35rem 1.35rem 1.1rem;
+  border:1px solid color-mix(in srgb,var(--ink) 18%,transparent);border-radius:var(--r-xl);
+  background:color-mix(in srgb,var(--panel) 86%,transparent);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 10%,transparent),0 32px 64px -28px rgb(0 0 0/.82);
+}
+body.is-low-noise .home-now-card{
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  background:var(--panel);border-color:var(--line);box-shadow:none;
 }
 /* Incoming signal (VISUAL-DESIGN.md §6): a cyan edge on arrival, then settle. Runs once. */
 .home-now-card[data-state=live]{animation:now-signal 1.6s var(--ease) 1 both}
 @keyframes now-signal{
-  0%{border-color:color-mix(in srgb,var(--ink) 14%,transparent)}
+  0%{border-color:color-mix(in srgb,var(--ink) 18%,transparent)}
   12%{border-color:var(--color-state-active)}
-  100%{border-color:color-mix(in srgb,var(--color-state-active) 34%,var(--line))}
+  100%{border-color:color-mix(in srgb,var(--color-state-active) 38%,var(--line))}
 }
 .now-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:0 0 1rem}
 .home-now-card .now-k{margin:0;color:var(--ink);font:600 .75rem/1rem var(--font-display);letter-spacing:.24em;text-transform:uppercase}
 .now-head .tag[hidden]{display:none}
 .home-now-row{margin:0}
-#home-now{display:block;white-space:pre-line;color:var(--muted);font:400 1rem/1.5rem var(--font-interface);transition:opacity .3s var(--ease)}
+#home-now{display:block;white-space:pre-line;color:var(--muted);font:400 .96875rem/1.55 var(--font-interface);transition:opacity .3s var(--ease)}
 #home-now::first-line{color:var(--ink);font-weight:500}
 .home-now-card[aria-busy=true] #home-now{opacity:.55}
 .home-now-card .modes-kicker{
-  margin:1.25rem 0 0;padding:1rem 0 0;border-top:1px solid var(--line);
+  margin:1.25rem 0 0;padding:.95rem 0 0;border-top:1px solid color-mix(in srgb,var(--ink) 12%,var(--line));
   color:var(--faint);font:600 .75rem/1rem var(--font-interface);letter-spacing:.14em;
 }
+@media(max-width:960px),(max-height:820px){
+  body.hero-bleed .foot{
+    position:relative;background:var(--void);border-top:1px solid var(--line);
+    padding:1.25rem var(--pad) 1.5rem;
+  }
+  .hero-copy{padding-bottom:3.5rem}
+}
 @media(max-width:960px){
-  .hero-copy{grid-template-columns:minmax(0,1fr);gap:2.5rem;padding-top:6rem}
+  .hero-copy{grid-template-columns:minmax(0,1fr);gap:2.5rem;padding-top:6.25rem;padding-bottom:3.5rem}
   .hero-copy::before{
     content:"";position:absolute;z-index:-1;inset:0 calc((100% - 100vw)/2) 0;
     background:linear-gradient(to bottom,color-mix(in srgb,var(--void) 86%,transparent) 0,color-mix(in srgb,var(--void) 92%,transparent) 100%);

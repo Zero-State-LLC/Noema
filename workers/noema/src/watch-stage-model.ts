@@ -17,8 +17,14 @@ import {
   type PhosphorTier,
 } from "./watch-phosphor";
 
-/** D5: the stage chunk stays at or under this gzip size. */
+/** D5: legacy combined stage chunk gzip budget (kept exported for compatibility). */
 export const STAGE_GZIP_BUDGET = 160 * 1024;
+/** D5 (amended): shared Three.js vendor chunk stays at or under 150 KiB gzip. */
+export const STAGE_VENDOR_GZIP_BUDGET = 150 * 1024;
+/** D5 (amended): World Overview chunk stays at or under 40 KiB gzip. */
+export const STAGE_OVERVIEW_GZIP_BUDGET = 40 * 1024;
+/** D5 (amended): Full-Screen Place View chunk stays at or under 120 KiB gzip. */
+export const STAGE_ROOM_GZIP_BUDGET = 120 * 1024;
 /** World units per Phosphor layout grid step. */
 export const STAGE_SPACING = 4;
 /** D4: orbit stays between 20° and 70° from vertical. */
