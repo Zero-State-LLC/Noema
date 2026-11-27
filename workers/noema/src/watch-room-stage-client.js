@@ -140,15 +140,16 @@ function makeSkyTexture() {
   return tex;
 }
 
-/** Soft volumetric light-shaft texture for brazier cones, furnace glow, and skylight beams. */
+/** Soft volumetric light-shaft texture tapered smoothly to 0 alpha at both ends (zero hard cylinder rim). */
 function makeShaftTexture() {
   const c = makeCanvas(64, 128);
   if (!c) return null;
   const { canvas, ctx2d } = c;
   const g = ctx2d.createLinearGradient(0, 0, 0, 128);
-  g.addColorStop(0, "rgba(255,255,255,0.68)");
-  g.addColorStop(0.35, "rgba(255,255,255,0.28)");
-  g.addColorStop(0.75, "rgba(255,255,255,0.07)");
+  g.addColorStop(0, "rgba(255,255,255,0)");
+  g.addColorStop(0.16, "rgba(255,255,255,0.28)");
+  g.addColorStop(0.45, "rgba(255,255,255,0.52)");
+  g.addColorStop(0.78, "rgba(255,255,255,0.22)");
   g.addColorStop(1, "rgba(255,255,255,0)");
   ctx2d.fillStyle = g;
   ctx2d.fillRect(0, 0, 64, 128);
@@ -2787,13 +2788,12 @@ function mount(frame, opts) {
       const base = el.getBoundingClientRect();
       if (base.width <= 0 || base.height <= 0) continue;
       const isSpeech = el.classList.contains("room3d-speech");
-      const maxShift = isSpeech ? 220 : 120;
-      let ox = 0;
-      let oy = 0;
-      let box = { left: base.left, right: base.right, top: base.top, bottom: base.bottom };
+      const maxShift = isSpeech ? 220 : 140;
+      let [ox, oy] = clamp(base, 0, 0, maxShift);
+      let box = { left: base.left + ox, right: base.right + ox, top: base.top + oy, bottom: base.bottom + oy };
       let clear = !placed.some((p) => overlaps(box, p));
-      let bestOx = 0;
-      let bestOy = 0;
+      let bestOx = ox;
+      let bestOy = oy;
       let bestBox = box;
       let bestScore = Infinity;
 
