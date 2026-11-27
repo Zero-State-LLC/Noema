@@ -12,6 +12,8 @@ _TS = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z ")
 
 def get(row: Any, path: str, default: Any = None) -> Any:
     """Dotted lookup: get(issue, "user.login"), get(run, "head_commit.id")."""
+    if isinstance(row, dict) and path in row:
+        return row[path]
     cur = row
     for part in path.split("."):
         if isinstance(cur, dict):

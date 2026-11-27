@@ -107,6 +107,8 @@ def test_shape_helpers() -> None:
     assert shape.count_by(rows, lambda r: [l["name"] for l in r["labels"]]) == [("bug", 2), ("ops", 1)]
     assert shape.get(rows[1], "labels.1.name") == "ops"
     assert "n" in shape.table(rows, ["n"]).splitlines()[0]
+    picked = shape.pick([{"number": 42, "user": {"login": "contributor"}}], "number", "user.login")
+    assert "contributor" in shape.table(picked)
     log = "2026-11-26T13:15:02.0961069Z \x1b[31mFAIL\x1b[39m a\nok\n2026-11-26T13:15:02Z Error: boom"
     assert shape.grep_log(log, ["FAIL", "Error:"]) == ["FAIL a", "Error: boom"]
 
@@ -312,3 +314,15 @@ def test_ci_watch_render() -> None:
     assert out[0] == "Noema#9 feat/x: 3 checks; all green"
     assert out[1].startswith("noema-client b: 1 checks; FAILED: test (digest: ci_failure_digest.py --repo noema-client --branch b)")
     assert out[2] == "Noema-Specs#4 c: 0 checks; still running: no checks yet"
+
+
+def test_ci_watch_uses_pr_head_sha(monkeypatch: pytest.MonkeyPatch) -> None:
+    from codemode.skills.ci_watch import ci_watch
+
+    monkeypatch.setattr(ci_watch, "config", lambda: {"repos": ["Zero-State-LLC/Noema"]})
+    monkeypatch.setattr(
+        ci_watch,
+        "list_pulls",
+        lambda _repo: [{"number": 99, "head": {"ref": "main", "sha": "deadbeef1234567890"}}],
+    )
+    assert ci_watch.targets_from_open_prs() == [("Noema", "deadbeef1234567890", 99)]

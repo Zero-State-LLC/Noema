@@ -21,7 +21,8 @@ def targets_from_open_prs() -> list[tuple[str, str, int | None]]:
     out: list[tuple[str, str, int | None]] = []
     for repo in config()["repos"]:
         for pr in list_pulls(repo):
-            out.append((repo.split("/", 1)[1], pr["head"]["ref"], pr["number"]))
+            head = pr["head"]
+            out.append((repo.split("/", 1)[1], head.get("sha") or head["ref"], pr["number"]))
     return out
 
 
