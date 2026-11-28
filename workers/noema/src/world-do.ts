@@ -107,6 +107,7 @@ import {
   operatorTempoTrigger,
   pinPlayerTempo,
   publicTempoProjection,
+  reopenTempoAfterContention,
   type TempoMode,
 } from "./player-tempo";
 
@@ -272,6 +273,22 @@ export class NoemaWorldDO {
   private previews: Record<string, GenesisResult> = {};
   private requestedWorldId: string | null = null;
   private allowCanonicalBootstrap = false;
+  private tempoContentionHead: Awaited<ReturnType<typeof getWorldHead>> | null = null;
+
+  /** Noema#983: after a lost tempo-commit race, rebase on the durable head and make the batch retryable. */
+  private afterTempoContention(now: number): boolean {
+    const head = this.tempoContentionHead;
+    this.tempoContentionHead = null;
+    if (!head || !this.world) return false;
+    const tempo = this.world.player_tempo;
+    const rebased = worldFromHead(head, this.world);
+    if (rebased !== this.world) {
+      rebased.player_tempo = tempo;
+      this.world = rebased;
+      migrateWorldRuntime(this.world);
+    }
+    return reopenTempoAfterContention(this.world, now);
+  }
   /** §4A hold: last served headline, presentation-only. WATCH stays non-mutating (no storage write). */
   private watchHeld: HeldHeadline | null = null;
   /** Limiter instance only: a sweep alarm is known to be pending, so hits skip the alarm read. */
@@ -1027,7 +1044,9 @@ export class NoemaWorldDO {
             { admission: "hosted" },
           );
           if (!resolved.ok) {
+            this.afterTempoContention(now);
             await this.save();
+            await this.scheduleTempoAlarm(now);
             return Response.json({ error: resolved.result.error }, { status: 409 });
           }
         }
@@ -1739,8 +1758,11 @@ export class NoemaWorldDO {
         isContentionSettlementFail(committed.code) ? await getWorldHead(this.env, this.world!.world_id) : null,
       );
       if (plan.mode === "resync") {
-        // Lost race (Noema#983): stay ACTIVE, adopt the durable revision, retry next alarm.
+        // Lost race (Noema#983): stay ACTIVE and adopt the durable revision. The caller's
+        // failClosed restores the pre-cycle runtime; afterTempoContention() then rebases on
+        // the head and reopens COLLECT so the next alarm retries the same batch.
         this.meta!.revision = plan.revision;
+        this.tempoContentionHead = await getWorldHead(this.env, this.world!.world_id);
         await this.state.storage.put("world_meta", this.meta);
         return false;
       }
@@ -1777,6 +1799,7 @@ export class NoemaWorldDO {
         { admission: "hosted" },
       );
       if (!resolved.ok) {
+        this.afterTempoContention(now);
         await this.save();
         await this.scheduleTempoAlarm(now);
         return;

@@ -720,6 +720,24 @@ export function markTempoSettlementFailed(w: TempoWorld): void {
 }
 
 /**
+ * Noema#983: a cycle commit that lost a settlement race is retryable. Undo the
+ * fail-closed RESOLVE freeze, keep the already-accepted slots (and their
+ * idempotency keys and client sequences), and reopen COLLECT with a fresh
+ * deadline so `nextTempoAlarmAt` schedules the next alarm, which re-resolves
+ * the same batch against the new head.
+ */
+export function reopenTempoAfterContention(w: TempoWorld, now: number): boolean {
+  const tempo = w.player_tempo;
+  if (!tempo || !tempo.settlement_failed || tempo.phase !== "RESOLVE") return false;
+  const kept = [...tempo.accepted];
+  const participants = tempo.active_participant_ids;
+  openCollectPhase(w, now, "contention-retry", "system");
+  tempo.accepted = kept;
+  if (participants) tempo.active_participant_ids = participants;
+  return true;
+}
+
+/**
  * Admin recover returns a pinned world to a COLLECT boundary after an
  * uncommitted RESOLVE freeze. Unpinned worlds are unchanged. Pending
  * idempotency keys for discarded uncommitted slots are cleared so a retry
