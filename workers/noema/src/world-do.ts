@@ -69,7 +69,7 @@ import {
   shouldRestoreFromHead,
   worldFromHead,
 } from "./settle";
-import { checkExpectedHead, isContentionSettlementFail } from "./settle-fence";
+import { checkExpectedHead, isContentionSettlementFail, planTempoCommitFailure } from "./settle-fence";
 import { buildRollbackEvidence } from "./rollback-evidence";
 import { buildCompatibilityEvidence } from "./compatibility-evidence";
 import {
@@ -1734,6 +1734,16 @@ export class NoemaWorldDO {
       allow_bootstrap: bootstrapEmpty,
     });
     if (!committed.ok) {
+      const plan = planTempoCommitFailure(
+        committed.code,
+        isContentionSettlementFail(committed.code) ? await getWorldHead(this.env, this.world!.world_id) : null,
+      );
+      if (plan.mode === "resync") {
+        // Lost race (Noema#983): stay ACTIVE, adopt the durable revision, retry next alarm.
+        this.meta!.revision = plan.revision;
+        await this.state.storage.put("world_meta", this.meta);
+        return false;
+      }
       this.meta!.settlement_ok = false;
       this.meta!.settlement_health = "BLOCKING";
       this.meta!.status = "INCIDENT";
