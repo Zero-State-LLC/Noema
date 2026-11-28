@@ -104,3 +104,21 @@ export function restoreOrIncident(head: FenceHead | null): { ok: true; head: Fen
   if (!head || typeof head.revision !== "number") return { ok: false, code: "INCIDENT" };
   return { ok: true, head };
 }
+
+export type TempoCommitFailurePlan =
+  | { mode: "resync"; revision: number }
+  | { mode: "incident" };
+
+/**
+ * Noema#983: a tempo-alarm cycle commit that lost a settlement race (STALE_HEAD and other
+ * contention codes) must not flip World.status to INCIDENT. The cycle stays uncommitted
+ * (runPinnedTempoResolve restores the pre-cycle runtime); the DO adopts the durable
+ * revision and the next alarm retries. Any other failure, or a missing head, still fails
+ * closed to INCIDENT.
+ */
+export function planTempoCommitFailure(code: string, head: { revision?: number } | null): TempoCommitFailurePlan {
+  if (isContentionSettlementFail(code) && head && typeof head.revision === "number") {
+    return { mode: "resync", revision: head.revision };
+  }
+  return { mode: "incident" };
+}
