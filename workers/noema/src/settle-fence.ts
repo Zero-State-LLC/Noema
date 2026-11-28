@@ -19,6 +19,20 @@ export function isContentionSettlementFail(code: string): boolean {
   return CONTENTION_SETTLEMENT_FAIL.has(code);
 }
 
+/** Stable client code for a transient store failure: retry the same command after observing. */
+export const SETTLEMENT_RETRY = "SETTLEMENT_RETRY";
+
+/**
+ * Noema#983 (third occurrence): a settle RPC rejected by the store for a transient reason. A Postgres
+ * statement timeout (SQLSTATE 57014) rolls the RPC transaction back, so the durable head did not move;
+ * like a lost race it must reject the actor, not flip World.status to INCIDENT. `rpcFailureCode` passes
+ * Postgres messages through as the code, so match both the SQLSTATE and the message.
+ */
+export function isTransientStoreSettlementFail(code: string): boolean {
+  const c = String(code || "").toLowerCase();
+  return c === "57014" || c.includes("canceling statement due to statement timeout");
+}
+
 export type FenceHead = {
   world_id: string;
   revision: number;

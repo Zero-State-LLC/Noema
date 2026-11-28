@@ -69,7 +69,7 @@ import {
   shouldRestoreFromHead,
   worldFromHead,
 } from "./settle";
-import { checkExpectedHead, isContentionSettlementFail } from "./settle-fence";
+import { checkExpectedHead, isContentionSettlementFail, isTransientStoreSettlementFail, SETTLEMENT_RETRY } from "./settle-fence";
 import { buildRollbackEvidence } from "./rollback-evidence";
 import { buildCompatibilityEvidence } from "./compatibility-evidence";
 import {
@@ -1582,7 +1582,10 @@ export class NoemaWorldDO {
       if (!committed.ok) {
         // Soft-restore sequence drift (PR #363). Contention races stay ACTIVE with resync.
         // Other durable failures still INCIDENT via resolveSoftSettlementFailure.
-        if (isContentionSettlementFail(committed.code)) {
+        if (isContentionSettlementFail(committed.code) || isTransientStoreSettlementFail(committed.code)) {
+          // Noema#983: a transient store failure (statement timeout) rolled the RPC back; the head did not
+          // move. Same handling as a lost race: resync from the head, stay ACTIVE, ask the actor to retry.
+          const transient = !isContentionSettlementFail(committed.code);
           const head = await getWorldHead(this.env, w.world_id);
           if (head && typeof head.revision === "number") {
             this.world = worldFromHead(head, before);
@@ -1620,10 +1623,9 @@ export class NoemaWorldDO {
           return {
             ok: false,
             request_id: envl.request_id || "unknown",
-            error: {
-              code: committed.code,
-              message: "That action lost the settlement race. Observe and try again.",
-            },
+            error: transient
+              ? { code: SETTLEMENT_RETRY, message: "The world store was briefly unavailable. Observe and try again." }
+              : { code: committed.code, message: "That action lost the settlement race. Observe and try again." },
           };
         }
         const soft = await resolveSoftSettlementFailure({
